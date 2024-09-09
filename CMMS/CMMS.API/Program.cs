@@ -1,7 +1,7 @@
 
 using CMMS.Core.Entities;
+using CMMS.Infrastructure;
 using CMMS.Infrastructure.Data;
-using CMMS.Infrastructure.Services;
 using Microsoft.OpenApi.Models;
 
 namespace CMMS.API
