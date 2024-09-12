@@ -29,9 +29,5 @@
   <ItemGroup>
     <ProjectReference Include="..\CMMS.Infrastructure\CMMS.Infrastructure.csproj" />
   </ItemGroup>
-	
-  <ItemGroup>
-    <Folder Include="Helpers\" />
-  </ItemGroup>
 
 </Project>
