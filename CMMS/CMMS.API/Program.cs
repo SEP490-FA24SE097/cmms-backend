@@ -1,9 +1,12 @@
 
 using CMMS.API.OptionsSetup;
+using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Infrastructure;
 using CMMS.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.OpenApi.Models;
 
 namespace CMMS.API
@@ -15,9 +18,9 @@ namespace CMMS.API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -29,11 +32,21 @@ namespace CMMS.API
             // DI 
             builder.Services.AddInfrastructureServices(builder.Configuration);
 
+            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+            builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+        
+
+
             // swagger options
             builder.Services.AddSwaggerGen(option =>
             {
                SwaggerConfigOptionsSetup.SwaggerConfigOptions(option);
             });
+
+            // auto mapper
+            builder.Services.AddAutoMapper(typeof(Program));
 
 
             var app = builder.Build();

@@ -1,3 +1,5 @@
+using CMMS.Infrastructure.Handlers;
+using CMMS.Infrastructure.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CMMS.API.Controllers
@@ -17,7 +19,7 @@ namespace CMMS.API.Controllers
         {
             _logger = logger;
         }
-
+        [HasPermission(Permission.ReadMember)]
         [HttpGet(Name = "GetWeatherForecast")]
         public IActionResult Get()
         {

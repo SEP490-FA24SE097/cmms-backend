@@ -1,4 +1,6 @@
 ﻿using CMMS.Infrastructure.Data;
+using CMMS.Infrastructure.Repositories;
+using CMMS.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +18,10 @@ namespace CMMS.Infrastructure
                 options.UseSqlServer(connectionString);
             });
 
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUserService, UserService>();
 
             return services;
         }
