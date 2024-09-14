@@ -2,8 +2,10 @@
 {
     public enum Permission
     {
-        ReadMember = 1,
-        DeleteMember = 2,
-        UpdateMember = 2,
+        ViewDashboard,
+        ManageUsers,
+        ManageProducts,
+        ViewOrders,
+        EditOrders,
     }
 }

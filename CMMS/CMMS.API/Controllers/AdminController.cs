@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace CMMS.API.Controllers
 {
@@ -7,10 +6,16 @@ namespace CMMS.API.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
+        
         public AdminController()
         {
             
         }
-        
+        [HttpGet(Name = "SeedPermission")]
+        public Task<IActionResult> Get() {
+
+            return Ok("Create sucessfully");
+        }
+
     }
 }

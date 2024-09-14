@@ -36,6 +36,11 @@ namespace CMMS.API
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
             builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
+            // authorization policies
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddCustomAuthorizationPolicies();
+            });
         
 
 
