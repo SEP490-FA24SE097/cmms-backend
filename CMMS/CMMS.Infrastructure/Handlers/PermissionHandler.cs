@@ -1,5 +1,8 @@
 ﻿using CMMS.Infrastructure.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security;
 
 namespace CMMS.Infrastructure.Handlers
 {
@@ -25,11 +28,29 @@ namespace CMMS.Infrastructure.Handlers
     }
     public class PermissionHandler : AuthorizationHandler<PermissionRequirment>
     {
-        protected override Task HandleRequirementAsync(
+
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+
+        public PermissionHandler(IServiceScopeFactory serviceScopeFactory)
+        {
+            _serviceScopeFactory = serviceScopeFactory;
+        }
+
+        protected override async Task HandleRequirementAsync(
             AuthorizationHandlerContext context, 
             PermissionRequirment requirement)
         {
-            throw new NotImplementedException();
+            string userId = context.User.Claims
+                .FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value;
+
+            if (!Guid.TryParse(userId, out Guid parsedUserId)) {
+                return;
+            }
+
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+
+            
         }
     }
 }
+

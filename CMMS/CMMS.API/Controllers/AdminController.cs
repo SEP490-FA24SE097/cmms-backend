@@ -12,7 +12,7 @@ namespace CMMS.API.Controllers
             
         }
         [HttpGet(Name = "SeedPermission")]
-        public Task<IActionResult> Get() {
+        public IActionResult Get() {
 
             return Ok("Create sucessfully");
         }

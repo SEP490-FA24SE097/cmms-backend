@@ -1,6 +1,7 @@
 ﻿using CMMS.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace CMMS.API.Services
@@ -30,7 +31,8 @@ namespace CMMS.API.Services
         }
         public Guid GetUserId()
         {
-            return Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("UserId")?.Value);
+            return Guid.Parse(_httpContextAccessor.HttpContext.
+                User.Claims.FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value);
         }
         public String getUserEmail()
         {

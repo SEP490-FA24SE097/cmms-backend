@@ -19,7 +19,7 @@ namespace CMMS.API.Controllers
         {
             _logger = logger;
         }
-        [HasPermission(Permission.ReadMember)]
+        [HasPermission(Permission.ViewDashboard)]
         [HttpGet(Name = "GetWeatherForecast")]
         public IActionResult Get()
         {
