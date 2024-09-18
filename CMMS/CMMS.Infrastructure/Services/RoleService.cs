@@ -24,6 +24,7 @@ namespace CMMS.Infrastructure.Services
         Task<IdentityResult> AddRoleUser(List<string> roleNames, String userId);
         Task<List<UserRolesVM>> GetListUsers();
         Task SeedingRole();
+        Task SeedingPermission();
         Task LinkRolePermission();
     }
     public class RoleService : IRoleService
@@ -140,9 +141,8 @@ namespace CMMS.Infrastructure.Services
         {
             foreach (Enums.Permission permission in Enum.GetValues(typeof(Enums.Permission)))
             {
-                if (!await _permissionRepository.GetAll().AnyAsync(p => p.Name.Equals(permission.ToString())))
+                if (_permissionRepository.Get(p => p.Name.Equals(permission.ToString())).FirstOrDefault() == null)
                 {
-
                     await _permissionRepository.AddAsync(new Core.Entities.Permission
                     {
                         Name = permission.ToString(),
@@ -187,16 +187,15 @@ namespace CMMS.Infrastructure.Services
                 {Role.Customer,  customerPermission},
             };
 
-
-
             foreach (var roleMapping in rolePermissionMapping)
             {
-                var role = await _roleManager.FindByNameAsync(roleMapping.Key.ToString());
+                var roleName = roleMapping.Key.ToString();
+                var role =  await _roleManager.FindByNameAsync(roleName);
                 foreach (var permissions in roleMapping.Value)
                 {
                     var permisison = _permissionRepository.Get(p => p.Name.Equals(permissions)).FirstOrDefault();
-                    if(!_rolePermissionRepository.GetAll().Any(rp => rp.RoleId.Equals(role.Id) 
-                    && rp.PermissionId.Equals(permisison.Id)))
+                    if(_rolePermissionRepository.Get(rp => rp.RoleId.Equals(role.Id)
+                    && rp.PermissionId.Equals(permisison.Id)).FirstOrDefault() == null)
                     {
                         await _rolePermissionRepository.AddAsync(new RolePermission
                         {

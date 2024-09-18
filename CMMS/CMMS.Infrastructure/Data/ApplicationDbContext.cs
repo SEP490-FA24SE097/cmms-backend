@@ -9,6 +9,7 @@ namespace CMMS.Infrastructure.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<Permission> Permissions { get;set; }
         public DbSet<RolePermission> RolePermissions { get;set; }
+        public DbSet<UserPermission> UserPermissions { get;set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
