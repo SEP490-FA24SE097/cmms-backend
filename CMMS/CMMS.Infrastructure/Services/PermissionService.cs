@@ -3,6 +3,7 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,41 +15,56 @@ namespace CMMS.Infrastructure.Services
     public interface IPermissionSerivce
     {
         List<Permission> GetAll();
-        Task<IdentityRole> GetPermissionById(String id);
-        Task<IdentityResult> CreatePermission(String permission);
-        Task<IdentityResult> DeletePermission(String permissionId);
-        Task<String[]> GetUserPermission(string userId);
+        //Task<Permission> GetPermissionById(String id);
+        Task<bool> CreatePermission(String permission);
+        Task<bool> DeletePermission(String permissionId);
+        Task<string[]> GetUserPermission(string userId);
         Task<RolePermissions> GetRolePermision(string roleId);
-        Task<IdentityResult> AddUserPermission(String userId,  String permissionId);
-        Task<IdentityResult> RemoveUserPermission(String userId,  String permissionId);
+        Task<bool> AddUserPermission(String userId,  String permissionId);
+        Task<bool> RemoveUserPermission(String userId,  String permissionId);
 
     }
     public class PermissionService : IPermissionSerivce
     {
         private readonly IPermissionRepository _permissionRepository;
         private readonly IUnitOfWork _iUnitOfWork;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IRolePermissionRepository _rolePermissionRepository;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserPermisisonRepository _userPermissionRepository;
        
 
         public PermissionService(IPermissionRepository permissionRepository, 
             IUserPermisisonRepository userPermisisonRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork, 
+            IRoleRepository roleRepository, IRolePermissionRepository rolePermissionRepository,
+            UserManager<ApplicationUser> userManager)
         {
             _userPermissionRepository = userPermisisonRepository;
             _permissionRepository = permissionRepository;
             _iUnitOfWork = unitOfWork;
+            _roleRepository = roleRepository;
+            _rolePermissionRepository = rolePermissionRepository;
+            _userManager = userManager;
         }
 
-      
 
-        public Task<IdentityResult> CreatePermission(string permission)
+        public async Task<bool> CreatePermission(string permissionName)
         {
-            throw new NotImplementedException();
+            var permission = new Permission
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = permissionName,
+            };
+            await _permissionRepository.AddAsync(permission);
+            return await _iUnitOfWork.SaveChangeAsync();
         }
 
-        public Task<IdentityResult> DeletePermission(string permissionId)
+        public async Task<bool> DeletePermission(string permissionId)
         {
-            throw new NotImplementedException();
+            var permission = await _permissionRepository.FindAsync(permissionId);
+             _permissionRepository.Remove(permission);
+            return await _iUnitOfWork.SaveChangeAsync();
         }
 
         public List<Permission> GetAll()
@@ -56,19 +72,35 @@ namespace CMMS.Infrastructure.Services
             return  _permissionRepository.GetAll().ToList();
         }
 
-        public Task<IdentityRole> GetPermissionById(string id)
+        public Permission GetPermissionById(string id)
         {
-            throw new NotImplementedException();
+            return _permissionRepository.Get(_ => _.Id.Equals(id)).FirstOrDefault(); 
         }
 
-        public Task<RolePermissions> GetRolePermision(string roleId)
+        public async Task<RolePermissions> GetRolePermision(string roleId)
         {
-            throw new NotImplementedException();
+            var role = _roleRepository.Get(_ => _.Id.Equals(roleId)).FirstOrDefault();
+            if (role == null) throw new Exception("Role not found");
+
+            var permission = _rolePermissionRepository.Get(_ => _.RoleId.Equals(role.Id), null, _ => _.Permission);
+            string[] permissionNames = await permission.Select(_ => _.Permission.Name).ToArrayAsync();
+            RolePermissions rolePermissions = new RolePermissions
+            {
+                RoleName = role.Name,
+                Permissions = permissionNames
+            };
+            return rolePermissions;
+
         }
 
-        public Task<string[]> GetUserPermission(string userId)
+        public async Task<string[]> GetUserPermission(string userId)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            var userPermission = await _userPermissionRepository.Get(_ => _.UserId.Equals(userId), null, _ => _.Permission)
+                .Select(_ => _.Permission.Name).ToArrayAsync();
+            return userPermission;
         }
 
         public async Task<bool> RemoveUserPermission(string userId, string permissionId)

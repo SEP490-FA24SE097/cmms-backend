@@ -22,11 +22,7 @@ namespace CMMS.API.Controllers
 
         [HttpGet(Name = "SeedingRole")]
         public async Task<IActionResult> SeedRole() {
-            foreach (Role role in Enum.GetValues(typeof(Role))) {
-                if (!await _roleManager.RoleExistsAsync(role.ToString())) {
-                    await _roleManager.CreateAsync(new IdentityRole(role.ToString()));
-                }
-            }
+         
             return Ok();
         }
     }

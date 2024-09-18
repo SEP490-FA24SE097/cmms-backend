@@ -23,6 +23,16 @@ namespace CMMS.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
 
+            services.AddScoped<IRolePermissionRepository, RolePermisisonRepository>();
+
+            services.AddScoped<IUserPermisisonRepository, UserPermisisonRepository>();
+
+            services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IRoleService, RoleService>();
+
+            services.AddScoped<IPermissionRepository, PermissionRepository>();
+            services.AddScoped<IPermissionSerivce, PermissionService>();    
+
             return services;
         }
     }
