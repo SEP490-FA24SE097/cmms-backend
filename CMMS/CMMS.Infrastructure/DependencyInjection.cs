@@ -20,8 +20,16 @@ namespace CMMS.Infrastructure
                 .EnableSensitiveDataLogging()
                 .LogTo(Console.WriteLine);   // Log queries and errors to console
             });
-
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IUnitRepository, UnitRepository>();
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<IMaterialRepository, MaterialRepository>();
+            services.AddScoped<IImageRepository, ImageRepository>();
+
+          
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
@@ -36,6 +44,12 @@ namespace CMMS.Infrastructure
             services.AddScoped<IPermissionRepository, PermissionRepository>();
             services.AddScoped<IPermissionSerivce, PermissionService>();
 
+
+            services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IUnitService, UnitService>();
+            services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IMaterialService, MaterialService>();
+            services.AddScoped<IImageService, ImageService>();
             return services;
         }
     }
