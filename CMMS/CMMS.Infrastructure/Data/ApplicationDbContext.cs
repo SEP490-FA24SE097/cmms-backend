@@ -9,7 +9,15 @@ namespace CMMS.Infrastructure.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<Permission> Permissions { get;set; }
         public DbSet<RolePermission> RolePermissions { get;set; }
+
+        public DbSet<Material>  Materials { get;set; }
+        public DbSet<Unit> Units  { get;set; }
+        public DbSet<Category> Categories  { get;set; }
+        public DbSet<Supplier> Suppliers { get;set; }
+        public DbSet<Image> Images { get;set; }
+
         public DbSet<UserPermission> UserPermissions { get;set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
