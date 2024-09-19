@@ -36,7 +36,7 @@ namespace CMMS.API.Services
         {
             var authClaims = new List<Claim>
             {
-                 new Claim("UserId", user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Sid, user.Id.ToString()),
                 new Claim(ClaimTypes.UserData, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, $"{user.LastName}"),
                 new Claim(ClaimTypes.Email, user.Email),

@@ -15,15 +15,32 @@ namespace CMMS.Infrastructure
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString).EnableSensitiveDataLogging();
             });
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IUnitRepository, UnitRepository>();
             services.AddScoped<ISupplierRepository, SupplierRepository>();
             services.AddScoped<IMaterialRepository, MaterialRepository>();
             services.AddScoped<IImageRepository, ImageRepository>();
+
+          
+
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUserService, UserService>();
+
+            services.AddScoped<IRolePermissionRepository, RolePermisisonRepository>();
+
+            services.AddScoped<IUserPermisisonRepository, UserPermisisonRepository>();
+
+            services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IRoleService, RoleService>();
+
+            services.AddScoped<IPermissionRepository, PermissionRepository>();
+            services.AddScoped<IPermissionSerivce, PermissionService>();    
+
 
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IUnitService, UnitService>();

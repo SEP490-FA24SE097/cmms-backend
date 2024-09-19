@@ -3,6 +3,7 @@ using CMMS.Core.Constant;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Data;
+using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
@@ -18,10 +19,11 @@ namespace CMMS.Infrastructure.Services
 {
     public interface IUserService
     {
-        //Task<IdentityResult> SignUpAsync(UserDTO model);
-        //Task<ApplicationUser> SignInAsync(UserSignIn model);
-        Task<IList<String>> GetRolesAsync(ApplicationUser user);
+        Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
+        Task<ApplicationUser> SignInAsync(UserSignIn model);
+        Task<Message> AddAsync(UserDTO user);
 
+        Task<IList<String>> GetRolesAsync(ApplicationUser user);
         Task<ApplicationUser> FindAsync(Guid id);
         Task<ApplicationUser> FindbyEmail(String email);
         Task<ApplicationUser> FindByUserName(String userName);
@@ -29,7 +31,6 @@ namespace CMMS.Infrastructure.Services
         IQueryable<ApplicationUser> Get(Expression<Func<ApplicationUser, bool>> where);
         IQueryable<ApplicationUser> Get(Expression<Func<ApplicationUser, bool>> where, params Expression<Func<ApplicationUser, object>>[] includes);
         IQueryable<ApplicationUser> Get(Expression<Func<ApplicationUser, bool>> where, Func<IQueryable<ApplicationUser>, IIncludableQueryable<ApplicationUser, object>> include = null);
-        //Task<Message> AddAsync(UserDTO user);
         void Update(ApplicationUser user);
         Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where);
         Task<bool> SaveChangeAsync();
@@ -68,78 +69,65 @@ namespace CMMS.Infrastructure.Services
             return null;
         }
 
-        //public async Task<IdentityResult> SignUpAsync(UserDTO model)
-        //{
-        //    var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
-        //    if (isDupplicate != null)
-        //    {
-        //        return null;
-        //    }
-        //    var user = _mapper.Map<ApplicationUser>(model);
+        public async Task<IdentityResult> CustomerSignUpAsync(UserDTO model)
+        {
+            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
+            if (isDupplicate != null)
+            {
+                return null;
+            }
+            var user = _mapper.Map<ApplicationUser>(model);
 
-        //    var result = await _userManager.CreateAsync(user, model.Password);
-        //    if (result.Succeeded)
-        //    {
-        //        if (!await _roleManager.RoleExistsAsync(AppRole.Customer))
-        //        {
-        //            await _roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
-        //        }
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                    await _userManager.AddToRoleAsync(user, Role.Customer.ToString());
+            }
 
-        //        if (!await _roleManager.RoleExistsAsync(AppRole.Admin))
-        //        {
-        //            await _roleManager.CreateAsync(new IdentityRole(AppRole.Admin));
-        //        }
-        //        if (model.IsAdmin)
-        //        {
-        //            await _userManager.AddToRoleAsync(user, AppRole.Admin);
-        //        }
-        //        else
-        //        {
-        //            await _userManager.AddToRoleAsync(user, AppRole.Customer);
-        //        }
+            return result;
+        }
 
-        //        //await _userManager.AddToRoleAsync(user, AppRole.Customer);
-        //    }
+        public async Task<Message> AddAsync(UserDTO userVM)
+        {
+            return new Message
+            {
+                StatusCode = 400,
+                Content = "Create new user successfully",
+            };
+            //var isDupplicate = await _userManager.FindByEmailAsync(userVM.Email);
+            //if (isDupplicate != null)
+            //{
+            //    return null;
+            //}
+            //var user = _mapper.Map<ApplicationUser>(userVM);
+            //var result = await _userManager.CreateAsync(user, userVM.Password);
+            //if (result.Succeeded)
+            //{
+            //    if (!await _roleManager.RoleExistsAsync(AppRole.Customer))
+            //    {
+            //        await _roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
+            //    }
 
-        //    return result;
-        //}
+            //    if (!await _roleManager.RoleExistsAsync(AppRole.Admin))
+            //    {
+            //        await _roleManager.CreateAsync(new IdentityRole(AppRole.Admin));
+            //    }
+            //    if (userVM.IsAdmin)
+            //    {
+            //        await _userManager.AddToRoleAsync(user, AppRole.Admin);
+            //    }
+            //    else
+            //    {
+            //        await _userManager.AddToRoleAsync(user, AppRole.Customer);
+            //    }
+            //}
 
-        //public async Task<Message> AddAsync(UserDTO userVM)
-        //{
-        //    var isDupplicate = await _userManager.FindByEmailAsync(userVM.Email);
-        //    if (isDupplicate != null)
-        //    {
-        //        return null;
-        //    }
-        //    var user = _mapper.Map<ApplicationUser>(userVM);
-        //    var result = await _userManager.CreateAsync(user, userVM.Password);
-        //    if (result.Succeeded)
-        //    {
-        //        if (!await _roleManager.RoleExistsAsync(AppRole.Customer))
-        //        {
-        //            await _roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
-        //        }
-
-        //        if (!await _roleManager.RoleExistsAsync(AppRole.Admin))
-        //        {
-        //            await _roleManager.CreateAsync(new IdentityRole(AppRole.Admin));
-        //        }
-        //        if (userVM.IsAdmin)
-        //        {
-        //            await _userManager.AddToRoleAsync(user, AppRole.Admin);
-        //        }
-        //        else
-        //        {
-        //            await _userManager.AddToRoleAsync(user, AppRole.Customer);
-        //        }
-        //    }
-
-        //    return new Message
-        //    {
-        //        StatusCode = 400,
-        //        Content = "Create new user successfully",
-        //    };
-        //}
+            //return new Message
+            //{
+            //    StatusCode = 400,
+            //    Content = "Create new user successfully",
+            //};
+        }
 
         public async Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where)
         {
