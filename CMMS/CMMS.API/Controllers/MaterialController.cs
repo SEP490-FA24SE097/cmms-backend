@@ -48,7 +48,17 @@ namespace CMMS.API.Controllers
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
 
-                return Ok(result);
+                return Ok(new
+                {
+                    data = result,
+                    total = list.Count(),
+                    perPage = itemPerPage,
+                    currentPage = page
+
+                });
+
+
+
             }
             catch (Exception ex)
             {
@@ -64,7 +74,7 @@ namespace CMMS.API.Controllers
                 var list = _materialService.GetAll().
                     Include(x => x.Category).
                     Include(x => x.Unit).
-                    Include(x => x.Supplier).Where(x=>x.Name.Contains(materialName)).Select(x => new MaterialDTO()
+                    Include(x => x.Supplier).Where(x => x.Name.Contains(materialName)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
@@ -82,7 +92,14 @@ namespace CMMS.API.Controllers
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
 
-                return Ok(result);
+                return Ok(new
+                {
+                    data = result,
+                    total = list.Count(),
+                    perPage = itemPerPage,
+                    currentPage = page
+
+                });
             }
             catch (Exception ex)
             {
@@ -98,7 +115,7 @@ namespace CMMS.API.Controllers
                 var list = _materialService.GetAll().
                     Include(x => x.Category).
                     Include(x => x.Unit).
-                    Include(x => x.Supplier).Where(x => x.CategoryId==Guid.Parse(categoryId)).Select(x => new MaterialDTO()
+                    Include(x => x.Supplier).Where(x => x.CategoryId == Guid.Parse(categoryId)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
@@ -116,7 +133,14 @@ namespace CMMS.API.Controllers
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
 
-                return Ok(result);
+                return Ok(new
+                {
+                    data = result,
+                    total = list.Count(),
+                    perPage = itemPerPage,
+                    currentPage = page
+
+                });
             }
             catch (Exception ex)
             {
@@ -150,7 +174,13 @@ namespace CMMS.API.Controllers
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
 
-                return Ok(result);
+                return Ok(new
+                {
+                    data = result,
+                    total = list.Count(),
+                    perPage = itemPerPage,
+                    currentPage = page
+                });
             }
             catch (Exception ex)
             {
@@ -220,12 +250,12 @@ namespace CMMS.API.Controllers
                     SoldQuantity = 0,
                     SupplierId = materialCm.SupplierId,
                     UnitId = materialCm.UnitId,
-                    CategoryId = materialCm.CategoryId, 
+                    CategoryId = materialCm.CategoryId,
                     IsRewardEligible = materialCm.IsRewardEligible
                 };
                 await _materialService.AddAsync(material);
                 await _materialService.SaveChangeAsync();
-                await _imageService.AddRange(materialCm.Images.Select(x=>new Image
+                await _imageService.AddRange(materialCm.Images.Select(x => new Image
                 {
                     Id = new Guid(),
                     ImageUrl = x.ImageUrl,
