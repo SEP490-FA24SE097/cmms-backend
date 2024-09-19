@@ -10,7 +10,7 @@ namespace CMMS.API.OptionsSetup
         {
             foreach (Permission permission in Enum.GetValues(typeof(Permission)))
             {
-                options.AddPolicy(permission.ToString() + "Policy", policy =>
+                options.AddPolicy(permission.ToString(), policy =>
                     policy.Requirements.Add(new PermissionRequirment(permission.ToString())));
             }
         }

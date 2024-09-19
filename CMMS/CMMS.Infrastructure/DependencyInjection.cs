@@ -1,6 +1,7 @@
 ﻿using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,9 @@ namespace CMMS.Infrastructure
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(connectionString).EnableSensitiveDataLogging();
+                options.UseSqlServer(connectionString)
+                .EnableSensitiveDataLogging()
+                .LogTo(Console.WriteLine);   // Log queries and errors to console
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -31,7 +34,7 @@ namespace CMMS.Infrastructure
             services.AddScoped<IRoleService, RoleService>();
 
             services.AddScoped<IPermissionRepository, PermissionRepository>();
-            services.AddScoped<IPermissionSerivce, PermissionService>();    
+            services.AddScoped<IPermissionSerivce, PermissionService>();
 
             return services;
         }

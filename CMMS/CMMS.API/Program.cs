@@ -4,7 +4,9 @@ using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Infrastructure;
 using CMMS.Infrastructure.Data;
+using CMMS.Infrastructure.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.OpenApi.Models;
@@ -29,19 +31,20 @@ namespace CMMS.API
                 .AddJwtBearer();
             builder.Services.ConfigureOptions<JwtBearerOptionSetup>();
 
-            // DI 
-            builder.Services.AddInfrastructureServices(builder.Configuration);
-
-            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-            builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
             // authorization policies
             builder.Services.AddAuthorization(options =>
             {
                 options.AddCustomAuthorizationPolicies();
             });
-        
+
+            // DI 
+            builder.Services.AddInfrastructureServices(builder.Configuration);
+
+            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+            builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 
 
             // swagger options

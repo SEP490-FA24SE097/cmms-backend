@@ -16,6 +16,7 @@ namespace CMMS.Infrastructure.Data
         IQueryable<T> Get(Expression<Func<T, bool>> where);
         IQueryable<T> Get(Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] includes);
         IQueryable<T> Get(Expression<Func<T, bool>> where, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null);
+        Task<List<T>> GetAsync(Expression<Func<T, bool>> where);
         Task AddAsync(T entity);
         Task AddRangce(IEnumerable<T> entities);
         void Update(T entity);
@@ -55,6 +56,10 @@ namespace CMMS.Infrastructure.Data
             return dbSet;
         }
 
+        public async Task<List<T>> GetAsync(Expression<Func<T, bool>> where)
+        {
+            return await dbSet.Where(where).ToListAsync();
+        }
         public virtual IQueryable<T> Get(Expression<Func<T, bool>> where)
         {
             return dbSet.Where(where);
@@ -130,5 +135,7 @@ namespace CMMS.Infrastructure.Data
         {
             dbSet.RemoveRange(list);
         }
+
+       
     }
 }

@@ -2,6 +2,8 @@
 using CMMS.API.Constant;
 using CMMS.API.Helpers;
 using CMMS.Core.Models;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +30,18 @@ namespace CMMS.API.Controllers
             _permissionService = permissionSerivce;
             _mapper = mapper;
         }
+        [HasPermission(Permission.StoreMaterialTracking)]
+        [HttpGet("GetAllUser")]
+        public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
+        {
+            var result = await _userService.GetAll();
+            var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "UserName" : defaultSearch.sortBy
+                      , defaultSearch.isAscending)
+                      .ToPageList(defaultSearch.currentPage, defaultSearch.perPage).AsNoTracking().ToList();
+            return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage });
+        }
 
+        #region permissions
         [HttpGet("GetAllPermission")]
         public IActionResult GetAllPermission([FromQuery] DefaultSearch defaultSearch)
         {
@@ -145,6 +158,70 @@ namespace CMMS.API.Controllers
             }
         }
 
+        #endregion
+
+        #region roles
+  
+        [HttpGet("GetRole")]
+        public async Task<IActionResult> GetAccounts()
+        {
+            var result = await _roleSerivce.GetRole();
+            var listRoles = result.Select(_ => new
+            {
+                _.Id,
+                _.Name
+            });
+            return Ok(listRoles);
+        }
+
+        [HttpGet("GetRoleBy/{id}")]
+        public async Task<IActionResult> GetRoleById(string id)
+        {
+            var result = await _roleSerivce.GetRoleById(id);
+            if (result != null) { return Ok(result); }
+            return BadRequest("Cannot found");
+        }
+
+        [HttpPost("CreateRole")]
+        public async Task<IActionResult> CreateRole(string roleName)
+        {
+            var result = await _roleSerivce.CreateRole(roleName);
+            return Ok(result);
+        }
+
+        [HttpPut("UpdateRole/{id}")]
+        public async Task<IActionResult> UpdateRole(string roleName, string id)
+        {
+            var result = await _roleSerivce.UpdateRole(roleName, id);
+            if (result > 0) return Ok();
+            return BadRequest("Cannot update");
+        }
+
+        [HttpDelete("DeleteRole")]
+        public async Task<IActionResult> DeleteRole(string roleId)
+        {
+            var result = await _roleSerivce.DeleteRole(roleId);
+            return Ok(result);
+        }
+  
+        [HttpGet("GetUserRole/{userId}")]
+        public async Task<IActionResult> GetUserRole(string userId)
+        {
+            var result = await _roleSerivce.GetUserRole(userId);
+            if (result != null) return Ok(result);
+            return BadRequest("Cannot found");
+        }
+
+
+        [HttpPost("AddUserRole")]
+        public async Task<IActionResult> AddRoleUser(List<string> roleNames, string userId)
+        {
+            var result = await _roleSerivce.AddRoleUser(roleNames, userId);
+            return Ok(result);
+        }
+        #endregion
+
+        #region seeding
 
         [HttpGet("SeedRole")]
         public IActionResult SeedRole()
@@ -187,6 +264,6 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-
+        #endregion
     }
 }

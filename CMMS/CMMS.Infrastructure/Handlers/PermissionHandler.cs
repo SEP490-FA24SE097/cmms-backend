@@ -1,4 +1,6 @@
-﻿using CMMS.Infrastructure.Enums;
+﻿using CMMS.Infrastructure.Constant;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using System.IdentityModel.Tokens.Jwt;
@@ -40,16 +42,22 @@ namespace CMMS.Infrastructure.Handlers
             AuthorizationHandlerContext context, 
             PermissionRequirment requirement)
         {
-            string userId = context.User.Claims
-                .FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value;
+            string? userId = context.User.Claims
+               .FirstOrDefault(c => c.Type == CustomClaims.UserId)?.Value;
 
-            if (!Guid.TryParse(userId, out Guid parsedUserId)) {
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+            {
                 return;
             }
 
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            IPermissionSerivce permissionService = scope.ServiceProvider.GetRequiredService<IPermissionSerivce>();
 
-            
+            var permissions = await permissionService.GetUserPermission(userId);
+            if(permissions.Contains(requirement.Permission))
+            {
+                context.Succeed(requirement);
+            } 
         }
     }
 }

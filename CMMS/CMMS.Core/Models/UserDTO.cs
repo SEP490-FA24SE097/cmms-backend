@@ -30,12 +30,12 @@ namespace CMMS.Core.Models
         // default Status = 1;
         public int Status { get; set; } = 1;
 
-
     }
 
 
     public class UserRolesVM
     {
+        public string Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
@@ -67,7 +67,6 @@ namespace CMMS.Core.Models
         public String FirstName { get; set; }
         public String LastName { get; set; }
         public String PhoneNumber { get; set; }
-        public String StudentId { get; set; }
         public String Email { get; set; }
         public String Avatar { get; set; }
         public bool Gender { get; set; }
