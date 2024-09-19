@@ -14,7 +14,7 @@ namespace CMMS.Infrastructure.Services
 {
     public interface IPermissionSerivce
     {
-        List<Permission> GetAll();
+        IQueryable<Permission> GetAll();
         //Task<Permission> GetPermissionById(String id);
         Task<bool> CreatePermission(String permission);
         Task<bool> DeletePermission(String permissionId);
@@ -67,9 +67,9 @@ namespace CMMS.Infrastructure.Services
             return await _iUnitOfWork.SaveChangeAsync();
         }
 
-        public List<Permission> GetAll()
+        public IQueryable<Permission> GetAll()
         {
-            return  _permissionRepository.GetAll().ToList();
+            return  _permissionRepository.GetAll();
         }
 
         public Permission GetPermissionById(string id)
@@ -82,7 +82,7 @@ namespace CMMS.Infrastructure.Services
             var role = _roleRepository.Get(_ => _.Id.Equals(roleId)).FirstOrDefault();
             if (role == null) throw new Exception("Role not found");
 
-            var permission = _rolePermissionRepository.Get(_ => _.RoleId.Equals(role.Id), null, _ => _.Permission);
+            var permission = _rolePermissionRepository.Get(_ => _.RoleId.Equals(role.Id), _ => _.Permission);
             string[] permissionNames = await permission.Select(_ => _.Permission.Name).ToArrayAsync();
             RolePermissions rolePermissions = new RolePermissions
             {
@@ -98,10 +98,11 @@ namespace CMMS.Infrastructure.Services
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) throw new Exception("User not found");
 
-            var userPermission = await _userPermissionRepository.Get(_ => _.UserId.Equals(userId), null, _ => _.Permission)
+            var userPermission = await _userPermissionRepository.Get(_ => _.UserId.Equals(userId), _ => _.Permission)
                 .Select(_ => _.Permission.Name).ToArrayAsync();
             return userPermission;
         }
+
 
         public async Task<bool> RemoveUserPermission(string userId, string permissionId)
         {

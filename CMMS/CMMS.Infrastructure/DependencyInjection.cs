@@ -15,7 +15,7 @@ namespace CMMS.Infrastructure
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString).EnableSensitiveDataLogging();
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();

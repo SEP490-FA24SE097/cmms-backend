@@ -33,25 +33,28 @@ namespace CMMS.Infrastructure.Services
         private SignInManager<ApplicationUser> _signInManager;
         private RoleManager<IdentityRole> _roleManager;
         private IMapper _mapper;
-        private ApplicationDbContext _dbContext;
         private readonly IPermissionRepository _permissionRepository;
         private readonly IRolePermissionRepository _rolePermissionRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IUserRepository _userRepository;
 
         public RoleService(UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager, IConfiguration configuration,
             RoleManager<IdentityRole> roleManager, IMapper mapper, ApplicationDbContext dbContext,
             IPermissionRepository permissionRepository, IRolePermissionRepository rolePermissionRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork, IRoleRepository roleRepository,
+            IUserRepository userRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _mapper = mapper;
-            _dbContext = dbContext;
             _permissionRepository = permissionRepository;
             _rolePermissionRepository = rolePermissionRepository;
             _unitOfWork = unitOfWork;
+            _roleRepository = roleRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<List<IdentityRole>> GetRole()
@@ -73,12 +76,12 @@ namespace CMMS.Infrastructure.Services
 
         public async Task<int> UpdateRole(string roleName, string id)
         {
-            var role = await _roleManager.FindByIdAsync(id);
+            var role = await _roleRepository.FindAsync(id);
             if (role != null)
             {
                 role.Name = roleName;
-                _dbContext.Roles.Update(role);
-                return await _dbContext.SaveChangesAsync();
+               _roleRepository.Update(role);
+                if (await _unitOfWork.SaveChangeAsync()) return 1;
             }
             return 0;
         }
@@ -107,8 +110,9 @@ namespace CMMS.Infrastructure.Services
 
         public async Task<List<UserRolesVM>> GetListUsers()
         {
-            var userTotal = await _dbContext.Users.Select(_ => new UserRoles { Id = _.Id }).ToListAsync();
-            var users = await _dbContext.Users.Select(_ => new UserRoles
+            var userList = _userRepository.GetAll();
+            var userTotal = userList.Select(_ => new UserRoles { Id = _.Id }).ToListAsync();
+            var users = await userList.Select(_ => new UserRoles
             {
                 Id = _.Id,
                 UserName = _.UserName,
@@ -130,11 +134,12 @@ namespace CMMS.Infrastructure.Services
         {
             foreach (Role role in Enum.GetValues(typeof(Role)))
             {
-                if (!await _roleManager.RoleExistsAsync(role.ToString()))
+                if (_roleRepository.Get(r => r.Name.Equals(role.ToString())).FirstOrDefault() == null)
                 {
-                    await _roleManager.CreateAsync(new IdentityRole(role.ToString()));
+                    await _roleRepository.AddAsync(new IdentityRole(role.ToString()));
                 }
             }
+           await _unitOfWork.SaveChangeAsync();
         }
 
         public async Task SeedingPermission()
@@ -163,11 +168,9 @@ namespace CMMS.Infrastructure.Services
             return rolePermissons;
         }
 
-   
 
         public async Task LinkRolePermission()
         {
-
             #region getEnumPermission
             var adminPermission = EnumHelpers.GetEnumValues<Enums.AdminPermission>();
             var seniorPermission = EnumHelpers.GetEnumValues<Enums.SeniorManagementPermission>();
@@ -181,7 +184,7 @@ namespace CMMS.Infrastructure.Services
             {
                 {Role.Admin,  adminPermission},
                 {Role.Senior_Management,  seniorPermission},
-                {Role.Store_Manager,  adminPermission},
+                {Role.Store_Manager,  storeManagerPermission},
                 {Role.Sale_Staff,  saleStaffPermission},
                 {Role.Warehouse_Staff,  warehousePermission},
                 {Role.Customer,  customerPermission},
@@ -190,7 +193,7 @@ namespace CMMS.Infrastructure.Services
             foreach (var roleMapping in rolePermissionMapping)
             {
                 var roleName = roleMapping.Key.ToString();
-                var role =  await _roleManager.FindByNameAsync(roleName);
+                var role =  _roleRepository.Get(r => r.Name.Equals(roleName)).FirstOrDefault();
                 foreach (var permissions in roleMapping.Value)
                 {
                     var permisison = _permissionRepository.Get(p => p.Name.Equals(permissions)).FirstOrDefault();
