@@ -11,8 +11,8 @@ namespace CMMS.Infrastructure.Handlers
     // create HasPermissionAttribute 
     public sealed class HasPermissionAttribute : AuthorizeAttribute
     {
-        public HasPermissionAttribute(Permission permission)
-            : base(policy: permission.ToString())
+        public HasPermissionAttribute(params Permission[] permissions)
+            : base(policy: string.Join(",", permissions.Select(p => p.ToString())))
         {
 
         }
@@ -45,19 +45,25 @@ namespace CMMS.Infrastructure.Handlers
             string? userId = context.User.Claims
                .FirstOrDefault(c => c.Type == CustomClaims.UserId)?.Value;
 
-            if (!Guid.TryParse(userId, out Guid parsedUserId))
+            if (userId is null)
             {
+                context.Fail();
                 return;
             }
 
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IPermissionSerivce permissionService = scope.ServiceProvider.GetRequiredService<IPermissionSerivce>();
 
-            var permissions = await permissionService.GetUserPermission(userId);
-            if(permissions.Contains(requirement.Permission))
+            var permissions = context.User.Claims
+               .FirstOrDefault(c => c.Type == CustomClaims.Permissions)?.Value;
+
+            if (permissions.Contains(requirement.Permission))
             {
                 context.Succeed(requirement);
-            } 
+            } else
+            {
+                context.Fail();
+            }
         }
     }
 }
