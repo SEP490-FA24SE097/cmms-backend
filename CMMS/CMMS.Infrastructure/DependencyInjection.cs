@@ -1,6 +1,7 @@
 ﻿using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,18 +16,26 @@ namespace CMMS.Infrastructure
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(connectionString).EnableSensitiveDataLogging();
+                options.UseSqlServer(connectionString)
+                .EnableSensitiveDataLogging()
+                .LogTo(Console.WriteLine);   // Log queries and errors to console
             });
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-
             services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<IUnitRepository, UnitRepository>();
-            services.AddScoped<ISupplierRepository, SupplierRepository>();
-            services.AddScoped<IMaterialRepository, MaterialRepository>();
-            services.AddScoped<IImageRepository, ImageRepository>();
+            services.AddScoped<ICategoryService, CategoryService>();
 
-          
+            services.AddScoped<IUnitRepository, UnitRepository>();
+            services.AddScoped<IUnitService, UnitService>();
+
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<ISupplierService, SupplierService>();
+
+            services.AddScoped<IMaterialRepository, MaterialRepository>();
+            services.AddScoped<IMaterialService, MaterialService>();
+
+            services.AddScoped<IImageRepository, ImageRepository>();
+            services.AddScoped<IImageService, ImageService>();
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
@@ -39,14 +48,9 @@ namespace CMMS.Infrastructure
             services.AddScoped<IRoleService, RoleService>();
 
             services.AddScoped<IPermissionRepository, PermissionRepository>();
-            services.AddScoped<IPermissionSerivce, PermissionService>();    
+            services.AddScoped<IPermissionSerivce, PermissionService>();
+          
 
-
-            services.AddScoped<ICategoryService, CategoryService>();
-            services.AddScoped<IUnitService, UnitService>();
-            services.AddScoped<ISupplierService, SupplierService>();
-            services.AddScoped<IMaterialService, MaterialService>();
-            services.AddScoped<IImageService, ImageService>();
             return services;
         }
     }

@@ -73,7 +73,7 @@ namespace CMMS.API.Controllers
             }
 
             var userRoles = await _userService.GetRolesAsync(user);
-            var accessToken = _jwtTokenService.CreateToken(user, userRoles);
+            var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
             var refreshToken = _jwtTokenService.CreateRefeshToken();
             user.RefreshToken = refreshToken;
             user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
@@ -117,7 +117,7 @@ namespace CMMS.API.Controllers
             var newRefreshToken = _jwtTokenService.CreateRefeshToken();
             user.RefreshToken = newRefreshToken;
             user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
-            var token = _jwtTokenService.CreateToken(user, userRoles);
+            var token = await _jwtTokenService.CreateToken(user, userRoles);
             _userService.Update(user);
             await _userService.SaveChangeAsync();
             return Ok(new { token = token, refreshToken = newRefreshToken });

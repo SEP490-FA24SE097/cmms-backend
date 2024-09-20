@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -98,9 +99,28 @@ namespace CMMS.Infrastructure.Services
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) throw new Exception("User not found");
 
-            var userPermission = await _userPermissionRepository.Get(_ => _.UserId.Equals(userId), _ => _.Permission)
-                .Select(_ => _.Permission.Name).ToArrayAsync();
-            return userPermission;
+            var roleNames = await _userManager.GetRolesAsync(user);
+
+            var roleIds = new List<string>();
+
+            foreach (var roleName in roleNames)
+            {
+                var role =  _roleRepository.Get(r => r.Name.Equals(roleName)).FirstOrDefault();
+                if (role != null)
+                {
+                    roleIds.Add(role.Id);  // Add RoleId to the list
+                }
+            }
+
+            var roleId = roleIds.FirstOrDefault();
+
+            var userPermissions =  _userPermissionRepository.Get(_ => _.UserId.Equals(userId), _ => _.Permission)
+                .Select(_ => _.Permission.Name);
+
+            var rolePermissions =  _rolePermissionRepository.Get(_ => _.RoleId.Equals(roleId), _ => _.Permission)
+                .Select(_ => _.Permission.Name);
+            var result = await userPermissions.Concat(rolePermissions).Distinct().ToArrayAsync();
+            return result;
         }
 
 

@@ -136,7 +136,10 @@ namespace CMMS.Infrastructure.Services
             {
                 if (_roleRepository.Get(r => r.Name.Equals(role.ToString())).FirstOrDefault() == null)
                 {
-                    await _roleRepository.AddAsync(new IdentityRole(role.ToString()));
+                    await _roleRepository.AddAsync(new IdentityRole(role.ToString())
+                    {
+                        NormalizedName = role.ToString().ToUpper()
+                    });
                 }
             }
            await _unitOfWork.SaveChangeAsync();
@@ -197,7 +200,7 @@ namespace CMMS.Infrastructure.Services
                 foreach (var permissions in roleMapping.Value)
                 {
                     var permisison = _permissionRepository.Get(p => p.Name.Equals(permissions)).FirstOrDefault();
-                    if(_rolePermissionRepository.Get(rp => rp.RoleId.Equals(role.Id)
+                    if( _rolePermissionRepository.Get(rp => rp.RoleId.Equals(role.Id)
                     && rp.PermissionId.Equals(permisison.Id)).FirstOrDefault() == null)
                     {
                         await _rolePermissionRepository.AddAsync(new RolePermission
@@ -207,8 +210,8 @@ namespace CMMS.Infrastructure.Services
                         });
                     }
                 }
+                await _unitOfWork.SaveChangeAsync();
             }
-            await _unitOfWork.SaveChangeAsync();
         }
     }
 }

@@ -22,7 +22,6 @@ namespace CMMS.Infrastructure.Services
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
         Task<Message> AddAsync(UserDTO user);
-
         Task<IList<String>> GetRolesAsync(ApplicationUser user);
         Task<ApplicationUser> FindAsync(Guid id);
         Task<ApplicationUser> FindbyEmail(String email);

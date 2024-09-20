@@ -1,4 +1,7 @@
-﻿using CMMS.Core.Entities;
+﻿using CMMS.API.Constant;
+using CMMS.Core.Entities;
+using CMMS.Infrastructure.Constant;
+using CMMS.Infrastructure.Services;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -10,16 +13,19 @@ namespace CMMS.API.Services
     public interface IJwtTokenService
     {
         //string CreateToken(UserSignInDTO user, List<Claim> roles);
-        string CreateToken(ApplicationUser user, IList<String> roles);
+        Task<string> CreateToken(ApplicationUser user, IList<String> roles);
         string CreateRefeshToken();
         ClaimsPrincipal? GetPrincipalFromExpiredToken(String? token);
     }
     public class JwtTokenService : IJwtTokenService
     {
+        private IPermissionSerivce _permissionService;
         private IConfiguration _configuration;
 
-        public JwtTokenService(IConfiguration configuration)
+        public JwtTokenService(IConfiguration configuration,
+            IPermissionSerivce permissionSerivce)
         {
+            _permissionService = permissionSerivce;
             _configuration = configuration;
         }
         public string CreateRefeshToken()
@@ -32,15 +38,15 @@ namespace CMMS.API.Services
             }
         }
 
-        public string CreateToken(ApplicationUser user, IList<String> roles)
+        public async Task<string> CreateToken(ApplicationUser user, IList<String> roles)
         {
             var authClaims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sid, user.Id.ToString()),
+                new Claim(CustomClaims.UserId, user.Id),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.UserData, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, $"{user.LastName}"),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
             if (roles != null)
             {
@@ -48,6 +54,12 @@ namespace CMMS.API.Services
                 {
                     authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
                 }
+            }
+
+            var permissions = await _permissionService.GetUserPermission(user.Id);
+            foreach (var permission in permissions)
+            {
+                authClaims.Add(new Claim(CustomClaims.Permissions, permission.ToString()));
             }
 
             var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
