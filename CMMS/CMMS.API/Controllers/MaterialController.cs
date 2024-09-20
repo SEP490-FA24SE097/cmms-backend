@@ -51,9 +51,13 @@ namespace CMMS.API.Controllers
                 return Ok(new
                 {
                     data = result,
-                    total = list.Count(),
-                    perPage = itemPerPage,
-                    currentPage = page
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
+
 
                 });
 
@@ -95,9 +99,12 @@ namespace CMMS.API.Controllers
                 return Ok(new
                 {
                     data = result,
-                    total = list.Count(),
-                    perPage = itemPerPage,
-                    currentPage = page
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
 
                 });
             }
@@ -136,9 +143,12 @@ namespace CMMS.API.Controllers
                 return Ok(new
                 {
                     data = result,
-                    total = list.Count(),
-                    perPage = itemPerPage,
-                    currentPage = page
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
 
                 });
             }
@@ -177,9 +187,12 @@ namespace CMMS.API.Controllers
                 return Ok(new
                 {
                     data = result,
-                    total = list.Count(),
-                    perPage = itemPerPage,
-                    currentPage = page
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
                 });
             }
             catch (Exception ex)
