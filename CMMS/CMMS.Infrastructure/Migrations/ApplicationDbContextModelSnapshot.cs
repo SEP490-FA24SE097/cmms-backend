@@ -265,21 +265,22 @@ namespace CMMS.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Unit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                b.HasIndex("Name")
+                    .IsUnique();
 
-                    b.ToTable("Units");
+                b.ToTable("Units");
+            });
             modelBuilder.Entity("CMMS.Core.Entities.UserPermission", b =>
                 {
                     b.Property<string>("UserId")
