@@ -19,4 +19,4 @@ jobs:
     - name: Run `docker compose`
       run: docker compose -f compose.yaml up --build -d
     - name: Show Docker Compose logs
-      run: docker-compose logs
+      run: docker compose logs
