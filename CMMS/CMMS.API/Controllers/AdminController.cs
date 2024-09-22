@@ -30,7 +30,7 @@ namespace CMMS.API.Controllers
             _permissionService = permissionSerivce;
             _mapper = mapper;
         }
-        [HasPermission(Permission.StoreMaterialTracking)]
+        //[HasPermission(Permission.StoreMaterialTracking)]
         [HttpGet("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
         {

@@ -10,41 +10,48 @@ namespace CMMS.Core.Models
 {
     public class UserDTO
     {
-        [Required]
-        public string FirstName { get; set; }
-        [Required]
-        public string LastName { get; set; }
+        public string FullName { get; set; }
         [Required, EmailAddress]
         public string Email { get; set; }
-        [Required]
+        [Required, MinLength(6)]
         public string UserName { get; set; }
         [Required]
         public string Password { get; set; }
-        public bool IsAdmin { get; set; } = false;
+        public string DOB { get; set; }
         [StringLength(10)]
-        public String? DOB { get; set; }
-        public String? PhoneNumber { get; set; }
-
-        public String Avatar { get; set; }
-        public bool Gender { get; set; }
-        // default Status = 1;
+        public string PhoneNumber { get; set; }
+        public string Province { get; set; }
+        public string District { get; set; }
+        public string Ward { get; set; }
+        public string Address { get; set; }
+        public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
 
     }
 
+    public class UserCM : UserDTO
+    {
+        public string RoleName { get; set; }
+    }
 
     public class UserRolesVM
     {
         public string Id { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string FullName { get; set; }
+
         public string Email { get; set; }
         public string UserName { get; set; }
-        public List<string> RolesName { get; set; }
-        public String? DOB { get; set; }
-        public String? PhoneNumber { get; set; }
-        public bool Gender { get; set; }
+        public string Password { get; set; }
+        public string DOB { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Province { get; set; }
+        public string District { get; set; }
+        public string Ward { get; set; }
+        public string Address { get; set; }
+        public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
+        public List<string> RolesName { get; set; }
+
     }
 
     public class UserSignIn
@@ -55,22 +62,23 @@ namespace CMMS.Core.Models
 
     public class UserSignInVM : UserSignIn
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string FullName { get; set; }
         public string Email { get; set; }
     }
 
     public class UserVM
     {
-        public String Id { get; set; }
-        public DateTime? DOB { get; set; }
-        public String FirstName { get; set; }
-        public String LastName { get; set; }
-        public String PhoneNumber { get; set; }
-        public String Email { get; set; }
-        public String Avatar { get; set; }
-        public bool Gender { get; set; }
-        public int Status { get; set; }
+        public string Id { get; set; }
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string DOB { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Province { get; set; }
+        public string District { get; set; }
+        public string Ward { get; set; }
+        public string Address { get; set; }
+        public string Note { get; set; } = string.Empty;
+        public int Status { get; set; } = 1;
     }
 
     public class UserRoles : ApplicationUser
