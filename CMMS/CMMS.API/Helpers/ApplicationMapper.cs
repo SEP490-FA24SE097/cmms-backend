@@ -12,8 +12,14 @@ namespace CMMS.API.Helpers
             CreateMap<ApplicationUser, UserDTO>().ReverseMap();
             CreateMap<ApplicationUser, UserRolesVM>().ReverseMap();
             CreateMap<ApplicationUser, UserVM>().ReverseMap();
+            CreateMap<ApplicationUser, UserCM>().ReverseMap();
             #endregion
-          
+
+
+            #region Store 
+            CreateMap<StoreDTO, Store>().ReverseMap();
+            CreateMap<StoreCM, Store>().ReverseMap();
+            #endregion
         }
     }
 }

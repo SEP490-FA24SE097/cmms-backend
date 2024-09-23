@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMMS.Core.Entities
 {
@@ -15,5 +16,7 @@ namespace CMMS.Core.Entities
         public string? Note { get; set; }
         public String? RefreshToken { get; set; }
         public DateTime? DateExpireRefreshToken { get; set; }
+        [ForeignKey("StoreId")]
+        public Store? Store { get; set; }
     }
 }

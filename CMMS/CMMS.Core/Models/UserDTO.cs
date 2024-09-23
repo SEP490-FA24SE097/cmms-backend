@@ -26,6 +26,8 @@ namespace CMMS.Core.Models
         public string Address { get; set; }
         public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
+        public string? StoreId { get; set; }
+        
 
     }
 

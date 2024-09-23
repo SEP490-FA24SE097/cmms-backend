@@ -49,7 +49,10 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IPermissionRepository, PermissionRepository>();
             services.AddScoped<IPermissionSerivce, PermissionService>();
-          
+
+            services.AddScoped<IStoreRepository, StoreRepository>();
+            services.AddScoped<IStoreService, StoreService>();
+
 
             return services;
         }
