@@ -219,7 +219,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("id")]
-        public IActionResult GetMaterialById(string id)
+        public IActionResult GetMaterialById([FromRoute]string id)
         {
             try
             {
