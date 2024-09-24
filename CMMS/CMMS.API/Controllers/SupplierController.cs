@@ -40,7 +40,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("id")]
-        public async Task<IActionResult> GetSupplierById(string id)
+        public async Task<IActionResult> GetSupplierById([FromRoute] string id)
         {
             try
             {
