@@ -19,6 +19,7 @@ namespace CMMS.API.Helpers
             #region Store 
             CreateMap<StoreDTO, Store>().ReverseMap();
             CreateMap<StoreCM, Store>().ReverseMap();
+            CreateMap<StoreVM, Store>().ReverseMap();
             #endregion
         }
     }

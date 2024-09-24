@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Enums
 {
-    public enum ReponseStatus
+    public enum StoreType
     {
-        IsExisted = 1,
-        IsDeleted = 2,
-        IsSuccess = 3,
-        IsFailed = 4,
+        All = 1,
+        Available = 2,
+        WasManaged = 3,
+        Closed = 4,
+
     }
 }

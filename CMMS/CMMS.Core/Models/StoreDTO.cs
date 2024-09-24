@@ -33,7 +33,7 @@ namespace CMMS.Core.Models
 
     public class StoreVM : StoreDTO
     {
-        
+        public UserVM Manager { get; set; }
     }
 
 }

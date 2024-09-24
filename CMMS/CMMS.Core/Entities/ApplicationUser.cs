@@ -17,6 +17,7 @@ namespace CMMS.Core.Entities
         public String? RefreshToken { get; set; }
         public DateTime? DateExpireRefreshToken { get; set; }
         [ForeignKey("StoreId")]
+        public string? StoreId { get; set; } 
         public Store? Store { get; set; }
     }
 }

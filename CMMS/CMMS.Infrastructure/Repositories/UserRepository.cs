@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Repositories
 {
-    public interface IUserRepository : IBaseRepository<ApplicationUser, Guid>
+    public interface IUserRepository : IBaseRepository<ApplicationUser, string>
     {
 
     }
-    public class UserRepository : BaseRepository<ApplicationUser, Guid>, IUserRepository
+    public class UserRepository : BaseRepository<ApplicationUser, string>, IUserRepository
     {
         public UserRepository(ApplicationDbContext applicationDbContext) : base(applicationDbContext)
         {

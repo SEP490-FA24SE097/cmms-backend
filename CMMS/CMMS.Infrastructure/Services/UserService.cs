@@ -92,7 +92,8 @@ namespace CMMS.Infrastructure.Services
             var isDupplicate = await _userManager.FindByEmailAsync(userCM.Email);
             if (isDupplicate != null)
             {
-                return null;
+                message.Content = "Email is already in use";
+                return message;
             }
             var user = _mapper.Map<ApplicationUser>(userCM);
             var result = await _userManager.CreateAsync(user, userCM.Password);
@@ -100,7 +101,11 @@ namespace CMMS.Infrastructure.Services
             {
                 var roleName = userCM.RoleName;
                 var isExistedRole = await _roleManager.FindByNameAsync(roleName);
-                if(isExistedRole == null)  message.Content = "Role not found";
+                if (isExistedRole == null)
+                {
+                    message.Content = "Role not found";
+                    return message;
+                }
                 else await _userManager.AddToRoleAsync(user, roleName);
                 message.Content = "Add new user successfully";
             }
@@ -160,12 +165,6 @@ namespace CMMS.Infrastructure.Services
                 if (userRoles.Contains(Role.Senior_Management.ToString()))
                 {
                     listUser.Remove(user);
-                }
-                else
-                {
-                    userRolesVM = _mapper.Map<UserRolesVM>(user);
-                    userRolesVM.RolesName = userRoles.ToList();
-                    listUserRolesVM.Add(userRolesVM);
                 }
             }
             return listUserRolesVM.AsQueryable();
