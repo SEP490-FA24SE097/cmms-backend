@@ -183,7 +183,7 @@ namespace CMMS.API.Controllers
             return Ok(listRoles);
         }
 
-        [HttpGet("GetRoleBy/{id}")]
+        [HttpGet("GetRoleById/{id}")]
         public async Task<IActionResult> GetRoleById(string id)
         {
             var result = await _roleSerivce.GetRoleById(id);

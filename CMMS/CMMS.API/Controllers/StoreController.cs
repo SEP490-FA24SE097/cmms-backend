@@ -19,7 +19,7 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet("GetAllStore")]
+        [HttpGet("GetAll")]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
@@ -28,7 +28,7 @@ namespace CMMS.API.Controllers
             return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage });
         }
 
-        [HttpGet("GetStoreBy/{id}")]
+        [HttpGet("GetStoreBy/{storeId}")]
         public async Task<IActionResult> GetStoreById(string storeId)
         {
             var result = await _storeService.GetStoreById(storeId);
@@ -37,7 +37,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("AddNewStore")]
+        [HttpPost("AddNew")]
         public async Task<IActionResult> AddNewStore(StoreCM store)
         {
             var result = await _storeService.CreateNewStore(store);
@@ -74,7 +74,7 @@ namespace CMMS.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("UpdateStore")]
+        [HttpPut("Update")]
         public async Task<IActionResult> UpdateStore(StoreDTO storeDTO)
         {
             var result = await _storeService.UpdateStore(storeDTO);
