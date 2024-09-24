@@ -36,7 +36,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("id")]
-        public async Task<IActionResult> GetUnitById(string id)
+        public async Task<IActionResult> GetUnitById([FromRoute] string id)
         {
             try
             {

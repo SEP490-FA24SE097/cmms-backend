@@ -200,7 +200,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpGet("get-all-material-names")]
+        [HttpGet("get-all-materials-with-name-unit")]
         [AllowAnonymous]
         public IActionResult GetAllNames()
         {
@@ -209,7 +209,8 @@ namespace CMMS.API.Controllers
                 var result = _materialService.GetAll().Select(x => new
                 {
                     Id = x.Id,
-                    Name = x.Name
+                    Name = x.Name,
+                    Unit=x.Unit
                 });
                 return Ok(result);
             }
@@ -219,7 +220,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("id")]
-        public IActionResult GetMaterialById(string id)
+        public IActionResult GetMaterialById([FromRoute]string id)
         {
             try
             {
