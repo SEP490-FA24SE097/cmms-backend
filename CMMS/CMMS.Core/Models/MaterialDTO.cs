@@ -15,11 +15,10 @@ namespace CMMS.Core.Models
         public string Unit { get; set; }
         public string Supplier { get; set; }
         public string Description { get; set; }
-        public decimal CostPrice { get; set; }
         public decimal SalePrice { get; set; }
         public decimal MinStock { get; set; }
-        public decimal SoldQuantity { get; set; }
+        public string Brand { get; set; }
         public bool IsRewardEligible { get; set; }
-        public ICollection<Image> Images { get; set; }
+        public string ImageUrl { get; set; }
     }
 }

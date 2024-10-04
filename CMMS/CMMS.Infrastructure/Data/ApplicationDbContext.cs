@@ -1,6 +1,7 @@
 ﻿using CMMS.Core.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Attribute = CMMS.Core.Entities.Attribute;
 
 namespace CMMS.Infrastructure.Data
 {
@@ -14,11 +15,14 @@ namespace CMMS.Infrastructure.Data
         public DbSet<Unit> Units  { get;set; }
         public DbSet<Category> Categories  { get;set; }
         public DbSet<Supplier> Suppliers { get;set; }
-        public DbSet<Image> Images { get;set; }
+        
 
         public DbSet<UserPermission> UserPermissions { get;set; }
 
-
+        public DbSet<Brand> Brands { get;set; }
+        public DbSet<Attribute> Attributes { get; set; }
+        public DbSet<Variant> Variants { get;set; }
+        public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get;set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

@@ -15,6 +15,9 @@ namespace CMMS.Core.Entities
         [Key]
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public Guid? ParentCategoryId { get; set; }
+        public virtual Category? ParentCategory { get; set; }
+        public virtual ICollection<Category>? Categories { get; set; }
         public virtual ICollection<Material> Materials { get; set; }
     }
 }
