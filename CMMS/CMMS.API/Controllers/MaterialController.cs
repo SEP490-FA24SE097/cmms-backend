@@ -1,4 +1,5 @@
-﻿using CMMS.Core.Entities;
+﻿using System.Threading.Tasks.Dataflow;
+using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,11 +15,11 @@ namespace CMMS.API.Controllers
     public class MaterialController : Controller
     {
         private readonly IMaterialService _materialService;
-        private readonly IImageService _imageService;
-        public MaterialController(IMaterialService materialService, IImageService imageService)
+        private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
+        public MaterialController(IMaterialService materialService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _materialService = materialService;
-            _imageService = imageService;
+            _materialVariantAttributeService = materialVariantAttributeService;
         }
 
         [HttpGet]
@@ -28,22 +29,22 @@ namespace CMMS.API.Controllers
             try
             {
                 var list = _materialService.GetAll().
+                    Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.Supplier).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
-                        SoldQuantity = x.SoldQuantity,
+                        Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
-                        CostPrice = x.CostPrice,
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        Images = x.Images
+                        ImageUrl = x.ImageUrl
 
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
@@ -76,22 +77,23 @@ namespace CMMS.API.Controllers
             try
             {
                 var list = _materialService.GetAll().
+                    Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.Supplier).Where(x => x.Name.Contains(materialName)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
-                        SoldQuantity = x.SoldQuantity,
+                        Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
-                        CostPrice = x.CostPrice,
+
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        Images = x.Images
+                        ImageUrl = x.ImageUrl
 
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
@@ -119,23 +121,23 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var list = _materialService.GetAll().
+                var list = _materialService.GetAll().Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.Supplier).Where(x => x.CategoryId == Guid.Parse(categoryId)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
-                        SoldQuantity = x.SoldQuantity,
+                        Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
-                        CostPrice = x.CostPrice,
+
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        Images = x.Images
+                        ImageUrl = x.ImageUrl
 
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
@@ -163,23 +165,23 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var list = _materialService.GetAll().
+                var list = _materialService.GetAll().Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.Supplier).Where(x => x.CategoryId == Guid.Parse(supplierId)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
-                        SoldQuantity = x.SoldQuantity,
+                        Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
-                        CostPrice = x.CostPrice,
+
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        Images = x.Images
+                        ImageUrl = x.ImageUrl
 
                     });
                 var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
@@ -210,7 +212,7 @@ namespace CMMS.API.Controllers
                 {
                     Id = x.Id,
                     Name = x.Name,
-                    Unit=x.Unit
+                    Unit = x.Unit
                 });
                 return Ok(result);
             }
@@ -220,7 +222,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("id")]
-        public IActionResult GetMaterialById([FromRoute]string id)
+        public IActionResult GetMaterialById([FromRoute] string id)
         {
             try
             {
@@ -230,18 +232,36 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
-                        SoldQuantity = x.SoldQuantity,
+                        Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
-                        CostPrice = x.CostPrice,
+
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        Images = x.Images
+                        ImageUrl = x.ImageUrl
+
                     }).FirstOrDefault();
-                return Ok(result);
+                var variants = _materialVariantAttributeService.GetAll().Include(x => x.Variant)
+                    .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == Guid.Parse(id)).ToList().GroupBy(x => x.VariantId);
+                return Ok(new
+                {
+                    material = result,
+                    variants = variants.Select(x => new
+                    {
+                        variantId = x.Key,
+                        sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                        image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                        price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                        attributes = x.Select(x => new
+                        {
+                            x.Attribute.Name,
+                            x.Value
+                        })
+                    })
+                });
             }
             catch (Exception ex)
             {
@@ -258,10 +278,10 @@ namespace CMMS.API.Controllers
                     Id = new Guid(),
                     Name = materialCm.Name,
                     Description = materialCm.Description,
-                    CostPrice = materialCm.CostPrice,
+                    ImageUrl = materialCm.ImageUrl,
                     SalePrice = materialCm.SalePrice,
                     MinStock = materialCm.MinStock,
-                    SoldQuantity = 0,
+                    BrandId = materialCm.BrandId,
                     SupplierId = materialCm.SupplierId,
                     UnitId = materialCm.UnitId,
                     CategoryId = materialCm.CategoryId,
@@ -269,14 +289,7 @@ namespace CMMS.API.Controllers
                 };
                 await _materialService.AddAsync(material);
                 await _materialService.SaveChangeAsync();
-                await _imageService.AddRange(materialCm.Images.Select(x => new Image
-                {
-                    Id = new Guid(),
-                    ImageUrl = x.ImageUrl,
-                    MaterialId = material.Id,
-                    IsMainImage = x.IsMainImage
-                }));
-                await _imageService.SaveChangeAsync();
+
                 return Ok();
             }
             catch (Exception ex)
@@ -293,10 +306,11 @@ namespace CMMS.API.Controllers
                 var material = await _materialService.FindAsync(Guid.Parse(materialId));
                 material.Name = materialUM.Name.IsNullOrEmpty() ? material.Name : materialUM.Name;
                 material.Description = materialUM.Description.IsNullOrEmpty() ? material.Description : materialUM.Description;
-                material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
+                material.ImageUrl = materialUM.ImageUrl.IsNullOrEmpty() ? material.ImageUrl : materialUM.ImageUrl;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.MinStock = materialUM.MinStock == 0 ? material.MinStock : materialUM.MinStock;
-                material.SupplierId = materialUM.SupplierId.IsNullOrEmpty() ? material.Id : Guid.Parse(materialUM.SupplierId);
+                material.SupplierId = materialUM.SupplierId.IsNullOrEmpty() ? material.SupplierId : Guid.Parse(materialUM.SupplierId);
+                material.BrandId = materialUM.BrandId.IsNullOrEmpty() ? material.BrandId : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty() ? material.CategoryId : Guid.Parse(materialUM.CategoryId);
                 material.UnitId = materialUM.UnitId.IsNullOrEmpty() ? material.UnitId : Guid.Parse(materialUM.UnitId);
                 material.IsRewardEligible = materialUM.IsRewardEligible;

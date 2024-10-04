@@ -34,8 +34,6 @@ namespace CMMS.Infrastructure
             services.AddScoped<IMaterialRepository, MaterialRepository>();
             services.AddScoped<IMaterialService, MaterialService>();
 
-            
-
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
 
@@ -49,10 +47,23 @@ namespace CMMS.Infrastructure
             services.AddScoped<IPermissionRepository, PermissionRepository>();
             services.AddScoped<IPermissionSerivce, PermissionService>();
 
+
             services.AddScoped<IStoreRepository, StoreRepository>();
             services.AddScoped<IStoreService, StoreService>();
 
 
+
+            services.AddScoped<IAttributeRepository, AttributeRepository>();
+            services.AddScoped<IAttributeService, AttributeService>();
+
+            services.AddScoped<IVariantRepository, VariantRepository>();
+            services.AddScoped<IVariantService, VariantService>();
+
+            services.AddScoped<IMaterialVariantAttributeRepository, MaterialVariantAttributeRepository>();
+            services.AddScoped<IMaterialVariantAttributeService, MaterialVariantAttributeService>();
+
+            services.AddScoped<IBrandRepository, BrandRepository>();
+            services.AddScoped<IBrandService, BrandService>();
             return services;
         }
     }

@@ -49,14 +49,15 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] List<string> categories)
+        public async Task<IActionResult> Create([FromBody] List<CategoryCM> categories)
         {
             try
             {
                 await _categoryService.AddRange(categories.Select(x => new Category
                 {
                     Id = new Guid(),
-                    Name = x
+                    Name = x.Name,
+                    ParentCategoryId = x.ParentCategoryId
                 }));
                 await _categoryService.SaveChangeAsync();
                 return Ok();
@@ -66,7 +67,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-
+        [AllowAnonymous]
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] CategoryUM categoryUM)
         {
@@ -88,7 +89,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpDelete("delete-category")]
-        public async Task<IActionResult> Update([FromQuery] string categoryId)
+        public async Task<IActionResult> Delete([FromQuery] string categoryId)
         {
             try
             {

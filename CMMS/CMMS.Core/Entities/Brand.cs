@@ -4,16 +4,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.Core.Entities
 {
-    public class Image
+    [Index(nameof(Name),IsUnique = true)]
+    public class Brand
     {
         [Key]
         public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
-        public string ImageUrl { get; set; }
-        public bool IsMainImage { get; set; }
-        public virtual Material Material { get; set; }
+        public string Name { get; set; }
+        public virtual ICollection<Material> Materials { get; set; }
     }
 }

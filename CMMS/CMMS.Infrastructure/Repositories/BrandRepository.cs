@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Repositories
 {
-    public interface IImageRepository : IBaseRepository<Image, Guid>
+    public interface IBrandRepository : IBaseRepository<Brand, Guid>
     {
 
     }
-    public class ImageRepository : BaseRepository<Image, Guid>, IImageRepository
+    public class BrandRepository : BaseRepository<Brand, Guid>, IBrandRepository
     {
-        public ImageRepository(ApplicationDbContext applicationDbContext) : base(applicationDbContext)
+        public BrandRepository(ApplicationDbContext applicationDbContext) : base(applicationDbContext)
         {
 
         }

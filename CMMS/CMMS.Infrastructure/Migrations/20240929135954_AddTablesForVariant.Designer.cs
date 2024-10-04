@@ -4,6 +4,7 @@ using CMMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240929135954_AddTablesForVariant")]
+    partial class AddTablesForVariant
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,8 +33,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Address")
-                        .IsRequired()
+                    b.Property<string>("Avatar")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ConcurrencyStamp")
@@ -44,10 +46,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<DateTime?>("DateExpireRefreshToken")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("District")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -55,7 +53,14 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FullName")
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Gender")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -73,9 +78,6 @@ namespace CMMS.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
@@ -86,10 +88,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Province")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
@@ -99,19 +97,12 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("StoreId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("Ward")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -122,8 +113,6 @@ namespace CMMS.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
-
-                    b.HasIndex("StoreId");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -161,7 +150,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("Brand");
                 });
 
-
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -184,7 +172,6 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.ToTable("Categories");
                 });
-
 
             modelBuilder.Entity("CMMS.Core.Entities.Material", b =>
                 {
@@ -295,45 +282,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("RolePermissions");
                 });
 
- 
-            modelBuilder.Entity("CMMS.Core.Entities.Store", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("District")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Province")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Ward")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Store");
-                });
-
-
             modelBuilder.Entity("CMMS.Core.Entities.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -370,14 +318,6 @@ namespace CMMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    
-
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -386,7 +326,6 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
-
 
                     b.ToTable("Units");
                 });
@@ -404,7 +343,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("UserPermissions");
-
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Variant", b =>
@@ -435,7 +373,6 @@ namespace CMMS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Variant");
-
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -571,19 +508,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
- 
-            
- 
-            modelBuilder.Entity("CMMS.Core.Entities.ApplicationUser", b =>
-                {
-                    b.HasOne("CMMS.Core.Entities.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId");
-
-                    b.Navigation("Store");
-                });
-
-            
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Category", "ParentCategory")

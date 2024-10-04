@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace CMMS.Core.Models
 {
-    public class ImageDTO
+    public class BrandUM
     {
-        public string ImageUrl { get; set; }
-        public bool IsMainImage { get; set; }
+        public Guid Id { get; set; }
+        public string Name { get; set; }
     }
 }
