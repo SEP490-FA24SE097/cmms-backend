@@ -34,8 +34,7 @@ namespace CMMS.Infrastructure
             services.AddScoped<IMaterialRepository, MaterialRepository>();
             services.AddScoped<IMaterialService, MaterialService>();
 
-            services.AddScoped<IImageRepository, ImageRepository>();
-            services.AddScoped<IImageService, ImageService>();
+            
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
