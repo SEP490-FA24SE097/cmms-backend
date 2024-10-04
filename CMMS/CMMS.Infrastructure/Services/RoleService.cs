@@ -117,9 +117,7 @@ namespace CMMS.Infrastructure.Services
                 Id = _.Id,
                 UserName = _.UserName,
                 Email = _.Email,
-                FirstName = _.FirstName,
-                LastName = _.LastName,
-                Gender = _.Gender,
+                FullName = _.FullName,
             }).ToListAsync();
             foreach (var user in users)
             {
@@ -175,7 +173,6 @@ namespace CMMS.Infrastructure.Services
         public async Task LinkRolePermission()
         {
             #region getEnumPermission
-            var adminPermission = EnumHelpers.GetEnumValues<Enums.AdminPermission>();
             var seniorPermission = EnumHelpers.GetEnumValues<Enums.SeniorManagementPermission>();
             var storeManagerPermission = EnumHelpers.GetEnumValues<Enums.StoreManagerPermission>();
             var saleStaffPermission = EnumHelpers.GetEnumValues<Enums.SaleStaffPermission>();
@@ -185,7 +182,6 @@ namespace CMMS.Infrastructure.Services
 
             var rolePermissionMapping = new Dictionary<Role, List<string>>()
             {
-                {Role.Admin,  adminPermission},
                 {Role.Senior_Management,  seniorPermission},
                 {Role.Store_Manager,  storeManagerPermission},
                 {Role.Sale_Staff,  saleStaffPermission},

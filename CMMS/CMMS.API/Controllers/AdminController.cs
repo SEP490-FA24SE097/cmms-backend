@@ -30,7 +30,8 @@ namespace CMMS.API.Controllers
             _permissionService = permissionSerivce;
             _mapper = mapper;
         }
-        [HasPermission(Permission.StoreMaterialTracking)]
+        #region userManagement
+        //[HasPermission(Permission.StoreMaterialTracking)]
         [HttpGet("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
         {
@@ -41,6 +42,14 @@ namespace CMMS.API.Controllers
             return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage });
         }
 
+
+        [HttpPost("AddNewUser")]
+        public async Task<IActionResult> AddNewUser(UserCM userCM)
+        {
+            var result = await _userService.AddAsync(userCM);
+            return Ok(result);
+        }
+        #endregion
         #region permissions
         [HttpGet("GetAllPermission")]
         public IActionResult GetAllPermission([FromQuery] DefaultSearch defaultSearch)
@@ -174,7 +183,7 @@ namespace CMMS.API.Controllers
             return Ok(listRoles);
         }
 
-        [HttpGet("GetRoleBy/{id}")]
+        [HttpGet("GetRoleById/{id}")]
         public async Task<IActionResult> GetRoleById(string id)
         {
             var result = await _roleSerivce.GetRoleById(id);
@@ -219,7 +228,12 @@ namespace CMMS.API.Controllers
             var result = await _roleSerivce.AddRoleUser(roleNames, userId);
             return Ok(result);
         }
+
+
+
         #endregion
+
+
 
         #region seeding
 

@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Enums
 {
-    public enum Role
+    public enum StoreType
     {
-        Senior_Management = 1,
-        Store_Manager = 2,
-        Sale_Staff = 3,
-        Warehouse_Staff = 4,
-        Customer = 5,
+        All = 1,
+        Available = 2,
+        WasManaged = 3,
+        Closed = 4,
+
     }
 }

@@ -22,10 +22,10 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var result = _categoryService.GetAll().Select(x=>new
+                var result = _categoryService.GetAll().Select(x => new
                 {
-                    Id=x.Id,
-                    Name=x.Name
+                    Id = x.Id,
+                    Name = x.Name
                 });
                 return Ok(result);
             }
@@ -53,7 +53,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                await _categoryService.AddRange(categories.Select(x=>new Category
+                await _categoryService.AddRange(categories.Select(x => new Category
                 {
                     Id = new Guid(),
                     Name = x.Name,

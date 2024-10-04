@@ -45,7 +45,7 @@ namespace CMMS.API.Services
                 new Claim(CustomClaims.UserId, user.Id),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.UserData, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, $"{user.LastName}"),
+                new Claim(ClaimTypes.Name, $"{user.FullName}"),
                 new Claim(ClaimTypes.Email, user.Email),
             };
             if (roles != null)

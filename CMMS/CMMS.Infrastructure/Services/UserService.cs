@@ -21,7 +21,7 @@ namespace CMMS.Infrastructure.Services
     {
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
-        Task<Message> AddAsync(UserDTO user);
+        Task<Message> AddAsync(UserCM user);
         Task<IList<String>> GetRolesAsync(ApplicationUser user);
         Task<ApplicationUser> FindAsync(Guid id);
         Task<ApplicationUser> FindbyEmail(String email);
@@ -86,46 +86,30 @@ namespace CMMS.Infrastructure.Services
             return result;
         }
 
-        public async Task<Message> AddAsync(UserDTO userVM)
+        public async Task<Message> AddAsync(UserCM userCM)
         {
-            return new Message
+            var message = new Message();
+            var isDupplicate = await _userManager.FindByEmailAsync(userCM.Email);
+            if (isDupplicate != null)
             {
-                StatusCode = 400,
-                Content = "Create new user successfully",
-            };
-            //var isDupplicate = await _userManager.FindByEmailAsync(userVM.Email);
-            //if (isDupplicate != null)
-            //{
-            //    return null;
-            //}
-            //var user = _mapper.Map<ApplicationUser>(userVM);
-            //var result = await _userManager.CreateAsync(user, userVM.Password);
-            //if (result.Succeeded)
-            //{
-            //    if (!await _roleManager.RoleExistsAsync(AppRole.Customer))
-            //    {
-            //        await _roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
-            //    }
-
-            //    if (!await _roleManager.RoleExistsAsync(AppRole.Admin))
-            //    {
-            //        await _roleManager.CreateAsync(new IdentityRole(AppRole.Admin));
-            //    }
-            //    if (userVM.IsAdmin)
-            //    {
-            //        await _userManager.AddToRoleAsync(user, AppRole.Admin);
-            //    }
-            //    else
-            //    {
-            //        await _userManager.AddToRoleAsync(user, AppRole.Customer);
-            //    }
-            //}
-
-            //return new Message
-            //{
-            //    StatusCode = 400,
-            //    Content = "Create new user successfully",
-            //};
+                message.Content = "Email is already in use";
+                return message;
+            }
+            var user = _mapper.Map<ApplicationUser>(userCM);
+            var result = await _userManager.CreateAsync(user, userCM.Password);
+            if (result.Succeeded)
+            {
+                var roleName = userCM.RoleName;
+                var isExistedRole = await _roleManager.FindByNameAsync(roleName);
+                if (isExistedRole == null)
+                {
+                    message.Content = "Role not found";
+                    return message;
+                }
+                else await _userManager.AddToRoleAsync(user, roleName);
+                message.Content = "Add new user successfully";
+            }
+            return message;
         }
 
         public async Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where)
@@ -178,16 +162,10 @@ namespace CMMS.Infrastructure.Services
                 var userRolesVM = _mapper.Map<UserRolesVM>(user);
                 userRolesVM.RolesName = userRoles.ToList();
                 listUserRolesVM.Add(userRolesVM);
-                //if (userRoles.Contains(AppRole.Admin))
-                //{
-                //    listUser.Remove(user);
-                //}
-                //else
-                //{
-                //    var userRolesVM = _mapper.Map<UserRolesVM>(user);
-                //    userRolesVM.RolesName = userRoles.ToList();
-                //    listUserRolesVM.Add(userRolesVM);
-                //}
+                if (userRoles.Contains(Role.Senior_Management.ToString()))
+                {
+                    listUser.Remove(user);
+                }
             }
             return listUserRolesVM.AsQueryable();
         }

@@ -17,13 +17,6 @@
         ViewOrderHistory,
     }
 
-    public enum AdminPermission { 
-        ViewDashboard,
-        ManageUsers,   
-        ManageRoles,
-        ManageMeterials,
-    }
-
     public enum SeniorManagementPermission { 
         StoreMaterialTrackings,
    
