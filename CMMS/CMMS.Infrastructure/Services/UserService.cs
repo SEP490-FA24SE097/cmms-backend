@@ -8,12 +8,7 @@ using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Services
 {
@@ -34,6 +29,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where);
         Task<bool> SaveChangeAsync();
         Task<bool> ConfirmAccount(string email);
+        Task<string> LoginWithGoogle(string provider, string returnUrl);
     }
     public class UserService : IUserService
     {
@@ -187,6 +183,11 @@ namespace CMMS.Infrastructure.Services
             user.EmailConfirmed = true;
             _userRepository.Update(user);
             return await _unitOfWork.SaveChangeAsync();
+        }
+
+        public Task<string> LoginWithGoogle(string provider, string returnUrl)
+        {
+            return null;
         }
     }
 }
