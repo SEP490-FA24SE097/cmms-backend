@@ -9,6 +9,8 @@ using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 
 
 namespace CMMS.Infrastructure.Services
@@ -29,6 +31,7 @@ namespace CMMS.Infrastructure.Services
     }
     public class RoleService : IRoleService
     {
+        private ILogger _logger;
         private UserManager<ApplicationUser> _userManager;
         private SignInManager<ApplicationUser> _signInManager;
         private RoleManager<IdentityRole> _roleManager;
@@ -44,8 +47,9 @@ namespace CMMS.Infrastructure.Services
             RoleManager<IdentityRole> roleManager, IMapper mapper, ApplicationDbContext dbContext,
             IPermissionRepository permissionRepository, IRolePermissionRepository rolePermissionRepository,
             IUnitOfWork unitOfWork, IRoleRepository roleRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository, ILogger<RoleService> logger)
         {
+            _logger = logger;
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
@@ -80,7 +84,7 @@ namespace CMMS.Infrastructure.Services
             if (role != null)
             {
                 role.Name = roleName;
-               _roleRepository.Update(role);
+                _roleRepository.Update(role);
                 if (await _unitOfWork.SaveChangeAsync()) return 1;
             }
             return 0;
@@ -140,7 +144,7 @@ namespace CMMS.Infrastructure.Services
                     });
                 }
             }
-           await _unitOfWork.SaveChangeAsync();
+            await _unitOfWork.SaveChangeAsync();
         }
 
         public async Task SeedingPermission()
@@ -188,26 +192,31 @@ namespace CMMS.Infrastructure.Services
                 {Role.Warehouse_Staff,  warehousePermission},
                 {Role.Customer,  customerPermission},
             };
-
+            List<RolePermission> rolesPermissions = new List<RolePermission>();
             foreach (var roleMapping in rolePermissionMapping)
             {
                 var roleName = roleMapping.Key.ToString();
-                var role =  _roleRepository.Get(r => r.Name.Equals(roleName)).FirstOrDefault();
+                var role = _roleRepository.Get(r => r.Name.Equals(roleName)).FirstOrDefault();
                 foreach (var permissions in roleMapping.Value)
                 {
                     var permisison = _permissionRepository.Get(p => p.Name.Equals(permissions)).FirstOrDefault();
-                    if( _rolePermissionRepository.Get(rp => rp.RoleId.Equals(role.Id)
+                    if (_rolePermissionRepository.Get(rp => rp.RoleId.Equals(role.Id)
                     && rp.PermissionId.Equals(permisison.Id)).FirstOrDefault() == null)
                     {
-                        await _rolePermissionRepository.AddAsync(new RolePermission
+                        _logger.LogInformation($"Adding permission {permissions} to role {roleName}.");
+                        rolesPermissions.Add(new RolePermission
                         {
                             RoleId = role.Id,
                             PermissionId = permisison.Id,
                         });
                     }
                 }
+            }
+            if (!rolesPermissions.IsNullOrEmpty()) { 
+                await _rolePermissionRepository.AddRangce(rolesPermissions);
                 await _unitOfWork.SaveChangeAsync();
             }
+
         }
     }
 }

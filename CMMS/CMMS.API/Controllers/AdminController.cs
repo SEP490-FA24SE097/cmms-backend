@@ -13,7 +13,6 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminController : ControllerBase
@@ -33,8 +32,7 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
         }
         #region userManagement
-        [AllowAnonymous] 
-        //[HasPermission(Permission.StoreMaterialTracking)]
+        [HasPermission(Permission.StoreMaterialTracking)]
         [HttpGet("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
         {
