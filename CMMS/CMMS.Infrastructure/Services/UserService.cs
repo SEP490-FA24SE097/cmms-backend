@@ -8,12 +8,7 @@ using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Services
 {
@@ -96,7 +91,22 @@ namespace CMMS.Infrastructure.Services
                 return message;
             }
             var user = _mapper.Map<ApplicationUser>(userCM);
-            var result = await _userManager.CreateAsync(user, userCM.Password);
+
+            IdentityResult result = IdentityResult.Success;
+
+            if (userCM.Password != null)
+            {
+                result = await _userManager.CreateAsync(user, userCM.Password);
+            }
+            else {
+
+                // login by google EmailConfirmed is true
+                user.EmailConfirmed = true;
+                result = await _userManager.CreateAsync(user);
+                var loginProviderInfo = new UserLoginInfo(userCM.LoginProvider,userCM.ProviderKey, userCM.ProviderDisplayName);
+                result =  await _userManager.AddLoginAsync(user, loginProviderInfo);
+            }
+           
             if (result.Succeeded)
             {
                 var roleName = userCM.RoleName;
@@ -108,7 +118,9 @@ namespace CMMS.Infrastructure.Services
                 }
                 else await _userManager.AddToRoleAsync(user, roleName);
                 message.Content = "Add new user successfully";
+                message.StatusCode = 201;
             }
+            await _unitOfWork.SaveChangeAsync();
             return message;
         }
 
@@ -188,5 +200,6 @@ namespace CMMS.Infrastructure.Services
             _userRepository.Update(user);
             return await _unitOfWork.SaveChangeAsync();
         }
+   
     }
 }

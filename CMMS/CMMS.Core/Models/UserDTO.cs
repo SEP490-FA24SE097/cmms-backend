@@ -10,20 +10,21 @@ namespace CMMS.Core.Models
 {
     public class UserDTO
     {
-        public string FullName { get; set; }
+        public string? FullName { get; set; }
         [Required, EmailAddress]
         public string Email { get; set; }
-        [Required, MinLength(6)]
+        //[Required, MinLength(6)]
         public string UserName { get; set; }
-        [Required]
+        //[Required]
         public string Password { get; set; }
         public string DOB { get; set; }
-        [StringLength(10)]
-        public string PhoneNumber { get; set; }
-        public string Province { get; set; }
-        public string District { get; set; }
-        public string Ward { get; set; }
-        public string Address { get; set; }
+        //[StringLength(10)]
+        public string? PhoneNumber { get; set; }
+        public string? Province { get; set; }
+        public string? District { get; set; }
+        public string? Ward { get; set; }
+        public string? Address { get; set; }
+        public string? TaxCode { get; set; }    
         public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
         public string? StoreId { get; set; }
@@ -33,6 +34,9 @@ namespace CMMS.Core.Models
 
     public class UserCM : UserDTO
     {
+        public string? LoginProvider { get; set; }  
+        public string? ProviderDisplayName { get; set; }
+        public string? ProviderKey { get; set; }
         public string RoleName { get; set; }
     }
 

@@ -4,8 +4,15 @@ using CMMS.Core.Constant;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net.Http;
+using System.Text.Json;
+using CMMS.API.Constant;
+using Newtonsoft.Json;
 
 namespace CMMS.API.Controllers
 {
@@ -15,16 +22,20 @@ namespace CMMS.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly HttpClient _httpClient;
         private readonly IMapper _mapper;
         private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthenticateController(IJwtTokenService jwtTokenService, IUserService userService, ICurrentUserService currentUserService
-            , IMapper mapper)
+        public AuthenticateController(IJwtTokenService jwtTokenService,
+            IUserService userService,
+            ICurrentUserService currentUserService
+            , IMapper mapper, HttpClient httpClient)
         {
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
             _userService = userService;
             _currentUserService = currentUserService;
+            _httpClient = httpClient;
         }
 
         [AllowAnonymous]
@@ -35,23 +46,42 @@ namespace CMMS.API.Controllers
             var userNameExist = await _userService.FindByUserName(signUpModel.UserName);
             if (emailExist != null)
             {
-                return BadRequest("Email đã tồn tại trên hệ thống!");
+                return BadRequest("Email already existed");
             }
             else if (userNameExist != null)
             {
-                return BadRequest("Username này đã tồn tại trên hệ thống!");
-            }
-            var result = await _userService.CustomerSignUpAsync(signUpModel);
-            if (result == null)
-            {
-                return BadRequest("Đăng kí thất bại");
-            }
-            if (result.Succeeded)
-            {
-                return Ok(result.Succeeded);
+                return BadRequest("Username already existed");
             }
 
-            return StatusCode(500);
+            if (signUpModel.TaxCode != null)
+            {
+                var taxCode = signUpModel.TaxCode;
+                var apiUrl = "https://api.vietqr.io/v2/business/{taxCode}";
+                var response = await _httpClient.GetAsync(apiUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return BadRequest("Failed to fetch taxCode api checking");
+                }
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonConvert.DeserializeObject<TaxCodeCheckApiResponse>(responseContent);
+
+                if (apiResponse.Code == "00")
+                {
+                    var resultCreate = await _userService.CustomerSignUpAsync(signUpModel);
+                    if (resultCreate.Succeeded)
+                        return Ok(resultCreate.Succeeded);
+                }
+                else
+                {
+                    return BadRequest(apiResponse.Desc);
+                }
+            }
+            var result = await _userService.CustomerSignUpAsync(signUpModel);
+            if (result.Succeeded)
+                return Ok(result.Succeeded);
+            return BadRequest("Signup failed");
+
         }
 
         [AllowAnonymous]
@@ -107,6 +137,7 @@ namespace CMMS.API.Controllers
             var user = await _userService.FindAsync(userId);
             if (user == null || !(user.Status != 0) || user.RefreshToken != refreshToken || user.DateExpireRefreshToken < DateTime.UtcNow)
             {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return BadRequest(new Message
                 {
                     Content = "Not permission",
@@ -122,5 +153,7 @@ namespace CMMS.API.Controllers
             await _userService.SaveChangeAsync();
             return Ok(new { token = token, refreshToken = newRefreshToken });
         }
+
+
     }
 }

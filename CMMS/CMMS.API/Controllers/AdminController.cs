@@ -5,6 +5,7 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
@@ -12,6 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminController : ControllerBase
@@ -31,6 +33,7 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
         }
         #region userManagement
+        [AllowAnonymous] 
         //[HasPermission(Permission.StoreMaterialTracking)]
         [HttpGet("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
@@ -236,7 +239,7 @@ namespace CMMS.API.Controllers
 
 
         #region seeding
-
+        [AllowAnonymous]
         [HttpGet("SeedRole")]
         public IActionResult SeedRole()
         {
@@ -250,7 +253,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-
+        [AllowAnonymous]
         [HttpGet("SeedPermission")]
         public IActionResult SeedPermission()
         {
@@ -264,7 +267,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-
+        [AllowAnonymous]
         [HttpGet("SeedRolePermission")]
         public IActionResult SeedingRolePermission()
         {

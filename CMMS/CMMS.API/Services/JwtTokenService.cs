@@ -57,9 +57,12 @@ namespace CMMS.API.Services
             }
 
             var permissions = await _permissionService.GetUserPermission(user.Id);
-            foreach (var permission in permissions)
+            if(permissions != null)
             {
-                authClaims.Add(new Claim(CustomClaims.Permissions, permission.ToString()));
+                foreach (var permission in permissions)
+                {
+                    authClaims.Add(new Claim(CustomClaims.Permissions, permission.ToString()));
+                }
             }
 
             var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
