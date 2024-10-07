@@ -21,7 +21,9 @@ namespace CMMS.API.Controllers
         private readonly IMapper _mapper;
         private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthenticateController(IJwtTokenService jwtTokenService, IUserService userService, ICurrentUserService currentUserService
+        public AuthenticateController(IJwtTokenService jwtTokenService, 
+            IUserService userService,
+            ICurrentUserService currentUserService
             , IMapper mapper)
         {
             _mapper = mapper;
@@ -89,37 +91,6 @@ namespace CMMS.API.Controllers
             }
             return BadRequest("Failed to update user's token");
         }
-
-        [AllowAnonymous]
-        [HttpGet("signin-google")]
-        public IActionResult GooleSignIn()
-        {
-            // Redirect to Google authentication
-            var redirectUrl = Url.Action("GoogleResponse", "Auth");
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-        }
-
-        [HttpGet("google-response")]
-        public async Task<IActionResult> GoogleResponse()
-        {
-            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            if (!result.Succeeded)
-                return BadRequest("Lỗi xác thực");
-
-            var claims = result.Principal.Identities
-                .FirstOrDefault()?.Claims.Select(claim => new
-                {
-                    claim.Issuer,
-                    claim.OriginalIssuer,
-                    claim.Type,
-                    claim.Value
-                });
-
-            return Ok(claims);
-        }
-
 
         [HttpDelete("signOut")]
         public async Task<IActionResult> SignOut()

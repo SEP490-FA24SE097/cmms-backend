@@ -5,6 +5,7 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
@@ -31,6 +32,7 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
         }
         #region userManagement
+        [AllowAnonymous] 
         //[HasPermission(Permission.StoreMaterialTracking)]
         [HttpGet("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)

@@ -92,7 +92,17 @@ namespace CMMS.Infrastructure.Services
                 return message;
             }
             var user = _mapper.Map<ApplicationUser>(userCM);
-            var result = await _userManager.CreateAsync(user, userCM.Password);
+
+            IdentityResult result = IdentityResult.Success;
+
+            if (userCM.Password != null)
+            {
+                result = await _userManager.CreateAsync(user, userCM.Password);
+            }
+            else {
+                result = await _userManager.CreateAsync(user);
+            }
+           
             if (result.Succeeded)
             {
                 var roleName = userCM.RoleName;

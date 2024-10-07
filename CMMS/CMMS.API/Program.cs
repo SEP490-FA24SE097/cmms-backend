@@ -53,43 +53,24 @@ namespace CMMS.API
             .AddTokenProvider(TokenOptions.DefaultEmailProvider, typeof(EmailTokenProvider<ApplicationUser>))
             .AddTokenProvider(TokenOptions.DefaultPhoneProvider, typeof(PhoneNumberTokenProvider<ApplicationUser>))
             .AddTokenProvider(TokenOptions.DefaultAuthenticatorProvider, typeof(AuthenticatorTokenProvider<ApplicationUser>));
+       
             
             
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.Configure<CookiePolicyOptions>(options =>
-            {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
-                options.CheckConsentNeeded = context => true;
-                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
-            });
-
-            builder.Services.ConfigureApplicationCookie(options =>
-            {
-                options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // timeout time
-                options.SlidingExpiration = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            });
-
-
-            //Cookie Policy needed for External Auth
-            builder.Services.Configure<CookiePolicyOptions>(options =>
-            {
-                options.Secure = CookieSecurePolicy.Always;
-                options.MinimumSameSitePolicy = SameSiteMode.None;
-            });
-
 
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 
             })
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie()
             // jwt options
             .AddJwtBearer(options =>
             {
@@ -112,9 +93,10 @@ namespace CMMS.API
                 var clientSecert = builder.Configuration["Authentication:Google:ClientSecret"];
                 options.ClientId = clientId;
                 options.ClientSecret = clientSecert;
+
+                options.SignInScheme = "Identity.External";
+
             });
-
-
 
             // authorization policies
             builder.Services.AddAuthorization(options =>
@@ -124,6 +106,7 @@ namespace CMMS.API
                 .RequireAuthenticatedUser()
                 .Build();
             });
+
 
             // DI 
             builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -149,8 +132,8 @@ namespace CMMS.API
             // Configure the HTTP request pipeline.
             app.UseCors("AllowAll");
 
-            //app.UseSwagger();
-            //app.UseSwaggerUI();
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseRouting();
 

@@ -13,12 +13,12 @@ namespace CMMS.Core.Models
         public string FullName { get; set; }
         [Required, EmailAddress]
         public string Email { get; set; }
-        [Required, MinLength(6)]
+        //[Required, MinLength(6)]
         public string UserName { get; set; }
-        [Required]
+        //[Required]
         public string Password { get; set; }
         public string DOB { get; set; }
-        [StringLength(10)]
+        //[StringLength(10)]
         public string PhoneNumber { get; set; }
         public string Province { get; set; }
         public string District { get; set; }
