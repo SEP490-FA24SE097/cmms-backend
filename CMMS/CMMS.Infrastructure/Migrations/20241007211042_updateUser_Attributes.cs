@@ -5,7 +5,7 @@
 namespace CMMS.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class update_User_AddMSTField : Migration
+    public partial class updateUser_Attributes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,6 +20,14 @@ namespace CMMS.Infrastructure.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Province",
+                table: "Users",
+                type: "nvarchar(max)",
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(max)");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "PhoneNumber",
                 table: "Users",
                 type: "nvarchar(max)",
                 nullable: true,
@@ -43,7 +51,7 @@ namespace CMMS.Infrastructure.Migrations
                 oldType: "nvarchar(max)");
 
             migrationBuilder.AddColumn<string>(
-                name: "MST",
+                name: "TaxCode",
                 table: "Users",
                 type: "nvarchar(max)",
                 nullable: true);
@@ -53,7 +61,7 @@ namespace CMMS.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "MST",
+                name: "TaxCode",
                 table: "Users");
 
             migrationBuilder.AlterColumn<string>(
@@ -68,6 +76,16 @@ namespace CMMS.Infrastructure.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "Province",
+                table: "Users",
+                type: "nvarchar(max)",
+                nullable: false,
+                defaultValue: "",
+                oldClrType: typeof(string),
+                oldType: "nvarchar(max)",
+                oldNullable: true);
+
+            migrationBuilder.AlterColumn<string>(
+                name: "PhoneNumber",
                 table: "Users",
                 type: "nvarchar(max)",
                 nullable: false,

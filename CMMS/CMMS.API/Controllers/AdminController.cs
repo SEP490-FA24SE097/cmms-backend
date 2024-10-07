@@ -238,7 +238,7 @@ namespace CMMS.API.Controllers
 
 
         #region seeding
-
+        [AllowAnonymous]
         [HttpGet("SeedRole")]
         public IActionResult SeedRole()
         {
@@ -252,7 +252,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-
+        [AllowAnonymous]
         [HttpGet("SeedPermission")]
         public IActionResult SeedPermission()
         {
@@ -266,7 +266,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-
+        [AllowAnonymous]
         [HttpGet("SeedRolePermission")]
         public IActionResult SeedingRolePermission()
         {

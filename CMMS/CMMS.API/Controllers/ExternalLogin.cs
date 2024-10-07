@@ -97,7 +97,6 @@ namespace CMMS.API.Controllers
                 if (result)
                 {
                     return Ok(new { token = accessToken, refreshToken });
-
                 }
             }
             if (authenResult.IsLockedOut)
@@ -107,22 +106,21 @@ namespace CMMS.API.Controllers
             else
             {
                 // have no account in system
-                var user = new ApplicationUser { UserName = Email, Email = Name };
-        
+                var user = new ApplicationUser { FullName = Name, Email = Email, UserName = Email };
                 var refreshToken = _jwtTokenService.CreateRefeshToken();
-                user.RefreshToken = refreshToken;
-                user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
                 var userCM = _mapper.Map<UserCM>(user);
                 userCM.RoleName = Role.Customer.ToString();
-                await _userService.AddAsync(userCM);
-                var result = await _userService.SaveChangeAsync();
-                if (result)
-                {
+
+                userCM.ProviderKey = info.ProviderKey;
+                userCM.ProviderDisplayName = info.ProviderDisplayName;
+                userCM.LoginProvider = info.LoginProvider;
+
+                var message = await _userService.AddAsync(userCM);
+                if (message.StatusCode == 201) {
                     var userEntity = await _userService.FindbyEmail(Email);
                     var userRoles = await _userService.GetRolesAsync(userEntity);
-                    var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
+                    var accessToken = await _jwtTokenService.CreateToken(userEntity, userRoles);
                     return Ok(new { token = accessToken, refreshToken });
-
                 }
                 return BadRequest("Failed to update user's token");
             }

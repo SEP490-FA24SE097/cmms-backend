@@ -29,7 +29,6 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where);
         Task<bool> SaveChangeAsync();
         Task<bool> ConfirmAccount(string email);
-        Task<string> LoginWithGoogle(string provider, string returnUrl);
     }
     public class UserService : IUserService
     {
@@ -100,7 +99,12 @@ namespace CMMS.Infrastructure.Services
                 result = await _userManager.CreateAsync(user, userCM.Password);
             }
             else {
+
+                // login by google EmailConfirmed is true
+                user.EmailConfirmed = true;
                 result = await _userManager.CreateAsync(user);
+                var loginProviderInfo = new UserLoginInfo(userCM.LoginProvider,userCM.ProviderKey, userCM.ProviderDisplayName);
+                result =  await _userManager.AddLoginAsync(user, loginProviderInfo);
             }
            
             if (result.Succeeded)
@@ -114,7 +118,9 @@ namespace CMMS.Infrastructure.Services
                 }
                 else await _userManager.AddToRoleAsync(user, roleName);
                 message.Content = "Add new user successfully";
+                message.StatusCode = 201;
             }
+            await _unitOfWork.SaveChangeAsync();
             return message;
         }
 
@@ -194,10 +200,6 @@ namespace CMMS.Infrastructure.Services
             _userRepository.Update(user);
             return await _unitOfWork.SaveChangeAsync();
         }
-
-        public Task<string> LoginWithGoogle(string provider, string returnUrl)
-        {
-            return null;
-        }
+   
     }
 }

@@ -30,20 +30,20 @@ namespace CMMS.API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add CORS services
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAll",
-                    builder =>
-                    {
-                        builder.WithOrigins("https://localhost:7095")  
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials();  // Cho phép gửi cookie
-                    });
-            });
+            //builder.Services.AddCors(options =>
+            //{
+            //    options.AddPolicy("AllowAll",
+            //        builder =>
+            //        {
+            //            builder.WithOrigins("https://localhost:7095")  
+            //            .AllowAnyMethod()
+            //            .AllowAnyHeader()
+            //            .AllowCredentials();  // Cho phép gửi cookie
+            //        });
+            //});
 
-
-            builder.Services.AddDistributedMemoryCache(); // Or use a distributed cache for production.
+            builder.Services.AddHttpClient();
+            builder.Services.AddDistributedMemoryCache(); 
 
 
             // Add services to the container.
@@ -130,7 +130,7 @@ namespace CMMS.API
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            app.UseCors("AllowAll");
+            //app.UseCors("AllowAll");
 
             app.UseSwagger();
             app.UseSwaggerUI();
