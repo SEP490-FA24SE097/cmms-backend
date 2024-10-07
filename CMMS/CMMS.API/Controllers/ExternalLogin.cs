@@ -28,14 +28,10 @@ namespace CMMS.API.Controllers
         [HttpGet("google-signin")]
         public IActionResult GoogleLogin()
         {
-            var state = Guid.NewGuid().ToString();
-            Response.Cookies.Append("state", state);
-
             var provider = "Google";
             var redirectUrl = Url.Action(nameof(GoogleCallBack), "ExternalLogin");
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            properties.Items.Add("state", state);
-            properties.AllowRefresh = true;
+            //properties.AllowRefresh = true;
             return new ChallengeResult(provider, properties);
         }
 

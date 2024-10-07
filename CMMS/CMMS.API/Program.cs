@@ -35,7 +35,7 @@ namespace CMMS.API
                 options.AddPolicy("AllowAll",
                     builder =>
                     {
-                        builder.WithOrigins("https://localhost:5001", "")  
+                        builder.WithOrigins("https://localhost:7095")  
                         .AllowAnyMethod()
                         .AllowAnyHeader()
                         .AllowCredentials();  // Cho phép gửi cookie
@@ -43,7 +43,7 @@ namespace CMMS.API
             });
 
 
-            //builder.Services.AddDistributedMemoryCache(); // Or use a distributed cache for production.
+            builder.Services.AddDistributedMemoryCache(); // Or use a distributed cache for production.
 
 
             // Add services to the container.
@@ -59,6 +59,12 @@ namespace CMMS.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.Configure<CookiePolicyOptions>(options =>
+            {
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+            });
 
             builder.Services.ConfigureApplicationCookie(options =>
             {
@@ -72,7 +78,7 @@ namespace CMMS.API
             builder.Services.Configure<CookiePolicyOptions>(options =>
             {
                 options.Secure = CookieSecurePolicy.Always;
-                options.MinimumSameSitePolicy = SameSiteMode.Lax;
+                options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
 
@@ -106,13 +112,7 @@ namespace CMMS.API
                 var clientSecert = builder.Configuration["Authentication:Google:ClientSecret"];
                 options.ClientId = clientId;
                 options.ClientSecret = clientSecert;
-                options.CallbackPath = "/api/ExternalLogin/google-response";
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-                options.StateDataFormat = new SecureDataFormat<AuthenticationProperties>(new PropertiesSerializer(),
-                    DataProtectionProvider.Create("ASP.NET Core").CreateProtector("OAuth.State"));
             });
-
 
 
 
@@ -124,7 +124,6 @@ namespace CMMS.API
                 .RequireAuthenticatedUser()
                 .Build();
             });
-
 
             // DI 
             builder.Services.AddInfrastructureServices(builder.Configuration);
