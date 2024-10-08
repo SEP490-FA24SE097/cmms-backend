@@ -138,7 +138,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Attribute");
+                    b.ToTable("Attributes");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Brand", b =>
@@ -156,9 +156,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Brand");
+                    b.ToTable("Brands");
                 });
-
 
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
@@ -182,7 +181,6 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.ToTable("Categories");
                 });
-
 
             modelBuilder.Entity("CMMS.Core.Entities.Material", b =>
                 {
@@ -261,7 +259,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("MaterialVariantAttribute");
+                    b.ToTable("MaterialVariantAttributes");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Permission", b =>
@@ -293,7 +291,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("RolePermissions");
                 });
 
- 
             modelBuilder.Entity("CMMS.Core.Entities.Store", b =>
                 {
                     b.Property<string>("Id")
@@ -331,7 +328,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("Store");
                 });
 
-
             modelBuilder.Entity("CMMS.Core.Entities.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -368,14 +364,6 @@ namespace CMMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    
-
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -384,7 +372,6 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
-
 
                     b.ToTable("Units");
                 });
@@ -402,7 +389,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("UserPermissions");
-
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Variant", b =>
@@ -432,8 +418,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("SKU")
                         .IsUnique();
 
-                    b.ToTable("Variant");
-
+                    b.ToTable("Variants");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -569,9 +554,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
- 
-            
- 
             modelBuilder.Entity("CMMS.Core.Entities.ApplicationUser", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Store", "Store")
@@ -581,7 +563,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Store");
                 });
 
-            
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Category", "ParentCategory")
