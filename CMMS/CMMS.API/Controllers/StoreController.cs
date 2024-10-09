@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CMMS.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/store")]
     [ApiController]
     public class StoreController : ControllerBase
     {
@@ -19,7 +19,7 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet("GetAll")]
+        [HttpGet("get-all")]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
@@ -28,7 +28,7 @@ namespace CMMS.API.Controllers
             return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage });
         }
 
-        [HttpGet("GetStoreBy/{storeId}")]
+        [HttpGet("{storeId}")]
         public async Task<IActionResult> GetStoreById(string storeId)
         {
             var result = await _storeService.GetStoreById(storeId);
@@ -37,7 +37,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("AddNew")]
+        [HttpPost("add-new")]
         public async Task<IActionResult> AddNewStore(StoreCM store)
         {
             var result = await _storeService.CreateNewStore(store);
@@ -45,7 +45,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("AssignUserToManagedStore")]
+        [HttpPost("assign-user-to-managed-store")]
         public async Task<IActionResult> AssignUserToManagedStore(string userId, string storeId)
         {
             var result = await _storeService.AssignUserToManageStore(userId, storeId);
@@ -53,28 +53,28 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("RemoveUserManagedStore")]
+        [HttpPost("remove-user-managed-store")]
         public async Task<IActionResult> RemoveUserManagedStore(string userId, string storeId)
         {
             var result = await _storeService.RemoveUserManagedStore(userId, storeId);
             return Ok(result);
         }
 
-        [HttpPost("ManageStoreRotation")]
+        [HttpPost("manage-store-rotation")]
         public async Task<IActionResult> ManageStoreRotation(string userId, string storeId)
         {
             var result = await _storeService.ManageStoreRotation(userId, storeId);
             return Ok(result);
         }
 
-        [HttpGet("StoreWasManaged")]
+        [HttpGet("store-was-managed")]
         public async Task<IActionResult> StoreWasManaged(string storeId)
         {
             var result = await _storeService.StoreWasManaged(storeId);
             return Ok(result);
         }
 
-        [HttpPut("Update")]
+        [HttpPut("update")]
         public async Task<IActionResult> UpdateStore(StoreDTO storeDTO)
         {
             var result = await _storeService.UpdateStore(storeDTO);

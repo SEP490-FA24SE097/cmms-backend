@@ -20,7 +20,7 @@ using CMMS.Infrastructure.Enums;
 
 namespace CMMS.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/externalLogin")]
     [ApiController]
     public class ExternalLogin : ControllerBase
     {
