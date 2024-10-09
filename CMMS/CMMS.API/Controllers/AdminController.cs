@@ -207,7 +207,7 @@ namespace CMMS.API.Controllers
             return BadRequest("Cannot update");
         }
 
-        [HttpDelete("delete-role")]
+        [HttpDelete("delete-role/{roleId}")]
         public async Task<IActionResult> DeleteRole(string roleId)
         {
             var result = await _roleSerivce.DeleteRole(roleId);
