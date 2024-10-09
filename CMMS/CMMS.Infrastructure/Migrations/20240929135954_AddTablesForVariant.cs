@@ -178,6 +178,22 @@ namespace CMMS.Infrastructure.Migrations
                 principalTable: "Brand",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
+            migrationBuilder.RenameTable(
+                name: "Attribute",
+                newName:"Attributes"
+            );
+            migrationBuilder.RenameTable(
+                name: "Variants",
+                newName: "Variants"
+            );
+            migrationBuilder.RenameTable(
+                name: "Brand",
+                newName: "Brands"
+            );
+            migrationBuilder.RenameTable(
+                name: "MaterialVariantAttribute",
+                newName: "MaterialVariantAttributes"
+            );
         }
 
         /// <inheritdoc />
