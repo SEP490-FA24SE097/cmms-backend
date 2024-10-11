@@ -10,8 +10,16 @@ namespace CMMS.Infrastructure.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<Permission> Permissions { get;set; }
         public DbSet<RolePermission> RolePermissions { get;set; }
+        public DbSet<Cart> Carts { get; set; }
+        public DbSet<CustomerBalance> CustomerBalances { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceDetail> InvoiceDetails { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<ShippingDetail> ShippingDetails { get; set; }
 
-        public DbSet<Material>  Materials { get;set; }
+        public DbSet<Material> Materials { get; set; }
+        public DbSet<Store> Stores { get; set; }
         public DbSet<Unit> Units  { get;set; }
         public DbSet<Category> Categories  { get;set; }
         public DbSet<Supplier> Suppliers { get;set; }

@@ -1,0 +1,24 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CMMS.Core.Entities
+{
+    public class Transaction
+    {
+        [Key]
+        public string Id { get; set; }
+        public string TransactionType { get; set; }
+        public double Amount { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public string? InvoiceId { get; set; }
+        [ForeignKey(nameof(Customer))]
+        public string CustomerId { get; set; }
+        public ApplicationUser Customer { get; set; }
+        public Invoice? Invoice { get; set; }
+    }
+}
