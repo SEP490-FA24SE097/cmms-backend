@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/materials")]
     public class MaterialController : Controller
@@ -46,8 +47,33 @@ namespace CMMS.API.Controllers
                         MinStock = x.MinStock,
                         ImageUrl = x.ImageUrl
 
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
                     });
-                var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
+                }
+                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
 
                 return Ok(new
                 {
@@ -95,8 +121,33 @@ namespace CMMS.API.Controllers
                         MinStock = x.MinStock,
                         ImageUrl = x.ImageUrl
 
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
                     });
-                var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
+                }
+                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
 
                 return Ok(new
                 {
@@ -139,8 +190,33 @@ namespace CMMS.API.Controllers
                         MinStock = x.MinStock,
                         ImageUrl = x.ImageUrl
 
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
                     });
-                var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
+                }
+                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
 
                 return Ok(new
                 {
@@ -183,8 +259,33 @@ namespace CMMS.API.Controllers
                         MinStock = x.MinStock,
                         ImageUrl = x.ImageUrl
 
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
                     });
-                var result = Helpers.LinqHelpers.ToPageList(list, page, itemPerPage);
+                }
+                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
 
                 return Ok(new
                 {
@@ -221,7 +322,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpGet("id")]
+        [HttpGet("{id}")]
         public IActionResult GetMaterialById([FromRoute] string id)
         {
             try
@@ -244,8 +345,10 @@ namespace CMMS.API.Controllers
                         ImageUrl = x.ImageUrl
 
                     }).FirstOrDefault();
-                var variants = _materialVariantAttributeService.GetAll().Include(x => x.Variant)
-                    .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == Guid.Parse(id)).ToList().GroupBy(x => x.VariantId);
+                var variants = _materialVariantAttributeService.GetAll()
+                    .Include(x => x.Variant)
+                    .Include(x => x.Attribute)
+                    .Where(x => x.Variant.MaterialId == Guid.Parse(id)).ToList().GroupBy(x => x.VariantId);
                 return Ok(new
                 {
                     material = result,
