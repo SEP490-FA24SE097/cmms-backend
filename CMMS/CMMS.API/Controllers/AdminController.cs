@@ -13,7 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/admin")]
     [ApiController]
     public class AdminController : ControllerBase
     {
@@ -33,18 +33,18 @@ namespace CMMS.API.Controllers
         }
         #region userManagement
         [HasPermission(Permission.StoreMaterialTracking)]
-        [HttpGet("GetAllUser")]
+        [HttpGet("get-all-user")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
         {
             var result = await _userService.GetAll();
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "UserName" : defaultSearch.sortBy
                       , defaultSearch.isAscending)
                       .ToPageList(defaultSearch.currentPage, defaultSearch.perPage).AsNoTracking().ToList();
-            return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage });
+            return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage, perPage = defaultSearch.perPage });
         }
 
 
-        [HttpPost("AddNewUser")]
+        [HttpPost("add-new-user")]
         public async Task<IActionResult> AddNewUser(UserCM userCM)
         {
             var result = await _userService.AddAsync(userCM);
@@ -52,7 +52,7 @@ namespace CMMS.API.Controllers
         }
         #endregion
         #region permissions
-        [HttpGet("GetAllPermission")]
+        [HttpGet("get-all-permissions")]
         public IActionResult GetAllPermission([FromQuery] DefaultSearch defaultSearch)
         {
             var permissions = _permissionService.GetAll();
@@ -71,7 +71,7 @@ namespace CMMS.API.Controllers
             }
             );
         }
-        [HttpGet("GetUserPermission")]
+        [HttpGet("get-user-permissions/{userId}")]
         public async Task<IActionResult> GetUserPermisison(string userId)
         {
             var user = _userService.Get(u => u.Id.Equals(userId)).FirstOrDefault();
@@ -96,7 +96,7 @@ namespace CMMS.API.Controllers
             return Ok(response);
 
         }
-        [HttpGet("GetRolePermission")]
+        [HttpGet("get-role-permissions/{roleId}")]
         public async Task<IActionResult> GetRolePermisison(string roleId)
         {
             var role = await _roleSerivce.GetRoleById(roleId);
@@ -116,7 +116,7 @@ namespace CMMS.API.Controllers
             return Ok(response);
         }
 
-        [HttpPost("AddNewUserPermission")]
+        [HttpPost("add-new-user-permission")]
         public async Task<IActionResult> AddNewUserPermission(UserPermissionDTO userPermissionDTO)
         {
             if (ModelState.IsValid)
@@ -149,7 +149,7 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpDelete("RemoveUserPermission")]
+        [HttpDelete("remove-user-permission")]
         public async Task<IActionResult> RemoveUserPermission(UserPermissionDTO userPermissionDTO)
         {
             if (ModelState.IsValid)
@@ -172,7 +172,7 @@ namespace CMMS.API.Controllers
 
         #region roles
   
-        [HttpGet("GetRole")]
+        [HttpGet("get-roles")]
         public async Task<IActionResult> GetAccounts()
         {
             var result = await _roleSerivce.GetRole();
@@ -184,7 +184,7 @@ namespace CMMS.API.Controllers
             return Ok(listRoles);
         }
 
-        [HttpGet("GetRoleById/{id}")]
+        [HttpGet("get-role/{id}")]
         public async Task<IActionResult> GetRoleById(string id)
         {
             var result = await _roleSerivce.GetRoleById(id);
@@ -192,14 +192,14 @@ namespace CMMS.API.Controllers
             return BadRequest("Cannot found");
         }
 
-        [HttpPost("CreateRole")]
+        [HttpPost("create-role")]
         public async Task<IActionResult> CreateRole(string roleName)
         {
             var result = await _roleSerivce.CreateRole(roleName);
             return Ok(result);
         }
 
-        [HttpPut("UpdateRole/{id}")]
+        [HttpPut("update-role/{id}")]
         public async Task<IActionResult> UpdateRole(string roleName, string id)
         {
             var result = await _roleSerivce.UpdateRole(roleName, id);
@@ -207,14 +207,14 @@ namespace CMMS.API.Controllers
             return BadRequest("Cannot update");
         }
 
-        [HttpDelete("DeleteRole")]
+        [HttpDelete("delete-role/{roleId}")]
         public async Task<IActionResult> DeleteRole(string roleId)
         {
             var result = await _roleSerivce.DeleteRole(roleId);
             return Ok(result);
         }
   
-        [HttpGet("GetUserRole/{userId}")]
+        [HttpGet("get-user-role/{userId}")]
         public async Task<IActionResult> GetUserRole(string userId)
         {
             var result = await _roleSerivce.GetUserRole(userId);
@@ -223,7 +223,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("AddUserRole")]
+        [HttpPost("add-user-to-role")]
         public async Task<IActionResult> AddRoleUser(List<string> roleNames, string userId)
         {
             var result = await _roleSerivce.AddRoleUser(roleNames, userId);

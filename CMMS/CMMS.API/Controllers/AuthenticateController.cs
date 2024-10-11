@@ -16,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace CMMS.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
