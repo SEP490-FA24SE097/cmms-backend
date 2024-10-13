@@ -29,6 +29,8 @@ namespace CMMS.Core.Entities
         public virtual Brand Brand { get; set; }
         
         public virtual ICollection<Variant> Variants { get; set; }
+        public virtual ICollection<Import> Imports { get; set; }
+        public virtual ICollection<Warehouse> Warehouses { get; set; }
 
     }
 }

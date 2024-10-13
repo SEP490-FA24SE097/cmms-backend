@@ -19,5 +19,7 @@ namespace CMMS.Core.Entities
         public string VariantImageUrl { get; set; }
         public virtual Material Material { get; set; }
         public virtual ICollection<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
+        public virtual ICollection<Import> Imports { get; set; }
+        public virtual ICollection<Warehouse> Warehouses { get; set; }
     }
 }

@@ -23,6 +23,8 @@ namespace CMMS.Infrastructure.Data
         public DbSet<Attribute> Attributes { get; set; }
         public DbSet<Variant> Variants { get;set; }
         public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get;set; }
+        public DbSet<Import> Imports { get; set; }
+        public DbSet<Warehouse> Warehouses { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
