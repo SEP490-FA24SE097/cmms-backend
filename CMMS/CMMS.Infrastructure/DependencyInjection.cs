@@ -64,6 +64,11 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IBrandRepository, BrandRepository>();
             services.AddScoped<IBrandService, BrandService>();
+
+
+            services.AddScoped<ICartRepository, CartRepository>();
+            services.AddScoped<ICartService, CartService>();
+
             return services;
         }
     }

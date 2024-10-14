@@ -8,8 +8,8 @@ namespace CMMS.API.Services
 {
     public interface ICurrentUserService
     {
-        Guid GetUserId();
-        String getUserEmail();
+        string GetUserId();
+        string getUserEmail();
         Task<ApplicationUser> GetUser();
     }
 
@@ -25,16 +25,16 @@ namespace CMMS.API.Services
             _userManager = userManager;
         }
 
-        public Guid GetCurrentUserId()
+        public string GetCurrentUserId()
         {
             throw new NotImplementedException();
         }
-        public Guid GetUserId()
+        public string GetUserId()
         {
-            return Guid.Parse(_httpContextAccessor.HttpContext.
-                User.Claims.FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value);
+            return _httpContextAccessor.HttpContext.
+                User.Claims.FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value;
         }
-        public String getUserEmail()
+        public string getUserEmail()
         {
             return _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
         }

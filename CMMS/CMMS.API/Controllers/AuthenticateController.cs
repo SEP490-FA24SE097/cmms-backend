@@ -13,6 +13,8 @@ using System.Net.Http;
 using System.Text.Json;
 using CMMS.API.Constant;
 using Newtonsoft.Json;
+using CMMS.Core.Entities;
+using CMMS.Infrastructure.Data;
 
 namespace CMMS.API.Controllers
 {
@@ -23,19 +25,24 @@ namespace CMMS.API.Controllers
         private readonly IUserService _userService;
         private readonly ICurrentUserService _currentUserService;
         private readonly HttpClient _httpClient;
+        private readonly ICartService _cartService;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IJwtTokenService _jwtTokenService;
 
         public AuthenticateController(IJwtTokenService jwtTokenService,
             IUserService userService,
             ICurrentUserService currentUserService
-            , IMapper mapper, HttpClient httpClient)
+            , IMapper mapper, HttpClient httpClient,
+            ICartService cartService, IUnitOfWork unitOfWork)
         {
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
             _userService = userService;
             _currentUserService = currentUserService;
             _httpClient = httpClient;
+            _cartService = cartService; 
+            _unitOfWork = unitOfWork;
         }
 
         [AllowAnonymous]
@@ -78,6 +85,20 @@ namespace CMMS.API.Controllers
                 }
             }
             var result = await _userService.CustomerSignUpAsync(signUpModel);
+
+            // create customerCart
+            //Task.Run(async () =>
+            //{
+            //    var cart = new Cart
+            //    {
+            //        Id = Guid.NewGuid().ToString(),
+            //        CustomerId = _userService.Get(_ => _.Email.Equals(signUpModel.Email)).Select(x => x.Id).FirstOrDefault(),
+            //        MaterialId = "3438e83b-dc4e-4ccb-8ece-e72d9ad8d8f2"
+            //    };
+            //    await _cartService.AddAsync(cart);
+            //    await _unitOfWork.SaveChangeAsync();
+            //});
+
             if (result.Succeeded)
                 return Ok(result.Succeeded);
             return BadRequest("Signup failed");
@@ -134,7 +155,7 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> refeshToken(string refreshToken)
         {
             var userId = _currentUserService.GetUserId();
-            var user = await _userService.FindAsync(userId);
+            var user = await _userService.FindAsync(Guid.Parse(userId));
             if (user == null || !(user.Status != 0) || user.RefreshToken != refreshToken || user.DateExpireRefreshToken < DateTime.UtcNow)
             {
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
