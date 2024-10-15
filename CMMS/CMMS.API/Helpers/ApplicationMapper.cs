@@ -26,6 +26,6 @@ namespace CMMS.API.Helpers
             CreateMap<Cart, CartVM>().ReverseMap();
             CreateMap<CartDTO, CartVM>().ReverseMap();
 
-        }
+		}
     }
 }

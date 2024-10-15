@@ -16,7 +16,7 @@ namespace CMMS.Core.Entities
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
-        [ForeignKey(nameof(ApplicationUser))]
+        [ForeignKey("CustomerId")]
         public string CustomerId { get; set; }
         public ApplicationUser Customer { get; set; }
     }

@@ -1,4 +1,5 @@
 ﻿using CMMS.Core.Entities;
+using CMMS.Infrastructure.Constant;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System.IdentityModel.Tokens.Jwt;
@@ -29,11 +30,9 @@ namespace CMMS.API.Services
         {
             throw new NotImplementedException();
         }
-        public string GetUserId()
-        {
-            return _httpContextAccessor.HttpContext.
-                User.Claims.FirstOrDefault(_ => _.Type == JwtRegisteredClaimNames.Sid)?.Value;
-        }
+        public string GetUserId() =>
+             _httpContextAccessor.HttpContext.
+				User.Claims.FirstOrDefault(_ => _.Type == CustomClaims.UserId)?.Value;
         public string getUserEmail()
         {
             return _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;

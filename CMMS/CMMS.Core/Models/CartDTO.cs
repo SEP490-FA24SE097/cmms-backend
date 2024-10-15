@@ -31,14 +31,19 @@ namespace CMMS.Core.Models
         public double TotalAmount { get; set; }
     }
 
-    public class AddItemDTO
+    public class CustomerAddItemToCartModel
     {
         public string CustomerId { get; set; }
         public string MaterialId  { get; set; }
         public string? VariantId { get; set; }
     }
+	public class AddItemModel
+	{
+		public string MaterialId { get; set; }
+		public string? VariantId { get; set; }
+	}
 
-    public class UpdateItemDTO
+	public class CustomerUpdateItemInCartModel
     {
         public string CustomerId { get; set; }
         public string MaterialId { get; set; }

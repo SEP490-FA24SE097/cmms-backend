@@ -13,9 +13,9 @@ namespace CMMS.Core.Entities
         [Key]
         public string Id { get; set; }
         [ForeignKey(nameof(Material))]
-        public string MaterialId { get; set; }
+        public Guid MaterialId { get; set; }
         [ForeignKey(nameof(Variant))]
-        public string? VariantId { get; set; }
+        public Guid? VariantId { get; set; }
         [ForeignKey(nameof(ApplicationUser))]
         public string CustomerId { get; set; }
         public decimal Quantity { get; set; }    

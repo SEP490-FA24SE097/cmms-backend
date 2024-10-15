@@ -17,7 +17,7 @@ namespace CMMS.Core.Models
         public string UserName { get; set; }
         //[Required]
         public string Password { get; set; }
-        public string DOB { get; set; }
+        public string? DOB { get; set; }
         //[StringLength(10)]
         public string? PhoneNumber { get; set; }
         public string? Province { get; set; }

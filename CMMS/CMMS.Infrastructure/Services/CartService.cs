@@ -5,6 +5,7 @@ using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,12 +18,12 @@ namespace CMMS.Infrastructure.Services
     public interface ICartService
     {
         Task AddAsync(Cart cart);
-        Task<IdentityResult> AddToCart(AddItemDTO item);
-        Task<IdentityResult> DecreaseQuantity(AddItemDTO item);
-        Task<IdentityResult> UpdateItemQuantity(UpdateItemDTO updateItem);
-        Task<IdentityResult> AddQuantityToCart(UpdateItemDTO addItem);
+        Task<IdentityResult> AddToCart(CustomerAddItemToCartModel item);
+        Task<IdentityResult> DecreaseQuantity(CustomerAddItemToCartModel item);
+        Task<IdentityResult> UpdateItemQuantity(CustomerUpdateItemInCartModel updateItem);
+        Task<IdentityResult> AddQuantityToCart(CustomerAddItemToCartModel addItem);
         List<CartVM> GetCartItemsByUserId(string userId);
-        Task<IdentityResult> DeleteItemInCart(AddItemDTO deleteItem);
+        Task<IdentityResult> DeleteItemInCart(CustomerAddItemToCartModel deleteItem);
     }
     public class CartService : ICartService
     {
@@ -51,7 +52,7 @@ namespace CMMS.Infrastructure.Services
             // logic to check quantity in warehouse.
             return true;
         }
-        public async Task<IdentityResult> AddQuantityToCart(UpdateItemDTO addItem)
+        public async Task<IdentityResult> AddQuantityToCart(CustomerAddItemToCartModel addItem)
         {
 
             // 2 truong hop 
@@ -87,8 +88,9 @@ namespace CMMS.Infrastructure.Services
                 {
                     Id = Guid.NewGuid().ToString(),
                     CustomerId = addItem.CustomerId,
-                    MaterialId = addItem.MaterialId,
-                    VariantId = addItem.VariantId,
+                    MaterialId = Guid.Parse(addItem.MaterialId),
+                    VariantId = addItem.VariantId != null ? Guid.Parse(addItem.VariantId) : null,
+                    TotalAmount = 0,
                     Quantity = 1,
                     UpdateAt = DateTime.UtcNow,
                     CreateAt = DateTime.UtcNow,
@@ -104,17 +106,17 @@ namespace CMMS.Infrastructure.Services
             return IdentityResult.Failed(new IdentityError { Description = "Could not save changes to the database." });
         }
 
-        public Task<IdentityResult> AddToCart(AddItemDTO item)
+        public Task<IdentityResult> AddToCart(CustomerAddItemToCartModel item)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IdentityResult> DecreaseQuantity(AddItemDTO item)
+        public Task<IdentityResult> DecreaseQuantity(CustomerAddItemToCartModel item)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IdentityResult> DeleteItemInCart(AddItemDTO deleteItem)
+        public Task<IdentityResult> DeleteItemInCart(CustomerAddItemToCartModel deleteItem)
         {
             throw new NotImplementedException();
         }
@@ -122,27 +124,31 @@ namespace CMMS.Infrastructure.Services
         public List<CartVM> GetCartItemsByUserId(string userId)
         {
             List<CartVM> listUserCart = new List<CartVM>();
-            var userCart = _cartRepository.Get(_ => _.CustomerId.Equals(userId));
-            if (userCart != null)
+            var userCart = _cartRepository.Get(_ => _.CustomerId.Equals(userId)).ToList();
+            if (!userCart.IsNullOrEmpty())
             {
                 listUserCart = _mapper.Map<List<CartVM>>(userCart);
                 foreach (var item in listUserCart)
                 {
-                    var imageUrl = _materialService.Get(_ => _.Id.Equals(item.Id))
-                        .Select(m => m.ImageUrl).FirstOrDefault();
-                    if (item.VariantId != null)
+                    var material = _materialService.Get(_ => _.Id.Equals(Guid.Parse(item.MaterialId))).FirstOrDefault();
+                    var imageUrl = material.ImageUrl;
+                    var totalAmount = material.SalePrice * item.Quantity;
+
+					if (item.VariantId != null)
                     {
-                        imageUrl = _variantService.Get(_ => _.Id.Equals(item.Id))
-                            .Select(m => m.VariantImageUrl).FirstOrDefault();
-                    }
-                    item.ImageUrl = imageUrl;
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+                        imageUrl = variant.VariantImageUrl;
+						totalAmount = variant.Price * item.Quantity;
+					}
+                    item.TotalAmount = (double)totalAmount;
+					item.ImageUrl = imageUrl;
                 }
                 return listUserCart;
             }
             return null;
         }
 
-        public Task<IdentityResult> UpdateItemQuantity(UpdateItemDTO updateItem)
+        public Task<IdentityResult> UpdateItemQuantity(CustomerUpdateItemInCartModel updateItem)
         {
             throw new NotImplementedException();
         }
