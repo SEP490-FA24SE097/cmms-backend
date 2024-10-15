@@ -20,6 +20,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 
 namespace CMMS.API
 {
@@ -43,8 +44,12 @@ namespace CMMS.API
             //});
 
             builder.Services.AddHttpClient();
-            builder.Services.AddDistributedMemoryCache(); 
-
+            builder.Services.AddDistributedMemoryCache();
+            //builder.Services.AddControllers()
+            //     .AddJsonOptions(options =>
+            //     {
+            //         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+            //     });
 
             // Add services to the container.
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -60,9 +65,9 @@ namespace CMMS.API
             .AddTokenProvider(TokenOptions.DefaultEmailProvider, typeof(EmailTokenProvider<ApplicationUser>))
             .AddTokenProvider(TokenOptions.DefaultPhoneProvider, typeof(PhoneNumberTokenProvider<ApplicationUser>))
             .AddTokenProvider(TokenOptions.DefaultAuthenticatorProvider, typeof(AuthenticatorTokenProvider<ApplicationUser>));
-       
-            
-            
+
+
+
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

@@ -35,7 +35,7 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpGet("id")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetCateById([FromRoute]string id)
         {
             try
