@@ -1,6 +1,7 @@
 ﻿
 using CMMS.API.OptionsSetup;
 using CMMS.API.Services;
+using CMMS.API.Services.BackgroundJob;
 using CMMS.Core.Entities;
 using CMMS.Infrastructure;
 using CMMS.Infrastructure.Data;
@@ -30,27 +31,25 @@ namespace CMMS.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add CORS services
-            //builder.Services.AddCors(options =>
-            //{
-            //    options.AddPolicy("AllowAll",
-            //        builder =>
-            //        {
-            //            builder.WithOrigins("https://localhost:7095")  
-            //            .AllowAnyMethod()
-            //            .AllowAnyHeader()
-            //            .AllowCredentials();  // Cho phép gửi cookie
-            //        });
-            //});
+			// Add CORS services
+			//builder.Services.AddCors(options =>
+			//{
+			//    options.AddPolicy("AllowAll",
+			//        builder =>
+			//        {
+			//            builder.WithOrigins("https://localhost:7095")  
+			//            .AllowAnyMethod()
+			//            .AllowAnyHeader()
+			//            .AllowCredentials();  // Cho phép gửi cookie
+			//        });
+			//});
+			// background worker 
+			//builder.Services.AddHostedService<PaymentBackgroundService>();
 
-            builder.Services.AddHttpClient();
+
+			builder.Services.AddHttpClient();
             builder.Services.AddDistributedMemoryCache();
-            //builder.Services.AddControllers()
-            //     .AddJsonOptions(options =>
-            //     {
-            //         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-            //     });
-
+   
             // Add services to the container.
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -120,8 +119,11 @@ namespace CMMS.API
             });
 
 
-            // DI 
-            builder.Services.AddInfrastructureServices(builder.Configuration);
+		
+
+
+			// DI 
+			builder.Services.AddInfrastructureServices(builder.Configuration);
 
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

@@ -13,10 +13,13 @@ namespace CMMS.Core.Entities
         [Key]
         public string Id { get; set; }
         public DateTime PaymentDate { get; set; }
-        public double AmountPaid { get; set; }
+        public decimal AmountPaid { get; set; }
         public string PaymentMethod { get; set; }
         [ForeignKey(nameof(Invoice))]
         public string? InvoiceId { get; set; }
-        public Invoice? Invoice { get; set; }
+        public int PaymentStatus { get; set; }
+        public string PaymentDescription { get; set; }
+        public string? BankCode { get; set; }
+		public Invoice? Invoice { get; set; }
     }
 }

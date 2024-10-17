@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,8 +25,9 @@ namespace CMMS.Infrastructure.Services
         Task<IdentityResult> AddQuantityToCart(CustomerAddItemToCartModel addItem);
         List<CartVM> GetCartItemsByUserId(string userId);
         Task<IdentityResult> DeleteItemInCart(CustomerAddItemToCartModel deleteItem);
-    }
-    public class CartService : ICartService
+		Task<decimal> GetTotalAmountCart(string customerId);
+	}
+	public class CartService : ICartService
     {
         private IMapper _mapper;
         private ICartRepository _cartRepository;
@@ -61,6 +63,9 @@ namespace CMMS.Infrastructure.Services
             // thi check id phai nhu the nao???
             // thong qua addItem
             // get variant or material 
+            //var existingCartItem = _cartRepository.Get(_ => _.CustomerId.Equals(addItem.CustomerId)
+            //&& _.MaterialId.Equals(addItem.MaterialId));
+
             var existingCartItem = _cartRepository.Get(_ => _.CustomerId.Equals(addItem.CustomerId)
             && _.MaterialId.Equals(addItem.MaterialId));
 
@@ -69,7 +74,8 @@ namespace CMMS.Infrastructure.Services
                 existingCartItem.Where(_ => _.VariantId.Equals(addItem.VariantId));
             }
             var cartItem = existingCartItem.FirstOrDefault();
-            if (cartItem != null)
+            //var cartItem = existingCartItem.FirstOrDefault();
+			if (cartItem != null)
             {
                 // get quantity cua item o store.
                 //if (items.Quantity == existingCartItem.Quantity)
@@ -77,20 +83,32 @@ namespace CMMS.Infrastructure.Services
                 //    return IdentityResult.Failed(new IdentityError { Description = "Quantity not enough!!!" });
                 //}
                 // Item exists, update the quantity
+                var oldQuantity = cartItem.Quantity;
+                var itemPrice = cartItem.TotalAmount / oldQuantity;
+				var newQuantity = oldQuantity + 1;
+                cartItem.TotalAmount = itemPrice * newQuantity;
                 cartItem.Quantity += 1;
                 cartItem.UpdateAt = DateTime.UtcNow;
                 _cartRepository.Update(cartItem);
             }
             else
             {
-                // Item does not exist, add a new CartItem
-                var newCartItem = new Core.Entities.Cart
+				var material = _materialService.Get(_ => _.Id.Equals(Guid.Parse(addItem.MaterialId))).FirstOrDefault();
+				var totalAmount = material.SalePrice;
+				if (addItem.VariantId != null)
+				{
+					var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(addItem.VariantId))).FirstOrDefault();
+                    existingCartItem.Where(_ => _.VariantId.Equals(addItem.VariantId));
+                    totalAmount = variant.Price;
+				}
+				// Item does not exist, add a new CartItem
+				var newCartItem = new Cart
                 {
                     Id = Guid.NewGuid().ToString(),
                     CustomerId = addItem.CustomerId,
                     MaterialId = Guid.Parse(addItem.MaterialId),
                     VariantId = addItem.VariantId != null ? Guid.Parse(addItem.VariantId) : null,
-                    TotalAmount = 0,
+                    TotalAmount = totalAmount,
                     Quantity = 1,
                     UpdateAt = DateTime.UtcNow,
                     CreateAt = DateTime.UtcNow,
@@ -157,5 +175,10 @@ namespace CMMS.Infrastructure.Services
         {
            await _cartRepository.AddAsync(cart);
         }
-    }
+
+		public async Task<decimal> GetTotalAmountCart(string customerId)
+		{
+            return await _cartRepository.Get(_ => _.CustomerId.Equals(customerId)).SumAsync(_ => _.TotalAmount);
+		}
+	}
 }

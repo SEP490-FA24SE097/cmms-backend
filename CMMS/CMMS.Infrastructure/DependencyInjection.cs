@@ -1,6 +1,7 @@
 ﻿using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
+using CMMS.Infrastructure.Services.Payment;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -52,7 +53,6 @@ namespace CMMS.Infrastructure
             services.AddScoped<IStoreService, StoreService>();
 
 
-
             services.AddScoped<IAttributeRepository, AttributeRepository>();
             services.AddScoped<IAttributeService, AttributeService>();
 
@@ -75,7 +75,18 @@ namespace CMMS.Infrastructure
             services.AddScoped<ICartRepository, CartRepository>();
             services.AddScoped<ICartService, CartService>();
 
-            return services;
+			services.AddScoped<IPaymentRepository, PaymentRepository>();
+			services.AddScoped<IPaymentService, PaymentService>();
+
+			services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+
+			services.AddScoped<IInvoiceDetailRepository, InvoiceDetailRepository>();
+
+			services.AddScoped<IShippingDetailRepository, ShippingDetailRepository>();
+
+
+
+			return services;
         }
     }
 }

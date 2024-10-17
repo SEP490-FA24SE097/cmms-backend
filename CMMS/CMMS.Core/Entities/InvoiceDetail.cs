@@ -14,10 +14,12 @@ namespace CMMS.Core.Entities
         public string Id { get; set; }
         public Guid MaterialId { get; set; }
         public Guid? VariantId { get; set; }
-        public int Quantity { get; set; }
-        public double LineTotal { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal LineTotal { get; set; }
+        [ForeignKey(nameof(Invoice))]
+        public string InvoiceId { get; set; }   
         public virtual ICollection<Material> Materials { get; set; }
         public virtual ICollection<Variant>? Variants { get; set; }
-        public Invoice Invoice { get; set; }
-    }
+        public virtual Invoice Invoice { get; set; }
+	}
 }

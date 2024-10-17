@@ -19,7 +19,7 @@ namespace CMMS.Core.Entities
         [ForeignKey(nameof(ApplicationUser))]
         public string CustomerId { get; set; }
         public decimal Quantity { get; set; }    
-        public double TotalAmount { get; set; } 
+        public decimal TotalAmount { get; set; } 
         public DateTime CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public virtual Material Materials { get; set; }

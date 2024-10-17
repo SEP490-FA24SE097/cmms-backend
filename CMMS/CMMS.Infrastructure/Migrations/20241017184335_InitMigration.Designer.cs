@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241015103038_fix error foreginKey")]
-    partial class fixerrorforeginKey
+    [Migration("20241017184335_InitMigration")]
+    partial class InitMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -186,8 +186,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<double>("TotalAmount")
-                        .HasColumnType("float");
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("datetime2");
@@ -255,6 +255,36 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("CustomerBalances");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.Import", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MaterialId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("TimeStamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("VariantId");
+
+                    b.ToTable("Imports");
+                });
+
             modelBuilder.Entity("CMMS.Core.Entities.Invoice", b =>
                 {
                     b.Property<string>("Id")
@@ -273,8 +303,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("TotalAmount")
-                        .HasColumnType("float");
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -289,16 +319,17 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("InvoiceId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<double>("LineTotal")
-                        .HasColumnType("float");
+                    b.Property<decimal>("LineTotal")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("MaterialId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("VariantId")
                         .HasColumnType("uniqueidentifier");
@@ -400,8 +431,11 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<double>("AmountPaid")
-                        .HasColumnType("float");
+                    b.Property<decimal>("AmountPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankCode")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("InvoiceId")
                         .HasColumnType("nvarchar(450)");
@@ -409,9 +443,16 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("PaymentDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -547,8 +588,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<double>("Amount")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CustomerId")
                         .IsRequired()
@@ -639,6 +680,33 @@ namespace CMMS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Variants");
+                });
+
+            modelBuilder.Entity("CMMS.Core.Entities.Warehouse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("LastUpdateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MaterialId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("VariantId");
+
+                    b.ToTable("Warehouses");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -828,6 +896,23 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.Import", b =>
+                {
+                    b.HasOne("CMMS.Core.Entities.Material", "Material")
+                        .WithMany("Imports")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMMS.Core.Entities.Variant", "Variant")
+                        .WithMany("Imports")
+                        .HasForeignKey("VariantId");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("CMMS.Core.Entities.Invoice", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.ApplicationUser", "Customer")
@@ -842,8 +927,10 @@ namespace CMMS.Infrastructure.Migrations
             modelBuilder.Entity("CMMS.Core.Entities.InvoiceDetail", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Invoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId");
+                        .WithMany("InvoiceDetails")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Invoice");
                 });
@@ -996,6 +1083,23 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Material");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.Warehouse", b =>
+                {
+                    b.HasOne("CMMS.Core.Entities.Material", "Material")
+                        .WithMany("Warehouses")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMMS.Core.Entities.Variant", "Variant")
+                        .WithMany("Warehouses")
+                        .HasForeignKey("VariantId");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1071,6 +1175,11 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Materials");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.Invoice", b =>
+                {
+                    b.Navigation("InvoiceDetails");
+                });
+
             modelBuilder.Entity("CMMS.Core.Entities.InvoiceDetail", b =>
                 {
                     b.Navigation("Materials");
@@ -1080,7 +1189,11 @@ namespace CMMS.Infrastructure.Migrations
 
             modelBuilder.Entity("CMMS.Core.Entities.Material", b =>
                 {
+                    b.Navigation("Imports");
+
                     b.Navigation("Variants");
+
+                    b.Navigation("Warehouses");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Supplier", b =>
@@ -1095,7 +1208,11 @@ namespace CMMS.Infrastructure.Migrations
 
             modelBuilder.Entity("CMMS.Core.Entities.Variant", b =>
                 {
+                    b.Navigation("Imports");
+
                     b.Navigation("MaterialVariantAttributes");
+
+                    b.Navigation("Warehouses");
                 });
 #pragma warning restore 612, 618
         }
