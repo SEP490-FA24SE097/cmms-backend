@@ -25,7 +25,7 @@ namespace CMMS.Infrastructure.Services.Payment.Vnpay.Request
 			this.vnp_CurrCode = currCode;
 			this.vnp_CreateDate = createDate.ToString("yyyyMMddHHmmss");
 			this.vnp_TmnCode = tmnCode;
-			this.vnp_Amount = amount;
+			this.vnp_Amount = (int)amount;
 			this.vnp_Command = "pay";
 			this.vnp_OrderType = orderType;
 			this.vnp_OrderInfo = orderInfo;
@@ -81,7 +81,7 @@ namespace CMMS.Infrastructure.Services.Payment.Vnpay.Request
 			if (vnp_Version != null)
 				requestData.Add("vnp_Version", vnp_Version);
 		}
-		public decimal? vnp_Amount { get; set; }
+		public int? vnp_Amount { get; set; }
 		public string? vnp_Command { get; set; }
 		public string? vnp_CreateDate { get; set; }
 		public string? vnp_CurrCode { get; set; }

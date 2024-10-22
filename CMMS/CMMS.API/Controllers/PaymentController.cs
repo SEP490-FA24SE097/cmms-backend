@@ -44,10 +44,9 @@ namespace CMMS.API.Controllers
 			return Ok(paymentUrl);
 		}
 		[HttpGet("vnpay-return")]
-		public IActionResult VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
+		public async Task<IActionResult> VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
 		{
-			var customerId = _currentUserService.GetUserId();
-			var resultData = _paymentService.VnpayReturnUrl(vnpayPayResponse, customerId);
+			var resultData = await _paymentService.VnpayReturnUrl(vnpayPayResponse);
 			return Ok(resultData);
 		}
 	}

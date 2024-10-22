@@ -85,9 +85,11 @@ namespace CMMS.Infrastructure
 
 			services.AddScoped<IShippingDetailRepository, ShippingDetailRepository>();
 
+			services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 
-			return services;
+
+            return services;
         }
     }
 }
