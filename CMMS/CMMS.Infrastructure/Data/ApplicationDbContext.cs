@@ -23,6 +23,7 @@ namespace CMMS.Infrastructure.Data
         public DbSet<Unit> Units  { get;set; }
         public DbSet<Category> Categories  { get;set; }
         public DbSet<Supplier> Suppliers { get;set; }
+        public DbSet<Store> Stores { get;set; }
         
 
         public DbSet<UserPermission> UserPermissions { get;set; }
@@ -33,6 +34,7 @@ namespace CMMS.Infrastructure.Data
         public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get;set; }
         public DbSet<Import> Imports { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
+        public DbSet<StoreInventory> StoreInventories { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
