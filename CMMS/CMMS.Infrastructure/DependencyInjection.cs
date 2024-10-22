@@ -22,8 +22,9 @@ namespace CMMS.Infrastructure
                 .LogTo(Console.WriteLine);   // Log queries and errors to console
             });
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<ITransaction, EfTransaction>();
 
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
+			services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<ICategoryService, CategoryService>();
 
             services.AddScoped<IUnitRepository, UnitRepository>();

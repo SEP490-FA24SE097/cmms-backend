@@ -25,18 +25,18 @@ namespace CMMS.Infrastructure.Services.Payment
 		private readonly IPaymentRepository _paymentRepsitory;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly ILogger<PaymentService> _logger;
-		private readonly IServiceProvider _serviceProvider;
+		private readonly IServiceScopeFactory _serviceScopeFactory;
 
 		public PaymentService(IConfiguration configuration,
 			IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
-			IUnitOfWork unitOfWork, ILogger<PaymentService> logger, IServiceProvider serviceProvider)
+			IUnitOfWork unitOfWork, ILogger<PaymentService> logger, IServiceScopeFactory serviceScopeFactory)
 		{
 			_configuration = configuration;
 			_httpContextAccessor = httpContextAccessor;
 			_paymentRepsitory = paymentRepository;
 			_unitOfWork = unitOfWork;
 			_logger = logger;
-			_serviceProvider = serviceProvider;
+			_serviceScopeFactory = serviceScopeFactory;
 		}
 
 		public string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData)
@@ -71,19 +71,18 @@ namespace CMMS.Infrastructure.Services.Payment
 				try
 				{
 					_logger.LogInformation("Starting payment task for order: {orderDescription}", orderInfo);
-					using (var scope = _serviceProvider.CreateScope())
+					using (var scope = _serviceScopeFactory.CreateScope())
 					{
 						var _paymentRepositoryscoped = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
 						var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-						var databaseScope = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 						var _cartRepositoryScope = scope.ServiceProvider.GetRequiredService<ICartRepository>();
-						var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
+						var _efTranscationScope = scope.ServiceProvider.GetRequiredService<ITransaction>();
+                        var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
 						var _invoiceDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceDetailRepository>();
 						var _shippingDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IShippingDetailRepository>();
 
 						// create database transcation 
-						_unitOfWorkScope.BeginTransaction();
-						try
+                        try
 						{
 							// create invoice 
 							var invoice = new Invoice
@@ -105,6 +104,7 @@ namespace CMMS.Infrastructure.Services.Payment
 							{
 								var invoiceDetail = new InvoiceDetail
 								{
+									Id = Guid.NewGuid().ToString(),
 									LineTotal = cartItem.TotalAmount,
 									MaterialId = cartItem.MaterialId,
 									VariantId = cartItem.VariantId,
@@ -125,7 +125,7 @@ namespace CMMS.Infrastructure.Services.Payment
 								PaymentDescription = orderInfo,
 								PaymentStatus = 0,
 								PaymentMethod = "pay",
-								InvoiceId = paymentId,
+								InvoiceId = invoice.Id,
 								BankCode = vnpayPaymentRequest.vnp_BankCode,
 
 							};
@@ -135,6 +135,7 @@ namespace CMMS.Infrastructure.Services.Payment
 
 							var shippingDetail = new ShippingDetail
 							{
+								Id = Guid.NewGuid().ToString(),
 								Address = shippingAddress,
 								EstimatedArrival = DateTime.Now.AddDays(3),
 								InvoiceId = invoice.Id,
@@ -145,14 +146,13 @@ namespace CMMS.Infrastructure.Services.Payment
 							await _unitOfWorkScope.SaveChangeAsync();
 
 							// Commit transaction sucecssfully
-							_unitOfWork.Commit();
+							await _efTranscationScope.CommitAsync();
 						}
 						catch (Exception)
 						{
 							// rollback 
-							_unitOfWork.Rollback();
+							await _efTranscationScope.RollbackAsync();
 							throw;
-							
 						}
 
 					}
@@ -177,7 +177,7 @@ namespace CMMS.Infrastructure.Services.Payment
 					resultData.PaymentStatus = "99";
 					resultData.PaymentMessage = "Invalid signature in response";
 				}
-				using (var scope = _serviceProvider.CreateScope())
+				using (var scope = _serviceScopeFactory.CreateScope())
 				{
 					var _paymentRepositoryScope = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
 					var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
