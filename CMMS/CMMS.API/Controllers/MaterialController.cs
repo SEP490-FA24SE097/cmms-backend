@@ -166,9 +166,10 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
         [HttpGet("get-materials-by-category")]
         [AllowAnonymous]
-        public IActionResult GetByCategory([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string categoryId)
+        public IActionResult GetByCategory([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string categoryId, [FromQuery] bool isDescendingPrice)
         {
             try
             {
@@ -216,7 +217,152 @@ namespace CMMS.API.Controllers
 
                     });
                 }
-                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
+                List<MaterialVariantDTO> sortList = [];
+                sortList = isDescendingPrice ? newList.OrderBy(x => x.Material.SalePrice).Reverse().ToList()
+                    : newList.OrderBy(x => x.Material.SalePrice).ToList();
+                var result = Helpers.LinqHelpers.ToPageList(sortList, page - 1, itemPerPage);
+
+                return Ok(new
+                {
+                    data = result,
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
+
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+        [HttpGet("get-materials-by-brand")]
+        [AllowAnonymous]
+        public IActionResult GetByBrand([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string brandId, [FromQuery] bool isDescendingPrice)
+        {
+            try
+            {
+                var list = _materialService.GetAll().Include(x => x.Brand).
+                    Include(x => x.Category).
+                    Include(x => x.Unit).
+                    Include(x => x.Supplier).Where(x => x.BrandId == Guid.Parse(brandId)).Select(x => new MaterialDTO()
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Brand = x.Brand.Name,
+                        IsRewardEligible = x.IsRewardEligible,
+                        Description = x.Description,
+
+                        SalePrice = x.SalePrice,
+                        Unit = x.Unit.Name,
+                        Supplier = x.Supplier.Name,
+                        Category = x.Category.Name,
+                        MinStock = x.MinStock,
+                        ImageUrl = x.ImageUrl
+
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
+                    });
+                }
+                List<MaterialVariantDTO> sortList = [];
+                sortList = isDescendingPrice ? newList.OrderBy(x => x.Material.SalePrice).Reverse().ToList()
+                    : newList.OrderBy(x => x.Material.SalePrice).ToList();
+                var result = Helpers.LinqHelpers.ToPageList(sortList, page - 1, itemPerPage);
+
+                return Ok(new
+                {
+                    data = result,
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
+
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+        [HttpGet("get-materials-in-price-range")]
+        [AllowAnonymous]
+        public IActionResult GetByPrice([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] decimal lowerPrice, [FromQuery] decimal upperPrice)
+        {
+            try
+            {
+                var list = _materialService.GetAll().Include(x => x.Brand).
+                    Include(x => x.Category).
+                    Include(x => x.Unit).
+                    Include(x => x.Supplier).Where(x => x.SalePrice >= lowerPrice && x.SalePrice <= upperPrice).Select(x => new MaterialDTO()
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Brand = x.Brand.Name,
+                        IsRewardEligible = x.IsRewardEligible,
+                        Description = x.Description,
+
+                        SalePrice = x.SalePrice,
+                        Unit = x.Unit.Name,
+                        Supplier = x.Supplier.Name,
+                        Category = x.Category.Name,
+                        MinStock = x.MinStock,
+                        ImageUrl = x.ImageUrl
+
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+                    });
+                }
+                List<MaterialVariantDTO> sortList = [];
+                sortList = newList.OrderBy(x => x.Material.SalePrice).ToList();
+                var result = Helpers.LinqHelpers.ToPageList(sortList, page - 1, itemPerPage);
 
                 return Ok(new
                 {

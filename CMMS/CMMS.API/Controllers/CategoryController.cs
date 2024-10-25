@@ -22,10 +22,15 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var result = _categoryService.GetAll().Select(x => new
+                var result = _categoryService.Get(x => x.ParentCategoryId == null).Select(x => new
                 {
                     Id = x.Id,
-                    Name = x.Name
+                    Name = x.Name,
+                    subCategories = x.Categories.Select(x => new
+                    {
+                        Id = x.Id,
+                        Name = x.Name
+                    }).ToList()
                 });
                 return Ok(result);
             }
@@ -34,9 +39,26 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpGet("get-sub-categories")]
+        public IActionResult GetSubCategoies([FromQuery] Guid parentCategoryId)
+        {
+            try
+            {
+                var result = _categoryService.Get(x => x.ParentCategoryId == parentCategoryId).Select(x => new
+                {
+                    Id = x.Id,
+                    Name = x.Name
 
+                }).ToList();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCateById([FromRoute]string id)
+        public async Task<IActionResult> GetCateById([FromRoute] string id)
         {
             try
             {
