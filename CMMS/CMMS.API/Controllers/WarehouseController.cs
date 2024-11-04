@@ -1,62 +1,26 @@
-﻿using CMMS.Core.Entities;
-using CMMS.Core.Models;
+﻿using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.API.Controllers
 {
+    [Route("api/warehouse")]
     [ApiController]
-    [Route("api/store-inventories")]
-    public class StoreInventoryController : ControllerBase
+    public class WarehouseController : ControllerBase
     {
-        private readonly IStoreInventoryService _storeInventoryService;
 
-        public StoreInventoryController(IStoreInventoryService storeInventoryService)
+        private readonly IWarehouseService _warehouseService;
+        public WarehouseController(IWarehouseService warehouseService)
         {
-            _storeInventoryService = storeInventoryService;
+            _warehouseService = warehouseService;
         }
-
-
-
-
-        [HttpGet("get-product-quantity")]
-        public async Task<IActionResult> Get(GetProductQuantityDTO getProductQuantity)
+        [HttpGet("get-warehouse-products")]
+        public async Task<IActionResult> Get([FromQuery] int page, [FromQuery] int itemPerPage)
         {
             try
             {
-                var item = await _storeInventoryService.Get(x =>
-                    x.StoreId == getProductQuantity.StoreId && x.MaterialId == getProductQuantity.MaterialId &&
-                    x.VariantId == getProductQuantity.VariantId).FirstOrDefaultAsync();
-                if (item == null)
-                {
-                    return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
-                }
-                if (item.TotalQuantity == 0)
-                {
-                    return Ok(new { success = true, message = "Hết hàng" });
-                }
-                return Ok(new { success = true, quantity = item.TotalQuantity });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
-
-        [HttpGet("get-products-by-store-id")]
-        public async Task<IActionResult> Get([FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
-        {
-            try
-            {
-                var items = await _storeInventoryService.Get(x =>
-                    x.StoreId == storeId
-                    ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
+                var items = await _warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant).Select(x => new
                     {
                         x.Id,
                         x.MaterialId,
@@ -87,11 +51,11 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("search-and-filter")]
-        public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
+        public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] int page, [FromQuery] int itemPerPage)
         {
             try
             {
-                var items = await _storeInventoryService.Get(x => x.StoreId == storeId &&
+                var items = await _warehouseService.Get(x =>
                     x.Material.Name.Contains(safProductsDto.NameKeyWord)
                     && (safProductsDto.BrandId == null || x.Material.BrandId == safProductsDto.BrandId)
                     && (safProductsDto.CategoryId == null || x.Material.CategoryId == safProductsDto.CategoryId)
