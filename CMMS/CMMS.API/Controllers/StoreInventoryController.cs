@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/store-inventories")]
     public class StoreInventoryController : ControllerBase

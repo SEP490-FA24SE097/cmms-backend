@@ -70,6 +70,9 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IWarehouseRepository, WarehouseRepository>();
             services.AddScoped<IWarehouseService, WarehouseService>();
+
+            services.AddScoped<IStoreInventoryRepository, StoreInventoryRepository>();
+            services.AddScoped<IStoreInventoryService, StoreInventoryService>();
             return services;
         }
     }
