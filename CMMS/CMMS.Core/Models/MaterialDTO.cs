@@ -11,6 +11,7 @@ namespace CMMS.Core.Models
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public string BarCode { get; set; }
         public string Category { get; set; }
         public string Unit { get; set; }
         public string Supplier { get; set; }

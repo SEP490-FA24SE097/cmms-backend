@@ -37,6 +37,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -96,6 +97,83 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpGet("general-filter")]
+        [AllowAnonymous]
+        public IActionResult GetFilter([FromQuery] int page, [FromQuery] int itemPerPage, MaterialFilterModel materialFilterModel)
+        {
+            try
+            {
+                var list = _materialService.GetAll().Include(x => x.Brand).
+                    Include(x => x.Category).
+                    Include(x => x.Unit).
+                    Include(x => x.Supplier)
+                    .Where(x =>
+                            (materialFilterModel.CategoryId == null || x.CategoryId == materialFilterModel.CategoryId)
+                         && (materialFilterModel.BrandId == null || x.BrandId == materialFilterModel.BrandId)
+                         && (materialFilterModel.SupplierId == null || x.SupplierId == materialFilterModel.SupplierId)
+                         && (materialFilterModel.lowerPrice == null || x.SalePrice >= materialFilterModel.lowerPrice)
+                         && (materialFilterModel.upperPrice == null || x.SalePrice <= materialFilterModel.upperPrice)
+                    )
+                    .Select(x => new MaterialDTO()
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        BarCode = x.BarCode,
+                        Brand = x.Brand.Name,
+                        IsRewardEligible = x.IsRewardEligible,
+                        Description = x.Description,
+
+                        SalePrice = x.SalePrice,
+                        Unit = x.Unit.Name,
+                        Supplier = x.Supplier.Name,
+                        Category = x.Category.Name,
+                        MinStock = x.MinStock,
+                        ImageUrl = x.ImageUrl
+
+                    }).ToList();
+                List<MaterialVariantDTO> newList = [];
+                foreach (var material in list)
+                {
+                    var variants = _materialVariantAttributeService.GetAll()
+                        .Include(x => x.Variant)
+                        .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
+                        .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Key,
+                            Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            Attributes = x.Select(x => new AttributeDTO()
+                            {
+                                Name = x.Attribute.Name,
+                                Value = x.Value
+                            }).ToList()
+                        }).ToList();
+                    newList.Add(new MaterialVariantDTO()
+                    {
+                        Material = material,
+                        Variants = variants
+
+                    });
+                }
+                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
+
+                return Ok(new
+                {
+                    data = result,
+                    pagination = new
+                    {
+                        total = list.Count(),
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
         [HttpGet("search")]
         [AllowAnonymous]
         public IActionResult Search([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string? materialName)
@@ -110,6 +188,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -180,6 +259,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -252,6 +332,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -324,6 +405,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -390,10 +472,11 @@ namespace CMMS.API.Controllers
                 var list = _materialService.GetAll().Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
-                    Include(x => x.Supplier).Where(x => x.CategoryId == Guid.Parse(supplierId)).Select(x => new MaterialDTO()
+                    Include(x => x.Supplier).Where(x => x.SupplierId == Guid.Parse(supplierId)).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -479,6 +562,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = x.Id,
                         Name = x.Name,
+                        BarCode = x.BarCode,
                         Brand = x.Brand.Name,
                         IsRewardEligible = x.IsRewardEligible,
                         Description = x.Description,
@@ -526,6 +610,7 @@ namespace CMMS.API.Controllers
                 {
                     Id = new Guid(),
                     Name = materialCm.Name,
+                    BarCode = materialCm.BarCode,
                     Description = materialCm.Description,
                     ImageUrl = materialCm.ImageUrl,
                     SalePrice = materialCm.SalePrice,
@@ -554,6 +639,7 @@ namespace CMMS.API.Controllers
             {
                 var material = await _materialService.FindAsync(Guid.Parse(materialId));
                 material.Name = materialUM.Name.IsNullOrEmpty() ? material.Name : materialUM.Name;
+                material.BarCode = materialUM.BarCode.IsNullOrEmpty() ? material.BarCode : materialUM.BarCode;
                 material.Description = materialUM.Description.IsNullOrEmpty() ? material.Description : materialUM.Description;
                 material.ImageUrl = materialUM.ImageUrl.IsNullOrEmpty() ? material.ImageUrl : materialUM.ImageUrl;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;

@@ -10,6 +10,7 @@ namespace CMMS.Core.Models
     public class MaterialCM
     {
         public string Name { get; set; }
+        public string BarCode { get; set; }
         public Guid CategoryId { get; set; }
         public Guid UnitId { get; set; }
         public Guid SupplierId { get; set; }
