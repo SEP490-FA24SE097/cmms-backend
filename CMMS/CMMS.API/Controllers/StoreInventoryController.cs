@@ -8,6 +8,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using static CMMS.API.TimeConverter.TimeConverter;
 
 namespace CMMS.API.Controllers
 {
@@ -65,6 +66,8 @@ namespace CMMS.API.Controllers
                         x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
                         Quantity = x.TotalQuantity,
+                        x.MinStock,
+                        x.MaxStock,
                         x.LastUpdateTime
                     }).ToListAsync();
                 var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
@@ -81,6 +84,31 @@ namespace CMMS.API.Controllers
 
 
                 });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost("create-store-material")]
+        public async Task<IActionResult> Create(StoreMaterialCM storeMaterialCm)
+        {
+            try
+            {
+                await _storeInventoryService.AddAsync(new StoreInventory
+                {
+                    Id = new Guid(),
+                    StoreId = storeMaterialCm.StoreId,
+                    MaterialId = storeMaterialCm.MaterialId,
+                    VariantId = storeMaterialCm.VariantId,
+                    TotalQuantity = 0,
+                    MinStock = storeMaterialCm.MinStock,
+                    MaxStock = storeMaterialCm.MaxStock,
+                    LastUpdateTime = GetVietNamTime()
+                });
+                await _storeInventoryService.SaveChangeAsync();
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -104,6 +132,8 @@ namespace CMMS.API.Controllers
                     x.VariantId,
                     VariantName = x.Variant == null ? null : x.Variant.SKU,
                     Quantity = x.TotalQuantity,
+                    x.MinStock,
+                    x.MaxStock,
                     x.LastUpdateTime
                 }).ToListAsync();
                 var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);

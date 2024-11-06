@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 
 namespace CMMS.Core.Entities
 {
-    [Index(nameof(Name),IsUnique = true)]
+    [Index(nameof(Name), IsUnique = true)]
     public class Material
     {
         [Key]
         public Guid Id { get; set; }
+        public string BarCode { get; set; }
         public string Name { get; set; }
         public Guid CategoryId { get; set; }
         public Guid UnitId { get; set; }
@@ -27,7 +28,7 @@ namespace CMMS.Core.Entities
         public virtual Unit Unit { get; set; }
         public virtual Supplier Supplier { get; set; }
         public virtual Brand Brand { get; set; }
-        
+
         public virtual ICollection<Variant> Variants { get; set; }
         public virtual ICollection<Import> Imports { get; set; }
         public virtual ICollection<Warehouse> Warehouses { get; set; }
