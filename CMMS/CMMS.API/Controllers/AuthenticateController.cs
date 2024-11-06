@@ -15,6 +15,7 @@ using CMMS.API.Constant;
 using Newtonsoft.Json;
 using CMMS.Core.Entities;
 using CMMS.Infrastructure.Data;
+using NuGet.Common;
 
 namespace CMMS.API.Controllers
 {
@@ -41,7 +42,7 @@ namespace CMMS.API.Controllers
             _userService = userService;
             _currentUserService = currentUserService;
             _httpClient = httpClient;
-            _cartService = cartService; 
+            _cartService = cartService;
             _unitOfWork = unitOfWork;
         }
 
@@ -86,21 +87,17 @@ namespace CMMS.API.Controllers
             }
             var result = await _userService.CustomerSignUpAsync(signUpModel);
 
-            // create customerCart
-            //Task.Run(async () =>
-            //{
-            //    var cart = new Cart
-            //    {
-            //        Id = Guid.NewGuid().ToString(),
-            //        CustomerId = _userService.Get(_ => _.Email.Equals(signUpModel.Email)).Select(x => x.Id).FirstOrDefault(),
-            //        MaterialId = "3438e83b-dc4e-4ccb-8ece-e72d9ad8d8f2"
-            //    };
-            //    await _cartService.AddAsync(cart);
-            //    await _unitOfWork.SaveChangeAsync();
-            //});
-
             if (result.Succeeded)
-                return Ok(result.Succeeded);
+                return Ok(new
+                {
+                    data = result.Succeeded,
+                    pagination = new
+                    {
+                        total = 0,
+                        perPage = 0,
+                        currentPage = 0,
+                    },
+                });
             return BadRequest("Signup failed");
 
         }
@@ -132,8 +129,20 @@ namespace CMMS.API.Controllers
             var result = await _userService.SaveChangeAsync();
             if (result)
             {
-                return Ok(new { token = accessToken, refreshToken });
-
+                return Ok(new
+                {
+                    data = new
+                    {
+                        token = accessToken,
+                        refreshToken
+                    },
+                    pagination = new
+                    {
+                        total = 0,
+                        perPage = 0,
+                        currentPage = 0,
+                    }
+                });
             }
             return BadRequest("Failed to update user's token");
         }
@@ -172,7 +181,21 @@ namespace CMMS.API.Controllers
             var token = await _jwtTokenService.CreateToken(user, userRoles);
             _userService.Update(user);
             await _userService.SaveChangeAsync();
-            return Ok(new { token = token, refreshToken = newRefreshToken });
+            return Ok(new
+            {
+                data = new
+                {
+                    token,
+                    refreshToken = newRefreshToken
+                },
+                pagination = new
+                {
+                    total = 0,
+                    perPage = 0,
+                    currentPage = 0,
+                }
+            }
+                );
         }
 
 

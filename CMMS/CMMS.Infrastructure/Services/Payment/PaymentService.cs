@@ -76,7 +76,6 @@ namespace CMMS.Infrastructure.Services.Payment
                     {
                         var _paymentRepositoryscoped = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
                         var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                        var _cartRepositoryScope = scope.ServiceProvider.GetRequiredService<ICartRepository>();
                         var _efTranscationScope = scope.ServiceProvider.GetRequiredService<ITransaction>();
                         var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
                         var _invoiceDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceDetailRepository>();
@@ -181,7 +180,6 @@ namespace CMMS.Infrastructure.Services.Payment
                 {
                     var _paymentRepositoryScope = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
                     var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                    var _cartRepositoryScope = scope.ServiceProvider.GetRequiredService<ICartRepository>();
                     var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
                     var _invoiceDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceDetailRepository>();
                     var _transactionRepositoryScope = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();

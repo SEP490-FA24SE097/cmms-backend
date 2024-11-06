@@ -1,16 +1,9 @@
-﻿using CMMS.Core.Entities;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace CMMS.Core.Models
 {
     public class CartDTO
     {
-        public string Id { get; set; }  
+        public string Id { get; set; }
         public string MaterialId { get; set; }
         public string? VariantId { get; set; }
         public string CustomerId { get; set; }
@@ -27,23 +20,32 @@ namespace CMMS.Core.Models
         public string? VariantId { get; set; }
         public string CustomerId { get; set; }
         public decimal Quantity { get; set; }
-        public string ImageUrl { get; set; }    
+        public string ImageUrl { get; set; }
         public double TotalAmount { get; set; }
     }
 
-    public class CustomerAddItemToCartModel
+    public class AddItemModel
     {
-        public string CustomerId { get; set; }
-        public string MaterialId  { get; set; }
+        public string MaterialId { get; set; }
         public string? VariantId { get; set; }
+        public string StoreId { get; set; }
     }
-	public class AddItemModel
-	{
-		public string MaterialId { get; set; }
-		public string? VariantId { get; set; }
-	}
 
-	public class CustomerUpdateItemInCartModel
+    public class CartItemModel : AddItemModel
+    {
+        public decimal Quantity { get; set; }
+    }
+
+    public class CartItemVM : CartItemModel
+    {
+        public string ItemName { get; set; }
+        public string ImageUrl { get; set; }
+        public decimal BasePrice { get; set; }
+        public decimal ItemTotalPrice { get; set; }
+    }
+
+
+    public class CustomerUpdateItemInCartModel
     {
         public string CustomerId { get; set; }
         public string MaterialId { get; set; }

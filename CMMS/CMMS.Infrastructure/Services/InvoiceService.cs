@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Services
 {
-    internal class InvoiceService
+    public class InvoiceService
     {
     }
 }

@@ -49,10 +49,11 @@ namespace CMMS.Infrastructure
             services.AddScoped<IPermissionRepository, PermissionRepository>();
             services.AddScoped<IPermissionSerivce, PermissionService>();
 
-
             services.AddScoped<IStoreRepository, StoreRepository>();
             services.AddScoped<IStoreService, StoreService>();
 
+            services.AddScoped<IStoreInventoryRepository, StoreInventoryRepository>();
+            services.AddScoped<IStoreInventoryService, StoreInventoryService>();
 
             services.AddScoped<IAttributeRepository, AttributeRepository>();
             services.AddScoped<IAttributeService, AttributeService>();
@@ -72,8 +73,6 @@ namespace CMMS.Infrastructure
             services.AddScoped<IWarehouseRepository, WarehouseRepository>();
             services.AddScoped<IWarehouseService, WarehouseService>();
 
-
-            services.AddScoped<ICartRepository, CartRepository>();
             services.AddScoped<ICartService, CartService>();
 
 			services.AddScoped<IPaymentRepository, PaymentRepository>();

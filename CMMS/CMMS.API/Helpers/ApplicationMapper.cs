@@ -21,11 +21,11 @@ namespace CMMS.API.Helpers
             CreateMap<StoreCM, Store>().ReverseMap();
             CreateMap<StoreVM, Store>().ReverseMap();
             #endregion
-
-            CreateMap<Cart, CartDTO>().ReverseMap();
-            CreateMap<Cart, CartVM>().ReverseMap();
+            CreateMap<CartItemModel, AddItemModel>().ReverseMap();
             CreateMap<CartDTO, CartVM>().ReverseMap();
+            CreateMap<CartItemVM, CartItem>().ReverseMap();
 
-		}
+
+        }
     }
 }

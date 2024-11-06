@@ -31,7 +31,8 @@ namespace CMMS.API.Controllers
 		public async Task<IActionResult> CreatePayment(InvoiceData invoiceInfo)
 		{
 			var customerId = _currentUserService.GetUserId();
-			var totalCartAmount = await _cartService.GetTotalAmountCart(customerId);
+			// get total cart
+			var totalCartAmount = 0;
 			var paymentRequestData = new PaymentRequestData
 			{
 				Amount = totalCartAmount,
