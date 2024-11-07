@@ -18,20 +18,25 @@ namespace CMMS.Infrastructure.Data
         public DbSet<ShippingDetail> ShippingDetails { get; set; }
 
         public DbSet<Material> Materials { get; set; }
+        public DbSet<Unit> Units { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Store> Stores { get; set; }
-        public DbSet<Unit> Units  { get;set; }
-        public DbSet<Category> Categories  { get;set; }
-        public DbSet<Supplier> Suppliers { get;set; }
 
-        public DbSet<UserPermission> UserPermissions { get;set; }
 
-        public DbSet<Brand> Brands { get;set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
+
+        public DbSet<Brand> Brands { get; set; }
         public DbSet<Attribute> Attributes { get; set; }
-        public DbSet<Variant> Variants { get;set; }
-        public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get;set; }
+        public DbSet<Variant> Variants { get; set; }
+        public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
         public DbSet<Import> Imports { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<StoreInventory> StoreInventories { get; set; }
+        public DbSet<GoodsDeliveryNote> GoodsDeliveryNotes { get; set; }
+        public DbSet<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
+        public DbSet<SubImage> SubImages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

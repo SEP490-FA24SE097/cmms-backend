@@ -9,6 +9,7 @@ namespace CMMS.Core.Models
     public class MaterialUM
     {
         public string? Name { get; set; }
+        public string? BarCode { get; set; }
         public string? CategoryId { get; set; }
         public string? UnitId { get; set; }
         public string? SupplierId { get; set; }
