@@ -561,6 +561,7 @@ namespace CMMS.API.Controllers
                     Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
+                    Include(x=>x.SubImages).
                     Include(x => x.Supplier).Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
