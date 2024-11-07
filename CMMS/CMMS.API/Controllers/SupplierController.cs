@@ -31,7 +31,7 @@ namespace CMMS.API.Controllers
                     PhoneNumber = x.PhoneNumber,
                     Email = x.Email
                 });
-                return Ok(result);
+                return Ok(new{data=result});
             }
             catch (Exception ex)
             {
