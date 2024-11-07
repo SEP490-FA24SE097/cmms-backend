@@ -45,7 +45,7 @@ namespace CMMS.Infrastructure.Services
         public async Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel)
         {
             var item = await _storeInventoryService.Get(x =>
-                x.StoreId == itemModel.StoreId && x.MaterialId.ToString().Equals(itemModel.MaterialId) &&
+                x.StoreId.Equals(itemModel.StoreId) && x.MaterialId.ToString().Equals(itemModel.MaterialId) &&
                 x.VariantId.ToString().Equals(itemModel.VariantId)).FirstOrDefaultAsync();
             return item;
         }
