@@ -33,7 +33,8 @@ namespace CMMS.API.Controllers
                     Include(x => x.Brand).
                     Include(x => x.Category).
                     Include(x => x.Unit).
-                    Include(x => x.Supplier).Select(x => new MaterialDTO()
+                    Include(x => x.Supplier)
+                    .Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
@@ -46,7 +47,7 @@ namespace CMMS.API.Controllers
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        ImageUrl = x.ImageUrl
+                        ImageUrl = x.ImageUrl,
 
                     }).ToList();
                 List<MaterialVariantDTO> newList = [];
@@ -556,7 +557,9 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var result = _materialService.Get(x => x.Id == Guid.Parse(id)).Include(x => x.Category).
+                var result = _materialService.Get(x => x.Id == Guid.Parse(id)).
+                    Include(x => x.Brand).
+                    Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.Supplier).Select(x => new MaterialDTO()
                     {
@@ -572,8 +575,12 @@ namespace CMMS.API.Controllers
                         Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
-                        ImageUrl = x.ImageUrl
-
+                        ImageUrl = x.ImageUrl,
+                        SubImages = x.SubImages.Select(x => new SubImageDTO()
+                        {
+                            Id = x.Id,
+                            SubImageUrl = x.SubImageUrl
+                        }).ToList()
                     }).FirstOrDefault();
                 var variants = _materialVariantAttributeService.GetAll()
                     .Include(x => x.Variant)
