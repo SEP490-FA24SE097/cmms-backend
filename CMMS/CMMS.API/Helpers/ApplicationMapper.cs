@@ -24,6 +24,7 @@ namespace CMMS.API.Helpers
             CreateMap<CartItemModel, AddItemModel>().ReverseMap();
             CreateMap<CartDTO, CartVM>().ReverseMap();
             CreateMap<CartItemVM, CartItem>().ReverseMap();
+            CreateMap<CartItem, AddItemModel>().ReverseMap();
 
 
         }

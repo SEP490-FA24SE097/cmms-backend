@@ -42,6 +42,7 @@ namespace CMMS.Core.Models
         public string ImageUrl { get; set; }
         public decimal BasePrice { get; set; }
         public decimal ItemTotalPrice { get; set; }
+        public bool IsChangeQuantity { get; set; } = false;
     }
 
 
