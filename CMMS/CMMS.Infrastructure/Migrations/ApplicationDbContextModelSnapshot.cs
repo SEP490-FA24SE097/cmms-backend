@@ -165,44 +165,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.ToTable("Brands");
                 });
 
-            modelBuilder.Entity("CMMS.Core.Entities.Cart", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreateAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("MaterialId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdateAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("VariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("MaterialId");
-
-                    b.HasIndex("VariantId");
-
-                    b.ToTable("Carts");
-                });
-
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -651,7 +613,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("VariantId");
 
                     b.ToTable("StoreInventories");
-                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.SubImage", b =>
@@ -972,31 +933,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Store");
                 });
 
-            modelBuilder.Entity("CMMS.Core.Entities.Cart", b =>
-                {
-                    b.HasOne("CMMS.Core.Entities.ApplicationUser", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CMMS.Core.Entities.Material", "Materials")
-                        .WithMany()
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CMMS.Core.Entities.Variant", "Variants")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Materials");
-
-                    b.Navigation("Variants");
-                });
-
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Category", "ParentCategory")
@@ -1167,6 +1103,17 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.ShippingDetail", b =>
+                {
+                    b.HasOne("CMMS.Core.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
             modelBuilder.Entity("CMMS.Core.Entities.StoreInventory", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.Material", "Material")
@@ -1192,15 +1139,15 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Variant");
                 });
 
-            modelBuilder.Entity("CMMS.Core.Entities.ShippingDetail", b =>
+            modelBuilder.Entity("CMMS.Core.Entities.SubImage", b =>
                 {
-                    b.HasOne("CMMS.Core.Entities.Invoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId")
+                    b.HasOne("CMMS.Core.Entities.Material", "Material")
+                        .WithMany("SubImages")
+                        .HasForeignKey("MaterialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Invoice");
+                    b.Navigation("Material");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Transaction", b =>
@@ -1218,17 +1165,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("CMMS.Core.Entities.SubImage", b =>
-                {
-                    b.HasOne("CMMS.Core.Entities.Material", "Material")
-                        .WithMany("SubImages")
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Material");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.UserPermission", b =>
@@ -1357,6 +1293,11 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Materials");
                 });
 
+            modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNote", b =>
+                {
+                    b.Navigation("GoodsDeliveryNoteDetails");
+                });
+
             modelBuilder.Entity("CMMS.Core.Entities.Invoice", b =>
                 {
                     b.Navigation("InvoiceDetails");
@@ -1367,11 +1308,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Materials");
 
                     b.Navigation("Variants");
-                });
-
-            modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNote", b =>
-                {
-                    b.Navigation("GoodsDeliveryNoteDetails");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Material", b =>

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CMMS.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitMigration : Migration
+    public partial class Initmigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -51,6 +51,21 @@ namespace CMMS.Infrastructure.Migrations
                         column: x => x.ParentCategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoodsDeliveryNotes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReasonDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalByText = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TimeStamp = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoodsDeliveryNotes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -463,6 +478,7 @@ namespace CMMS.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BarCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -510,6 +526,25 @@ namespace CMMS.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SubImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MaterialId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SubImages_Materials_MaterialId",
+                        column: x => x.MaterialId,
+                        principalTable: "Materials",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Variants",
                 columns: table => new
                 {
@@ -537,35 +572,34 @@ namespace CMMS.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Carts",
+                name: "GoodsDeliveryNoteDetails",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoodsDeliveryNoteId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     MaterialId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     VariantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CustomerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreateAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdateAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Carts", x => x.Id);
+                    table.PrimaryKey("PK_GoodsDeliveryNoteDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Carts_Materials_MaterialId",
+                        name: "FK_GoodsDeliveryNoteDetails_GoodsDeliveryNotes_GoodsDeliveryNoteId",
+                        column: x => x.GoodsDeliveryNoteId,
+                        principalTable: "GoodsDeliveryNotes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoodsDeliveryNoteDetails_Materials_MaterialId",
                         column: x => x.MaterialId,
                         principalTable: "Materials",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Carts_Users_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Carts_Variants_VariantId",
+                        name: "FK_GoodsDeliveryNoteDetails_Variants_VariantId",
                         column: x => x.VariantId,
                         principalTable: "Variants",
                         principalColumn: "Id");
@@ -625,6 +659,41 @@ namespace CMMS.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StoreInventories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StoreId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    MaterialId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    VariantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TotalQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MinStock = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MaxStock = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    LastUpdateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreInventories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StoreInventories_Materials_MaterialId",
+                        column: x => x.MaterialId,
+                        principalTable: "Materials",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StoreInventories_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StoreInventories_Variants_VariantId",
+                        column: x => x.VariantId,
+                        principalTable: "Variants",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Warehouses",
                 columns: table => new
                 {
@@ -657,21 +726,6 @@ namespace CMMS.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Carts_CustomerId",
-                table: "Carts",
-                column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Carts_MaterialId",
-                table: "Carts",
-                column: "MaterialId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Carts_VariantId",
-                table: "Carts",
-                column: "VariantId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Categories_Name",
                 table: "Categories",
                 column: "Name",
@@ -687,6 +741,21 @@ namespace CMMS.Infrastructure.Migrations
                 table: "CustomerBalances",
                 column: "CustomerId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoodsDeliveryNoteDetails_GoodsDeliveryNoteId",
+                table: "GoodsDeliveryNoteDetails",
+                column: "GoodsDeliveryNoteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoodsDeliveryNoteDetails_MaterialId",
+                table: "GoodsDeliveryNoteDetails",
+                column: "MaterialId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoodsDeliveryNoteDetails_VariantId",
+                table: "GoodsDeliveryNoteDetails",
+                column: "VariantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Imports_MaterialId",
@@ -775,6 +844,26 @@ namespace CMMS.Infrastructure.Migrations
                 name: "IX_ShippingDetails_InvoiceId",
                 table: "ShippingDetails",
                 column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_MaterialId",
+                table: "StoreInventories",
+                column: "MaterialId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_StoreId",
+                table: "StoreInventories",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_VariantId",
+                table: "StoreInventories",
+                column: "VariantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubImages_MaterialId",
+                table: "SubImages",
+                column: "MaterialId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Suppliers_Name",
@@ -866,10 +955,10 @@ namespace CMMS.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Carts");
+                name: "CustomerBalances");
 
             migrationBuilder.DropTable(
-                name: "CustomerBalances");
+                name: "GoodsDeliveryNoteDetails");
 
             migrationBuilder.DropTable(
                 name: "Imports");
@@ -888,6 +977,12 @@ namespace CMMS.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "ShippingDetails");
+
+            migrationBuilder.DropTable(
+                name: "StoreInventories");
+
+            migrationBuilder.DropTable(
+                name: "SubImages");
 
             migrationBuilder.DropTable(
                 name: "Transactions");
@@ -909,6 +1004,9 @@ namespace CMMS.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Warehouses");
+
+            migrationBuilder.DropTable(
+                name: "GoodsDeliveryNotes");
 
             migrationBuilder.DropTable(
                 name: "Attributes");
