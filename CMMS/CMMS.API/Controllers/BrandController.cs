@@ -34,7 +34,7 @@ namespace CMMS.API.Controllers
                     Id = x.Id,
                     Name = x.Name
                 });
-                return Ok(result);
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {

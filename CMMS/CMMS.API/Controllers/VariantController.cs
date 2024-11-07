@@ -34,7 +34,7 @@ namespace CMMS.API.Controllers
                     Price = v.Price,
                     VariantImageUrl = v.VariantImageUrl
                 });
-                return Ok(result);
+                return Ok(new{data=result});
             }
             catch (Exception ex)
             {
