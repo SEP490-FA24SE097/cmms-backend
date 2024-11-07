@@ -11,8 +11,7 @@ namespace CMMS.Core.Entities
     [Index(nameof(Name), IsUnique = true)]
     public class Material
     {
-        [Key]
-        public Guid Id { get; set; }
+        [Key] public Guid Id { get; set; }
         public string BarCode { get; set; }
         public string Name { get; set; }
         public Guid CategoryId { get; set; }
@@ -32,6 +31,6 @@ namespace CMMS.Core.Entities
         public virtual ICollection<Variant> Variants { get; set; }
         public virtual ICollection<Import> Imports { get; set; }
         public virtual ICollection<Warehouse> Warehouses { get; set; }
-
+        public virtual ICollection<SubImage> SubImages { get; set; }
     }
 }

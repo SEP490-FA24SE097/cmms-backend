@@ -29,6 +29,8 @@ namespace CMMS.Infrastructure.Data
         public DbSet<StoreInventory> StoreInventories { get; set; }
         public DbSet<GoodsDeliveryNote> GoodsDeliveryNotes { get; set; }
         public DbSet<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
+        public DbSet<SubImage> SubImages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
