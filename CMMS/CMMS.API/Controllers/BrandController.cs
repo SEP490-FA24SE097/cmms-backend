@@ -49,7 +49,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var result = await _brandService.FindAsync(Guid.Parse(id));
-                return result != null ? Ok(result) : NotFound();
+                return result != null ? Ok(new{data=result}) : NotFound();
             }
             catch (Exception ex)
             {
