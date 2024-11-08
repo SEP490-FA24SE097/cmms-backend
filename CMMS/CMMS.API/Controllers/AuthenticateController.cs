@@ -88,6 +88,8 @@ namespace CMMS.API.Controllers
             var result = await _userService.CustomerSignUpAsync(signUpModel);
 
             if (result.Succeeded)
+
+
                 return Ok(new
                 {
                     data = result.Succeeded,
@@ -133,7 +135,7 @@ namespace CMMS.API.Controllers
                 {
                     data = new
                     {
-                        token = accessToken,
+                        accessToken,
                         refreshToken
                     },
                     pagination = new
