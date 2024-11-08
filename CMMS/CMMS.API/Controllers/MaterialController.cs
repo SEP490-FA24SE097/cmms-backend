@@ -593,19 +593,23 @@ namespace CMMS.API.Controllers
                     .Where(x => x.Variant.MaterialId == Guid.Parse(id)).ToList().GroupBy(x => x.VariantId);
                 return Ok(new
                 {
-                    material = result,
-                    variants = variants.Select(x => new
+                    data = new
                     {
-                        variantId = x.Key,
-                        sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
-                        image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
-                        price = x.Select(x => x.Variant.Price).FirstOrDefault(),
-                        attributes = x.Select(x => new
+                        material = result,
+                        variants = variants.Select(x => new
                         {
-                            x.Attribute.Name,
-                            x.Value
+                            variantId = x.Key,
+                            sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                            price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            attributes = x.Select(x => new
+                            {
+                                x.Attribute.Name,
+                                x.Value
+                            })
                         })
-                    })
+                    }
+
                 });
             }
             catch (Exception ex)
@@ -697,7 +701,7 @@ namespace CMMS.API.Controllers
                 else
                 {
                     var variant = await _variantService.FindAsync((Guid)updatePriceCm.VariantId);
-                    variant.Price=updatePriceCm.SellPrice;
+                    variant.Price = updatePriceCm.SellPrice;
                     await _variantService.SaveChangeAsync();
                 }
                 return Ok();
