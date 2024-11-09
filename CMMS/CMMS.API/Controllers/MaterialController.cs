@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
-
+using CMMS.API.TimeConverter;
 namespace CMMS.API.Controllers
 {
     [AllowAnonymous]
@@ -27,41 +27,56 @@ namespace CMMS.API.Controllers
             _variantService = variantService;
         }
 
-       
+
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetFilter([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] Guid? supplierId, [FromQuery] decimal? lowerPrice, [FromQuery] decimal? upperPrice)
+        public IActionResult GetFilter([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] Guid? supplierId, [FromQuery] decimal? lowerPrice, [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending, [FromQuery] bool? isCreatedDateDescending)
         {
             try
             {
-                var list = _materialService.GetAll().Include(x => x.Brand).
-                    Include(x => x.Category).
-                    Include(x => x.Unit).
-                    Include(x => x.Supplier)
+                var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
+                    .Include(x => x.Unit).Include(x => x.Supplier)
                     .Where(x =>
-                            ( categoryId == null || x.CategoryId == categoryId)
-                         && (brandId == null || x.BrandId == brandId)
-                         && (supplierId == null || x.SupplierId == supplierId)
-                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
-                         && (upperPrice == null || x.SalePrice <= upperPrice)
-                    )
-                    .Select(x => new MaterialDTO()
-                    {
-                        Id = x.Id,
-                        Name = x.Name,
-                        BarCode = x.BarCode,
-                        Brand = x.Brand.Name,
-                        IsRewardEligible = x.IsRewardEligible,
-                        Description = x.Description,
+                        (categoryId == null || x.CategoryId == categoryId)
+                        && (brandId == null || x.BrandId == brandId)
+                        && (supplierId == null || x.SupplierId == supplierId)
+                        && (lowerPrice == null || x.SalePrice >= lowerPrice)
+                        && (upperPrice == null || x.SalePrice <= upperPrice)
+                    );
+                if (isPriceDescending == true)
+                {
+                    materials = materials.OrderByDescending(x => x.SalePrice);
+                }
+                if (isPriceDescending == false)
+                {
+                    materials = materials.OrderByDescending(x => x.SalePrice).Reverse();
+                }
 
-                        SalePrice = x.SalePrice,
-                        Unit = x.Unit.Name,
-                        Supplier = x.Supplier.Name,
-                        Category = x.Category.Name,
-                        MinStock = x.MinStock,
-                        ImageUrl = x.ImageUrl
+                if (isCreatedDateDescending == true)
+                {
+                    materials = materials.OrderByDescending(x => x.Timestamp);
+                }
+                if (isCreatedDateDescending == false)
+                {
+                    materials = materials.OrderByDescending(x => x.Timestamp).Reverse();
+                }
+                var list = materials.Select(x => new MaterialDTO()
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    BarCode = x.BarCode,
+                    Brand = x.Brand.Name,
+                    IsRewardEligible = x.IsRewardEligible,
+                    Description = x.Description,
 
-                    }).ToList();
+                    SalePrice = x.SalePrice,
+                    Unit = x.Unit.Name,
+                    Supplier = x.Supplier.Name,
+                    Category = x.Category.Name,
+                    MinStock = x.MinStock,
+                    ImageUrl = x.ImageUrl
+
+                }).ToList();
                 List<MaterialVariantDTO> newList = [];
                 foreach (var material in list)
                 {
@@ -87,7 +102,7 @@ namespace CMMS.API.Controllers
 
                     });
                 }
-                var result = Helpers.LinqHelpers.ToPageList(newList, page - 1, itemPerPage);
+                var result = Helpers.LinqHelpers.ToPageList(newList, page == null ? 0 : (int)page - 1, itemPerPage == null ? 12 : (int)itemPerPage);
 
                 return Ok(new
                 {
@@ -475,7 +490,7 @@ namespace CMMS.API.Controllers
                     Name = x.Name,
                     Unit = x.Unit
                 });
-                return Ok(new{data=result});
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {
@@ -561,6 +576,7 @@ namespace CMMS.API.Controllers
                     SupplierId = materialCm.SupplierId,
                     UnitId = materialCm.UnitId,
                     CategoryId = materialCm.CategoryId,
+                    Timestamp = TimeConverter.TimeConverter.GetVietNamTime(),
                     IsRewardEligible = materialCm.IsRewardEligible
                 };
                 await _materialService.AddAsync(material);
