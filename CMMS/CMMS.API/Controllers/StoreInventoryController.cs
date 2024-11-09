@@ -63,8 +63,10 @@ namespace CMMS.API.Controllers
                         x.Id,
                         x.MaterialId,
                         MaterialName = x.Material.Name,
+                        MaterialImage = x.Material.ImageUrl,
                         x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
+                        VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
                         Quantity = x.TotalQuantity,
                         x.MinStock,
                         x.MaxStock,
@@ -115,7 +117,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpGet("search-and-filter")]
+        [HttpPost("search-and-filter")]
         public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
         {
             try

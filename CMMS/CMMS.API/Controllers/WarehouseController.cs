@@ -21,15 +21,17 @@ namespace CMMS.API.Controllers
             try
             {
                 var items = await _warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant).Select(x => new
-                    {
-                        x.Id,
-                        x.MaterialId,
-                        MaterialName = x.Material.Name,
-                        x.VariantId,
-                        VariantName = x.Variant == null ? null : x.Variant.SKU,
-                        Quantity = x.TotalQuantity,
-                        x.LastUpdateTime
-                    }).ToListAsync();
+                {
+                    x.Id,
+                    x.MaterialId,
+                    MaterialName = x.Material.Name,
+                    MaterialImage = x.Material.ImageUrl,
+                    x.VariantId,
+                    VariantName = x.Variant == null ? null : x.Variant.SKU,
+                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
+                    Quantity = x.TotalQuantity,
+                    x.LastUpdateTime
+                }).ToListAsync();
                 var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
 
                 return Ok(new
@@ -50,7 +52,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpGet("search-and-filter")]
+        [HttpPost("search-and-filter")]
         public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] int page, [FromQuery] int itemPerPage)
         {
             try
@@ -64,8 +66,10 @@ namespace CMMS.API.Controllers
                     x.Id,
                     x.MaterialId,
                     MaterialName = x.Material.Name,
+                    MaterialImage = x.Material.ImageUrl,
                     x.VariantId,
                     VariantName = x.Variant == null ? null : x.Variant.SKU,
+                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
                     Quantity = x.TotalQuantity,
                     x.LastUpdateTime
                 }).ToListAsync();

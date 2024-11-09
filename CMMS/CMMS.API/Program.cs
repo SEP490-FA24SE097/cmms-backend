@@ -127,6 +127,7 @@ namespace CMMS.API
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
             builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
+            builder.Services.AddSingleton<IMailService, MailService>();
             builder.Services.AddScoped<ITransaction, EfTransaction>();
 
 

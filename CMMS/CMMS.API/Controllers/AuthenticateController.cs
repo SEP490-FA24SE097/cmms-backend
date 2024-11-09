@@ -16,6 +16,7 @@ using Newtonsoft.Json;
 using CMMS.Core.Entities;
 using CMMS.Infrastructure.Data;
 using NuGet.Common;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Controller;
 
 namespace CMMS.API.Controllers
 {
@@ -28,14 +29,16 @@ namespace CMMS.API.Controllers
         private readonly HttpClient _httpClient;
         private readonly ICartService _cartService;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMailService _mailService;
         private readonly IMapper _mapper;
         private readonly IJwtTokenService _jwtTokenService;
 
         public AuthenticateController(IJwtTokenService jwtTokenService,
             IUserService userService,
-            ICurrentUserService currentUserService
-            , IMapper mapper, HttpClient httpClient,
-            ICartService cartService, IUnitOfWork unitOfWork)
+            ICurrentUserService currentUserService,
+            IMapper mapper, HttpClient httpClient,
+            ICartService cartService, IUnitOfWork unitOfWork,
+            IMailService mailService)
         {
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
@@ -44,6 +47,8 @@ namespace CMMS.API.Controllers
             _httpClient = httpClient;
             _cartService = cartService;
             _unitOfWork = unitOfWork;
+            _mailService = mailService;
+
         }
 
         [AllowAnonymous]
@@ -86,18 +91,20 @@ namespace CMMS.API.Controllers
                 }
             }
             var result = await _userService.CustomerSignUpAsync(signUpModel);
-
+            var url = Url.Action(nameof(ConfirmAccount), nameof(AuthenticateController).Replace("Controller", ""), null, Request.Scheme);
             if (result.Succeeded)
-                return Ok(new
+                url += $"?email={signUpModel.Email}";
+                await _mailService.SendEmailAsync(signUpModel.Email, "Xác thực tài khoản của bạn", url);
+            return Ok(new
+            {
+                data = result.Succeeded,
+                pagination = new
                 {
-                    data = result.Succeeded,
-                    pagination = new
-                    {
-                        total = 0,
-                        perPage = 0,
-                        currentPage = 0,
-                    },
-                });
+                    total = 0,
+                    perPage = 0,
+                    currentPage = 0,
+                },
+            });
             return BadRequest("Signup failed");
 
         }
@@ -133,7 +140,7 @@ namespace CMMS.API.Controllers
                 {
                     data = new
                     {
-                        token = accessToken,
+                        accessToken,
                         refreshToken
                     },
                     pagination = new
@@ -178,14 +185,14 @@ namespace CMMS.API.Controllers
             var newRefreshToken = _jwtTokenService.CreateRefeshToken();
             user.RefreshToken = newRefreshToken;
             user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
-            var token = await _jwtTokenService.CreateToken(user, userRoles);
+            var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
             _userService.Update(user);
             await _userService.SaveChangeAsync();
             return Ok(new
             {
                 data = new
                 {
-                    token,
+                    accessToken,
                     refreshToken = newRefreshToken
                 },
                 pagination = new
@@ -198,6 +205,14 @@ namespace CMMS.API.Controllers
                 );
         }
 
+        [AllowAnonymous]
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmAccount([FromQuery] string email)
+        {
+            var result = await _userService.ConfirmAccount(email);
+            if (result) return Ok(result);
+            else return BadRequest("Cannot confirm your email");
+        }
 
     }
 }

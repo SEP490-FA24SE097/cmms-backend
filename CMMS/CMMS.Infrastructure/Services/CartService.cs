@@ -44,11 +44,25 @@ namespace CMMS.Infrastructure.Services
         }
         public async Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel)
         {
-            var item = await _storeInventoryService.Get(x =>
-                x.StoreId.Equals(itemModel.StoreId) && x.MaterialId.ToString().Equals(itemModel.MaterialId) &&
-                x.VariantId.ToString().Equals(itemModel.VariantId)).FirstOrDefaultAsync();
-            return item;
+            StoreInventory storeInventory = null;
+            if (itemModel.VariantId != null)
+            {
+                var materialId = Guid.Parse(itemModel.MaterialId);
+                var variantId = Guid.Parse(itemModel.VariantId);
+                storeInventory = await _storeInventoryService.Get(x =>
+              x.StoreId.Equals(itemModel.StoreId)
+              && x.MaterialId.Equals(materialId)
+              && x.VariantId.Equals(variantId)).FirstOrDefaultAsync();
+            }
+            else
+            {
+                var materialId = Guid.Parse(itemModel.MaterialId);
+                storeInventory =  await _storeInventoryService.Get(x =>
+              x.StoreId.Equals(itemModel.StoreId) &&
+              x.MaterialId.Equals(materialId) &&
+              x.VariantId == null).FirstOrDefaultAsync();
+            }
+            return storeInventory;
         }
     }
 }
- 

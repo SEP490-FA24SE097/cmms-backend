@@ -46,28 +46,31 @@ namespace CMMS.API.Controllers
             List<CartItemVM> listCartItemVM = new List<CartItemVM>();
             foreach (var cartItem in listCartRequest)
             {
-                CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
                 var addItemModel = _mapper.Map<AddItemModel>(cartItem);
-                var item = await _cartService.GetItemInStoreAsync(addItemModel);
-                if (cartItem.Quantity > item.TotalQuantity)
+                var item =  await _cartService.GetItemInStoreAsync(addItemModel);
+                if(item != null)
                 {
-                    cartItemVM.IsChangeQuantity = true;
+                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
+                    if (cartItem.Quantity >= item.TotalQuantity)
+                    {
+                        cartItemVM.IsChangeQuantity = true;
+                    }
+                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                    cartItemVM.ItemName = material.Name;
+                    cartItemVM.BasePrice = material.SalePrice;
+                    cartItemVM.ImageUrl = material.ImageUrl;
+                    cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
+                    if (cartItem.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                        cartItemVM.BasePrice = variant.Price;
+                        cartItemVM.ImageUrl = variant.VariantImageUrl;
+                        cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
+                    }
+                    listCartItemVM.Add(cartItemVM);
                 }
-                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                cartItemVM.ItemName = material.Name;
-                cartItemVM.BasePrice = material.SalePrice;
-                cartItemVM.ImageUrl = material.ImageUrl;
-                cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
-                if (cartItem.VariantId != null)
-                {
-                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                    var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                    cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                    cartItemVM.BasePrice = variant.Price;
-                    cartItemVM.ImageUrl = variant.VariantImageUrl;
-                    cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
-                }
-                listCartItemVM.Add(cartItemVM);
             }
 
             return Ok(new
@@ -83,11 +86,11 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddItemToCart(CartItemModel model)
+        public async Task<IActionResult> AddItemToCartAsync(CartItemModel model)
         {
             var addItemModel = _mapper.Map<AddItemModel>(model);
-            var item = await _cartService.GetItemInStoreAsync(addItemModel);
-            if (model.Quantity < item.TotalQuantity)
+            var item =  await _cartService.GetItemInStoreAsync(addItemModel);
+            if (model.Quantity <= item.TotalQuantity)
             {
                 return Ok(new { success = true, message = "Thêm sản phẩm vào giỏ hàng thành công" });
             }

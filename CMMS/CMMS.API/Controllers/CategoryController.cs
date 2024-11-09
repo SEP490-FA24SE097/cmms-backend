@@ -32,7 +32,7 @@ namespace CMMS.API.Controllers
                         Name = x.Name
                     }).ToList()
                 });
-                return Ok(result);
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {
@@ -50,7 +50,7 @@ namespace CMMS.API.Controllers
                     Name = x.Name
 
                 }).ToList();
-                return Ok(result);
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {
@@ -63,7 +63,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var result = await _categoryService.FindAsync(Guid.Parse(id));
-                return Ok(result);
+                return Ok(new{data=result});
             }
             catch (Exception ex)
             {

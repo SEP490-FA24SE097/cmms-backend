@@ -31,7 +31,7 @@ namespace CMMS.API.Controllers
                     PhoneNumber = x.PhoneNumber,
                     Email = x.Email
                 });
-                return Ok(result);
+                return Ok(new{data=result});
             }
             catch (Exception ex)
             {
@@ -45,7 +45,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var result = await _supplierService.FindAsync(Guid.Parse(id));
-                return Ok(result);
+                return Ok(new{data=result});
             }
             catch (Exception ex)
             {

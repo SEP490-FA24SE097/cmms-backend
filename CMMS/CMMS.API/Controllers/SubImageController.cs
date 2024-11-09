@@ -27,7 +27,7 @@ namespace CMMS.API.Controllers
         {
             var subImage = _subImageService.Get(x => x.MaterialId == materialId).ToList();
 
-            return Ok(subImage);
+            return Ok(new { data = subImage });
         }
 
         // POST: api/SubImage
