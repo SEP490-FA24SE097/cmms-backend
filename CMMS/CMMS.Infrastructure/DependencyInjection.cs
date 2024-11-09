@@ -86,6 +86,8 @@ namespace CMMS.Infrastructure
 
 			services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+            services.AddScoped<ICustomerBalanceRepository, CustomerBalanceRepository>();
+            services.AddScoped<ICustomerBalanceService, CustomerBalanceService>();
 
 
             return services;

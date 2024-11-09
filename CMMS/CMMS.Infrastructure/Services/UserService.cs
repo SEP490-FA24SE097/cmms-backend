@@ -29,6 +29,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where);
         Task<bool> SaveChangeAsync();
         Task<bool> ConfirmAccount(string email);
+        Task<ApplicationUser> FindAsync(string customerId);
     }
     public class UserService : IUserService
     {
@@ -200,6 +201,10 @@ namespace CMMS.Infrastructure.Services
             _userRepository.Update(user);
             return await _unitOfWork.SaveChangeAsync();
         }
-   
+
+        public async Task<ApplicationUser> FindAsync(string customerId)
+        {
+            return await _userRepository.FindAsync(customerId);
+        }
     }
 }

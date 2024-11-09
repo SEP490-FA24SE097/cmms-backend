@@ -19,7 +19,7 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet("get-all")]
+        [HttpGet("stores")]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy

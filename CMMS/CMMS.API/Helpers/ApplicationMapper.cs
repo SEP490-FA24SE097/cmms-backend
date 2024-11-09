@@ -26,6 +26,14 @@ namespace CMMS.API.Helpers
             CreateMap<CartItemVM, CartItem>().ReverseMap();
             CreateMap<CartItem, AddItemModel>().ReverseMap();
 
+            #region CustomerBalance 
+            CreateMap<CustomerBalance, CustomerBalanceVM>()
+                .ForMember(dest => dest.UserVM, opt => opt.MapFrom(src => src.Customer))
+                .ReverseMap();
+            CreateMap<CustomerBalance, CustomerBalanceDTO>().ReverseMap();
+            CreateMap<CustomerBalanceVM, CustomerBalanceDTO>().ReverseMap();
+            #endregion
+
 
         }
     }
