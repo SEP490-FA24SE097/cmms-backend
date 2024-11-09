@@ -110,8 +110,8 @@ namespace CMMS.API.Controllers
                     pagination = new
                     {
                         total = list.Count(),
-                        perPage = itemPerPage,
-                        currentPage = page
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
                     }
                 });
             }
