@@ -45,21 +45,35 @@ namespace CMMS.API.Controllers
                     );
                 if (isPriceDescending == true)
                 {
-                    materials = materials.OrderByDescending(x => x.SalePrice);
+                    if (isCreatedDateDescending == true)
+                        materials = materials.OrderByDescending(x => x.SalePrice).ThenByDescending(x => x.Timestamp);
+                    if (isCreatedDateDescending == false)
+                        materials = materials.OrderByDescending(x => x.SalePrice).ThenBy(x => x.Timestamp);
+                    if (isCreatedDateDescending == null)
+                        materials = materials.OrderByDescending(x => x.SalePrice);
                 }
                 if (isPriceDescending == false)
                 {
-                    materials = materials.OrderByDescending(x => x.SalePrice).Reverse();
+                    if (isCreatedDateDescending == true)
+                        materials = materials.OrderBy(x => x.SalePrice).ThenByDescending(x => x.Timestamp);
+                    if (isCreatedDateDescending == false)
+                        materials = materials.OrderBy(x => x.SalePrice).ThenBy(x => x.Timestamp);
+                    if (isCreatedDateDescending == null)
+                        materials = materials.OrderBy(x => x.SalePrice);
                 }
 
-                if (isCreatedDateDescending == true)
+                if (isPriceDescending == null)
                 {
-                    materials = materials.OrderByDescending(x => x.Timestamp);
+                    if (isCreatedDateDescending == true)
+                    
+                        materials = materials.OrderByDescending(x => x.Timestamp);
+                    
+                    if (isCreatedDateDescending == false)
+                    
+                        materials = materials.OrderBy(x => x.Timestamp);
+                    
                 }
-                if (isCreatedDateDescending == false)
-                {
-                    materials = materials.OrderByDescending(x => x.Timestamp).Reverse();
-                }
+
                 var list = materials.Select(x => new MaterialDTO()
                 {
                     Id = x.Id,
