@@ -68,6 +68,7 @@ namespace CMMS.API.Controllers
                 customerBalance.Customer = user;
                 customerBalance.Id = Guid.NewGuid().ToString();
                 customerBalance.CreatedAt = DateTime.Now;
+                customerBalance.Balance = model.TotalDebt;
                 await _customerBalanceSerivce.AddAsync(customerBalance);
                 var result = await _customerBalanceSerivce.SaveChangeAsync();
                 if (result)

@@ -3,6 +3,7 @@ using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using System;
 using System.Collections.Generic;
@@ -109,7 +110,8 @@ namespace CMMS.Infrastructure.Services
         }
         public CustomerBalanceVM GetCustomerBalanceById(string userId)
         {
-            var customerBalance = _customerBalanceRepository.Get(_ => _.CustomerId.Equals(userId), _ => _.Customer).FirstOrDefault();
+            var customerBalance = _customerBalanceRepository.Get(_ => _.CustomerId.Equals(userId), _ => _.Customer)
+                .AsNoTracking().FirstOrDefault();
             var userVM = _mapper.Map<UserVM>(customerBalance.Customer);
             var result = _mapper.Map<CustomerBalanceVM>(customerBalance);
             result.UserVM = userVM;

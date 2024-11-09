@@ -1,4 +1,5 @@
 ﻿using CMMS.Core.Entities;
+using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
@@ -18,6 +19,7 @@ namespace CMMS.Infrastructure.Services.Payment
     {
         string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData);
         Task<VnpayResponseData> VnpayReturnUrl(VnpayPayResponse vnpayPayResponse);
+        Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
     }
     public class PaymentService : IPaymentService
     {
@@ -27,10 +29,27 @@ namespace CMMS.Infrastructure.Services.Payment
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PaymentService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IInvoiceService _invoiceService;
+        private readonly IInvoiceDetailService _invoiceDetailService;
+        private readonly IShippingDetailService _shippingDetailService;
+        private readonly ITransactionService _transactionService;
+        private readonly ICustomerBalanceService _customerBalanceService;
+        private readonly IVariantService _variantService;
+        private readonly IMaterialService _materialService;
+        private readonly ITransaction _efTransaction;
 
         public PaymentService(IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
-            IUnitOfWork unitOfWork, ILogger<PaymentService> logger, IServiceScopeFactory serviceScopeFactory)
+            IUnitOfWork unitOfWork, ILogger<PaymentService> logger, 
+            IServiceScopeFactory serviceScopeFactory,
+            ICustomerBalanceService customerBalanceService,
+            ITransactionService transactionService,
+            IMaterialService materialService, 
+            IVariantService variantService,
+            IInvoiceService invoiceService,
+            IInvoiceDetailService invoiceDetailService,
+            IShippingDetailService shippingDetailService,
+            ITransaction transaction)
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
@@ -38,6 +57,86 @@ namespace CMMS.Infrastructure.Services.Payment
             _unitOfWork = unitOfWork;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
+            _invoiceService = invoiceService;
+            _invoiceDetailService = invoiceDetailService;
+            _shippingDetailService = shippingDetailService;
+            _transactionService = transactionService;
+            _customerBalanceService = customerBalanceService;
+            _variantService = variantService;
+            _materialService = materialService;
+            _efTransaction = transaction;
+        }
+
+        public async Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
+        {
+            try
+            {
+                // update customerBalance
+                var customerBalanceLeft = customerBalance.TotalDebt - (double)invoiceInfo.Amount;
+                customerBalance.Balance = customerBalanceLeft;
+                customerBalance.CustomerId = customerBalance.Customer.Id;
+                _customerBalanceService.Update(customerBalance);
+
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = ((int)TransactionType.DebtInvoice).ToString();
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = customerBalance.Customer.Id;
+                transaction.Amount = (decimal)invoiceInfo.Amount;
+                await _transactionService.AddAsync(transaction);
+
+                // insert invoice
+                var invoice = new Invoice
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    CustomerId = customerBalance.Customer.Id,
+                    InvoiceDate = DateTime.Now,
+                    InvoiceStatus = (int)InvoiceStatus.Pending,
+                    Note = invoiceInfo.Note,
+                    TotalAmount = (decimal)invoiceInfo.Amount,
+                };
+                await _invoiceService.AddAsync(invoice);
+                await _invoiceService.SaveChangeAsync();
+
+                // insert invoice detail
+                foreach (var cartItem in invoiceInfo.CartItems)
+                {
+                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                    var lineTotal = material.SalePrice * cartItem.Quantity;
+                    if (cartItem.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                        lineTotal = variant.Price * cartItem.Quantity;
+                    }
+                    var invoiceDetail = new InvoiceDetail
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        LineTotal = lineTotal,
+                        MaterialId = Guid.Parse(cartItem.MaterialId),
+                        VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
+                        Quantity = cartItem.Quantity,
+                        InvoiceId = invoice.Id,
+                    };
+                    await _invoiceDetailService.AddAsync(invoiceDetail);
+                }
+                // insert shipping detail.
+                var shippingDetail = new ShippingDetail();
+                shippingDetail.Id = Guid.NewGuid().ToString();
+                shippingDetail.Invoice = invoice;
+                shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                shippingDetail.Address = invoiceInfo.Address;
+                await _shippingDetailService.AddAsync(shippingDetail);
+                var result = await _unitOfWork.SaveChangeAsync();
+                await _efTransaction.CommitAsync();
+                if (result) return true;
+            }
+            catch (Exception)
+            {
+                await _efTransaction.RollbackAsync();
+                throw;
+            }
+            return false;
         }
 
         public string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData)
@@ -98,9 +197,7 @@ namespace CMMS.Infrastructure.Services.Payment
                             await _unitOfWorkScope.SaveChangeAsync();
 
                             // create invoiceDetail
-                            // get customer cart
-                            //var customerCart = _cartRepositoryScope.Get(_ => _.CustomerId.Equals(customerId));
-                            //foreach (var cartItem in customerCart)
+                            //foreach (var cartItem in )
                             //{
                             //    var invoiceDetail = new InvoiceDetail
                             //    {
@@ -112,8 +209,6 @@ namespace CMMS.Infrastructure.Services.Payment
                             //        InvoiceId = invoice.Id,
                             //    };
                             //    await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
-                            //    // remove cart row immediately after add invoiceDetail
-                            //    _cartRepositoryScope.Remove(cartItem);
                             //}
 
                             // create payment
@@ -216,7 +311,7 @@ namespace CMMS.Infrastructure.Services.Payment
                             CustomerId = invoice.CustomerId,
                             InvoiceId = invoice.Id,
                             TransactionDate = DateTime.Now,
-                            TransactionType = TransactionType.PaymentOnline,
+                            TransactionType = ((int)TransactionType.OnlinePayment).ToString(),
                         };
                         await _transactionRepositoryScope.AddAsync(transcation);
                         var result = await _unitOfWork.SaveChangeAsync();

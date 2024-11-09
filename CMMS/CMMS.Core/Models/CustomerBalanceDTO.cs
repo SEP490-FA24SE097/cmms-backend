@@ -32,6 +32,9 @@ namespace CMMS.Core.Models
         public double TotalDebt { get; set; }
         public double TotalPaid { get; set; }
         public double Balance { get; set; }
+        public string? Note { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public UserVM UserVM { get; set; }  
     }
 

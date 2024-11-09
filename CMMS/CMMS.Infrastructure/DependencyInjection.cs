@@ -79,12 +79,16 @@ namespace CMMS.Infrastructure
 			services.AddScoped<IPaymentService, PaymentService>();
 
 			services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+			services.AddScoped<IInvoiceService, InvoiceService>();
 
-			services.AddScoped<IInvoiceDetailRepository, InvoiceDetailRepository>();
+            services.AddScoped<IInvoiceDetailRepository, InvoiceDetailRepository>();
+            services.AddScoped<IInvoiceDetailService, InvoiceDetailService>();
 
-			services.AddScoped<IShippingDetailRepository, ShippingDetailRepository>();
+            services.AddScoped<IShippingDetailRepository, ShippingDetailRepository>();
+            services.AddScoped<IShippingDetailService, ShippingDetailService>();
 
-			services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<ITransactionService, TransactionService>();
 
             services.AddScoped<ICustomerBalanceRepository, CustomerBalanceRepository>();
             services.AddScoped<ICustomerBalanceService, CustomerBalanceService>();
