@@ -23,6 +23,7 @@ namespace CMMS.Core.Entities
         public decimal MinStock { get; set; }
         public string ImageUrl { get; set; }
         public bool IsRewardEligible { get; set; }
+        public DateTime Timestamp { get; set; }
         public virtual Category Category { get; set; }
         public virtual Unit Unit { get; set; }
         public virtual Supplier Supplier { get; set; }
