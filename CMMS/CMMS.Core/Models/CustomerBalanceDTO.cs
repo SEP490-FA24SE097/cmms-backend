@@ -14,6 +14,7 @@ namespace CMMS.Core.Models
         public double TotalPaid { get; set; } 
         public double Balance { get; set; }
         public string CustomerId { get; set; }
+        public string? Note { get; set; }
     }
     public class CustomerBalanceUpdateModel 
     {
@@ -22,6 +23,7 @@ namespace CMMS.Core.Models
         public double TotalPaid { get; set; }
         public double Balance { get; set; }
         public string? CustomerId { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CustomerBalanceVM

@@ -67,6 +67,7 @@ namespace CMMS.API.Controllers
                 var customerBalance = _mapper.Map<CustomerBalance>(model);
                 customerBalance.Customer = user;
                 customerBalance.Id = Guid.NewGuid().ToString();
+                customerBalance.CreatedAt = DateTime.Now;
                 await _customerBalanceSerivce.AddAsync(customerBalance);
                 var result = await _customerBalanceSerivce.SaveChangeAsync();
                 if (result)
@@ -83,6 +84,7 @@ namespace CMMS.API.Controllers
                 customerBalance.Balance = updateModel.Balance;
                 customerBalance.TotalPaid = updateModel.TotalPaid;
                 customerBalance.TotalDebt = updateModel.TotalDebt;
+                customerBalance.UpdatedAt = DateTime.Now;
 
                 _customerBalanceSerivce.Update(customerBalance);
                 var result = await _customerBalanceSerivce.SaveChangeAsync();

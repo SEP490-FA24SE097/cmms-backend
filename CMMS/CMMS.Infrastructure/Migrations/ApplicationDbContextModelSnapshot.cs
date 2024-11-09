@@ -196,15 +196,24 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<double>("Balance")
                         .HasColumnType("float");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("CustomerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("TotalDebt")
                         .HasColumnType("float");
 
                     b.Property<double>("TotalPaid")
                         .HasColumnType("float");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

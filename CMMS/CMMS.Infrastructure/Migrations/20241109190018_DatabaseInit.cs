@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CMMS.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initmigration : Migration
+    public partial class DatabaseInit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -236,6 +236,9 @@ namespace CMMS.Infrastructure.Migrations
                     TotalDebt = table.Column<double>(type: "float", nullable: false),
                     TotalPaid = table.Column<double>(type: "float", nullable: false),
                     Balance = table.Column<double>(type: "float", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CustomerId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
@@ -489,6 +492,7 @@ namespace CMMS.Infrastructure.Migrations
                     MinStock = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsRewardEligible = table.Column<bool>(type: "bit", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     InvoiceDetailId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
