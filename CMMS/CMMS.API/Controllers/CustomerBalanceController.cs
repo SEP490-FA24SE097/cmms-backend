@@ -7,6 +7,7 @@ using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
@@ -28,11 +29,14 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
         }
         [HttpGet]
-        public ActionResult GetCustomerBalanceAsync([FromQuery] DefaultSearch defaultSearch)
+        public ActionResult GetCustomerBalanceAsync([FromQuery] CustomerBalanceFitlerModel model)
         {
             var customerBalance = _customerBalanceSerivce.Get(_ => _.Id != null, _ => _.Customer);
+            if(!model.CustomerName.IsNullOrEmpty())
+                customerBalance = _customerBalanceSerivce.Get(_ => _.Customer.FullName.Contains(model.CustomerName), _ => _.Customer);   
             var total = customerBalance.Count();
-            var customerBalancePaged = customerBalance.ToPageList(defaultSearch.currentPage, defaultSearch.perPage);
+            var customerBalancePaged = customerBalance.ToPageList(model.defaultSearch.currentPage, model.defaultSearch.perPage)
+                .Sort(model.defaultSearch.sortBy, model.defaultSearch.isAscending);
             var result = _mapper.Map<List<CustomerBalanceVM>>(customerBalancePaged);
             return Ok(new
             {
@@ -40,12 +44,12 @@ namespace CMMS.API.Controllers
                 pagination = new
                 {
                     total,
-                    perPage = defaultSearch.perPage,
-                    currentPage = defaultSearch.currentPage,
+                    perPage = model.defaultSearch.perPage,
+                    currentPage = model.defaultSearch.currentPage,
                 }
             });
         }
-        [HttpGet("{id}")]
+        [HttpGet("{customerId}")]
         public ActionResult GetCustomerBalanceById(string customerId)
         {
             var result = _customerBalanceSerivce.GetCustomerBalanceById(customerId);
@@ -86,6 +90,14 @@ namespace CMMS.API.Controllers
                     return Ok(new { success = true, message = "Cập nhật công nợ user thành công" });
             }
             return Ok(new { success = false, message = "Cập nhật công nợ user thất bại" });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCustomerBalanceAsync(string id) {
+                var result = await _customerBalanceSerivce.Remove(id);
+            if(result)
+                return Ok(new { success = true, message = "Xóa công nợ của user thành công" });
+            return Ok(new { success = false, message = "Xóa công nợ của user thành công" });
         }
     }
 }

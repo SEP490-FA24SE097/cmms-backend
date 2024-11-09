@@ -21,7 +21,7 @@ namespace CMMS.Core.Models
         public double TotalDebt { get; set; }
         public double TotalPaid { get; set; }
         public double Balance { get; set; }
-        public string CustomerId { get; set; }
+        public string? CustomerId { get; set; }
     }
 
     public class CustomerBalanceVM
@@ -31,5 +31,15 @@ namespace CMMS.Core.Models
         public double TotalPaid { get; set; }
         public double Balance { get; set; }
         public UserVM UserVM { get; set; }  
+    }
+
+    public class CustomerBalanceFitlerModel
+    {
+        public string? CustomerName { get; set; }
+        public DefaultSearch defaultSearch  { get; set; }
+        public CustomerBalanceFitlerModel()
+        {
+            defaultSearch = new DefaultSearch();
+        }
     }
 }

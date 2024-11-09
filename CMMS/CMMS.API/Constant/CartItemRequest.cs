@@ -8,4 +8,5 @@ namespace CMMS.API.Constant
         public int perPage { get; set; } = 10;
         public int currentPage { get; set; } = 0;
     }
+
 }
