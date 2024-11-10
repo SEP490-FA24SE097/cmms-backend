@@ -27,14 +27,14 @@ namespace CMMS.API.Controllers
 
 
 
-        [HttpGet("get-product-quantity")]
-        public async Task<IActionResult> Get(GetProductQuantityDTO getProductQuantity)
+        [HttpGet("get-product-quantity-of-specific-store")]
+        public async Task<IActionResult> Get([FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] string storeId)
         {
             try
             {
                 var item = await _storeInventoryService.Get(x =>
-                    x.StoreId == getProductQuantity.StoreId && x.MaterialId == getProductQuantity.MaterialId &&
-                    x.VariantId == getProductQuantity.VariantId).FirstOrDefaultAsync();
+                    x.StoreId == storeId && x.MaterialId == materialId &&
+                    x.VariantId == variantId).FirstOrDefaultAsync();
                 if (item == null)
                 {
                     return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
@@ -43,14 +43,35 @@ namespace CMMS.API.Controllers
                 {
                     return Ok(new { success = true, message = "Hết hàng" });
                 }
-                return Ok(new { success = true, quantity = item.TotalQuantity });
+                return Ok(new { data = new { quantity = item.TotalQuantity } });
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpGet("get-store-product-quantity-list")]
+        public async Task<IActionResult> GetQuantity([FromQuery] Guid materialId, [FromQuery] Guid? variantId)
+        {
+            try
+            {
+                var item = await _storeInventoryService.Get(x =>
+                    x.MaterialId == materialId &&
+                    x.VariantId == variantId).Include(x => x.Store).Select(x => new
+                    {
+                        storeId = x.StoreId,
+                        storeName = x.Store.Name,
+                        quantity = x.TotalQuantity
+                    }).ToListAsync();
 
+                return Ok(new
+                { data = item });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
         [HttpGet("get-products-by-store-id")]
         public async Task<IActionResult> Get([FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
         {
