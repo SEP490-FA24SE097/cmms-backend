@@ -80,8 +80,11 @@ namespace CMMS.API.Controllers
                         Note = invoiceInfo.Note,
                         OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
                         Address = invoiceInfo.Address,
+                        CartItems = invoiceInfo.CartItems,
                     };
-                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequest(paymentRequestData);
+
+                    // vnpay process 
+                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);
 
                 case PaymentType.DebtInvoice:
@@ -95,7 +98,6 @@ namespace CMMS.API.Controllers
                             var result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
                             if (result)
                                 return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-
                         }
                         else
                         {
@@ -103,14 +105,13 @@ namespace CMMS.API.Controllers
                         }
                     }
                     return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
+                case PaymentType.DebtPurchase:
 
                     break;
-                case PaymentType.DebtPurchase:
+                default:
+
                     break;
-                case PaymentType.PurchaseFirst:
-                    break;
-                case PaymentType.PurchaseAfter:
-                    break;
+       
             }
             return BadRequest("Faild create payment");
 

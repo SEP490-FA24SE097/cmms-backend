@@ -17,9 +17,11 @@ namespace CMMS.Infrastructure.Services.Payment
 {
     public interface IPaymentService
     {
-        string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData);
+        string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData);
         Task<VnpayResponseData> VnpayReturnUrl(VnpayPayResponse vnpayPayResponse);
+        //Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo);
         Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
+        Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
     }
     public class PaymentService : IPaymentService
     {
@@ -37,6 +39,7 @@ namespace CMMS.Infrastructure.Services.Payment
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly ITransaction _efTransaction;
+        private readonly IUserService _userService;
 
         public PaymentService(IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
@@ -49,7 +52,7 @@ namespace CMMS.Infrastructure.Services.Payment
             IInvoiceService invoiceService,
             IInvoiceDetailService invoiceDetailService,
             IShippingDetailService shippingDetailService,
-            ITransaction transaction)
+            ITransaction transaction, IUserService userService)
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
@@ -65,6 +68,7 @@ namespace CMMS.Infrastructure.Services.Payment
             _variantService = variantService;
             _materialService = materialService;
             _efTransaction = transaction;
+            _userService = userService;
         }
 
         public async Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
@@ -73,7 +77,7 @@ namespace CMMS.Infrastructure.Services.Payment
             {
                 // update customerBalance
                 var customerBalanceLeft = customerBalance.TotalDebt - (double)invoiceInfo.Amount;
-                customerBalance.Balance = customerBalanceLeft;
+                customerBalance.Balance -= customerBalanceLeft;
                 customerBalance.CustomerId = customerBalance.Customer.Id;
                 _customerBalanceService.Update(customerBalance);
 
@@ -92,7 +96,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     Id = Guid.NewGuid().ToString(),
                     CustomerId = customerBalance.Customer.Id,
                     InvoiceDate = DateTime.Now,
-                    InvoiceStatus = (int)InvoiceStatus.Pending,
+                    InvoiceStatus = (int)InvoiceStatus.Debt,
                     Note = invoiceInfo.Note,
                     TotalAmount = (decimal)invoiceInfo.Amount,
                 };
@@ -139,14 +143,76 @@ namespace CMMS.Infrastructure.Services.Payment
             return false;
         }
 
-        public string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData)
+        //public Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo)
+        //{
+        //    try
+        //    {
+
+        //    }
+        //    catch (Exception)
+        //    {
+
+        //        throw;
+        //    }
+        //    return false;
+        //}
+
+        public async Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
+        {
+            try
+            {
+                decimal? totalPaided = 0;
+                // update customerBalance
+                customerBalance.CustomerId = customerBalance.Customer.Id;
+                totalPaided = invoiceInfo.Amount;
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = ((int)TransactionType.DebtPurchase).ToString();
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = customerBalance.Customer.Id;
+                transaction.Amount = (decimal)invoiceInfo.Amount;
+                
+
+                if (invoiceInfo.InvoiceId != null)
+                {
+                    string invoiceId = invoiceInfo.InvoiceId;
+                    var invoice = await _invoiceService.FindAsync(invoiceId);
+                    totalPaided = invoice.TotalAmount;
+                    transaction.Amount = (decimal)invoice.TotalAmount;
+                    transaction.InvoiceId = invoiceId;
+                }
+             
+                customerBalance.TotalPaid += (double)totalPaided;
+                var customerBalanceLeft = customerBalance.TotalDebt - customerBalance.TotalPaid;
+                customerBalance.Balance = customerBalanceLeft;
+
+                _customerBalanceService.Update(customerBalance);
+
+                await _transactionService.AddAsync(transaction);
+                await _unitOfWork.SaveChangeAsync();
+                await _efTransaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await _efTransaction.RollbackAsync();
+                throw;
+            }
+            return false;
+        }
+
+        public  string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
         {
             var paymentId = Guid.NewGuid().ToString();
             var customerId = paymentRequestData.CustomerId;
             var orderInfo = paymentRequestData.OrderInfo;
             var note = paymentRequestData.Note != null ? paymentRequestData.Note : "";
             var totalAmount = paymentRequestData.Amount;
-            var shippingAddress = paymentRequestData.Address;
+
+            var customer = _userService.Get(_ => _.Id.Equals(customerId)).FirstOrDefault();
+            // get customer address
+            var customerAddress = $"{customer.Address} {customer.Ward} {customer.District} {customer.Province}";
+            var shippingAddress = paymentRequestData.Address != null ? paymentRequestData.Address : customerAddress;
             VnpayPayRequest vnpayPaymentRequest = new VnpayPayRequest
             {
                 vnp_Version = _configuration["Vnpay:Version"],
@@ -197,19 +263,27 @@ namespace CMMS.Infrastructure.Services.Payment
                             await _unitOfWorkScope.SaveChangeAsync();
 
                             // create invoiceDetail
-                            //foreach (var cartItem in )
-                            //{
-                            //    var invoiceDetail = new InvoiceDetail
-                            //    {
-                            //        Id = Guid.NewGuid().ToString(),
-                            //        LineTotal = cartItem.TotalAmount,
-                            //        MaterialId = cartItem.MaterialId,
-                            //        VariantId = cartItem.VariantId,
-                            //        Quantity = cartItem.Quantity,
-                            //        InvoiceId = invoice.Id,
-                            //    };
-                            //    await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
-                            //}
+                            foreach (var cartItem in paymentRequestData.CartItems)
+                            {
+                                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                                var invoiceDetail = new InvoiceDetail
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    LineTotal = material.SalePrice * cartItem.Quantity,
+                                    MaterialId = Guid.Parse(cartItem.MaterialId),
+                                    VariantId = Guid.Parse(cartItem.VariantId),
+                                    Quantity = cartItem.Quantity,
+                                    InvoiceId = invoice.Id,
+                                };
+                                if (cartItem.VariantId != null)
+                                {
+                                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                                    invoiceDetail.VariantId = Guid.Parse(cartItem.VariantId);
+                                    invoiceDetail.LineTotal = variant.Price *  cartItem.Quantity;
+                                }
+                       
+                                await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
+                            }
 
                             // create payment
                             var payment = new Core.Entities.Payment

@@ -1,4 +1,5 @@
-﻿using CMMS.Infrastructure.Helpers;
+﻿using CMMS.Core.Models;
+using CMMS.Infrastructure.Helpers;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Lib;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using System;
@@ -103,7 +104,7 @@ namespace CMMS.Infrastructure.Services.Payment.Vnpay.Request
 		public string OrderInfo { get; set; }
 		public string? Note { get; set; }
 		public string CustomerId { get; set; }
-		public string Address { get; set; }	
-
-	}
+		public string? Address { get; set; }
+        public List<CartItem>? CartItems { get; set; }
+    }
 }
