@@ -34,6 +34,12 @@ namespace CMMS.API.Helpers
             CreateMap<CustomerBalanceVM, CustomerBalanceDTO>().ReverseMap();
             #endregion
 
+            #region ShippingDetail 
+            CreateMap<ShippingDetail, ShippingDetailVM>()
+                .ForMember(dest => dest.Invoice, opt => opt.MapFrom(src => src.Invoice))
+                .ReverseMap();
+            #endregion
+
 
         }
     }

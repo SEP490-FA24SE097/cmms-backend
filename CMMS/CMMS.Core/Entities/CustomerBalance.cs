@@ -12,9 +12,9 @@ namespace CMMS.Core.Entities
     {
         [Key]
         public string Id { get; set; }
-        public double TotalDebt { get; set; }
-        public double TotalPaid { get; set; }
-        public double Balance { get; set; }
+        public decimal TotalDebt { get; set; } = 0;
+        public decimal TotalPaid { get; set; } = 0;
+        public decimal Balance { get; set; }
         public string? Note { get;set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

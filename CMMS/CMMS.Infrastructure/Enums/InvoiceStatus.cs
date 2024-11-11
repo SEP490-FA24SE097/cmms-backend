@@ -11,7 +11,11 @@ namespace CMMS.Infrastructure.Enums
 		Pending = 0,
 		PaymentSucces = 1,
 		Done = 2,
-		Debt = 3,
 		Cancel = 4,
+	}
+	public enum InvoiceType
+	{
+		Debt = 0,
+		Normal = 1,
 	}
 }

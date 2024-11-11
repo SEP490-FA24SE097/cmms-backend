@@ -14,6 +14,7 @@ namespace CMMS.Core.Entities
         public string Id { get; set; }
         public DateTime InvoiceDate { get; set; }
         public decimal TotalAmount { get; set; }
+        public int InvoiceType { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
         [ForeignKey("CustomerId")]
