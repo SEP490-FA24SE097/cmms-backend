@@ -93,7 +93,11 @@ namespace CMMS.Infrastructure
             services.AddScoped<ICustomerBalanceRepository, CustomerBalanceRepository>();
             services.AddScoped<ICustomerBalanceService, CustomerBalanceService>();
 
+            services.AddScoped<IGoodsDeliveryNoteRepository, GoodsDeliveryNoteRepository>();
+            services.AddScoped<IGoodsDeliveryNoteService, GoodsDeliveryNoteService>();
 
+            services.AddScoped<IGoodsDeliveryNoteDetailRepository, GoodsDeliveryNoteDetailRepository>();
+            services.AddScoped<IGoodsDeliveryNoteDetailService, GoodsDeliveryNoteDetailService>();
             return services;
         }
     }

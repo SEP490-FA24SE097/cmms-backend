@@ -80,7 +80,8 @@ namespace CMMS.API.Controllers
                     VariantId = import.VariantId,
                     Quantity = import.Quantity,
                     TotalPrice = import.TotalPrice,
-                    TimeStamp = GetVietNamTime()
+                    TimeStamp = GetVietNamTime(),
+                    SupplierId = import.SupplierId
                 });
                 await _importService.SaveChangeAsync();
                 var warehouse = _warehouseService
