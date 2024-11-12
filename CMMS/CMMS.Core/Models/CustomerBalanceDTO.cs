@@ -40,6 +40,7 @@ namespace CMMS.Core.Models
 
     public class CustomerBalanceFitlerModel
     {
+        public string? Id { get; set; }
         public string? CustomerName { get; set; }
         public DefaultSearch defaultSearch  { get; set; }
         public CustomerBalanceFitlerModel()

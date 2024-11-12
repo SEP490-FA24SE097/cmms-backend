@@ -33,7 +33,8 @@ namespace CMMS.API.Controllers
         {
             var customerBalance = _customerBalanceSerivce.Get(_ => _.Id != null, _ => _.Customer);
             if(!model.CustomerName.IsNullOrEmpty())
-                customerBalance = _customerBalanceSerivce.Get(_ => _.Customer.FullName.Contains(model.CustomerName), _ => _.Customer);   
+                customerBalance = _customerBalanceSerivce.Get(_ => _.Customer.FullName.Contains(model.CustomerName) 
+                , _ => _.Customer);   
             var total = customerBalance.Count();
             var customerBalancePaged = customerBalance.ToPageList(model.defaultSearch.currentPage, model.defaultSearch.perPage)
                 .Sort(model.defaultSearch.sortBy, model.defaultSearch.isAscending);

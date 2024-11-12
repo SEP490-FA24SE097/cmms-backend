@@ -51,7 +51,7 @@ namespace CMMS.API.Controllers
                 if(item != null)
                 {
                     CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
-                    if (cartItem.Quantity >= item.TotalQuantity)
+                    if (cartItem.Quantity > item.TotalQuantity)
                     {
                         cartItemVM.IsChangeQuantity = true;
                     }

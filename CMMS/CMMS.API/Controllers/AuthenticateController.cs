@@ -105,8 +105,6 @@ namespace CMMS.API.Controllers
                     currentPage = 0,
                 },
             });
-            return BadRequest("Signup failed");
-
         }
 
         [AllowAnonymous]

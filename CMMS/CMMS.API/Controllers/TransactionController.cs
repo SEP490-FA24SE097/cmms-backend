@@ -17,7 +17,7 @@ namespace CMMS.API.Controllers
             _transactionService = transactionService;
         }
         [HttpGet]
-        public IActionResult Get(DefaultSearch defaultSearch)
+        public IActionResult GetTransaction([FromQuery]DefaultSearch defaultSearch)
         {
             return Ok();
         }

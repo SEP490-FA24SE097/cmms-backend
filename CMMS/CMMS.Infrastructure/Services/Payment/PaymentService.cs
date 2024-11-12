@@ -130,6 +130,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
                         Quantity = cartItem.Quantity,
                         InvoiceId = invoice.Id,
+                        StoreId = cartItem.StoreId,
                     };
 
                     var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
@@ -202,6 +203,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
                         Quantity = cartItem.Quantity,
                         InvoiceId = invoice.Id,
+                        StoreId = cartItem.StoreId
                     };
 
                     var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
@@ -351,6 +353,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                     VariantId = Guid.Parse(cartItem.VariantId),
                                     Quantity = cartItem.Quantity,
                                     InvoiceId = invoice.Id,
+                                    StoreId = cartItem.StoreId
                                 };
                                 if (cartItem.VariantId != null)
                                 {
