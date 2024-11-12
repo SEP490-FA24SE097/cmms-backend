@@ -131,6 +131,7 @@ namespace CMMS.API.Controllers
             user.RefreshToken = refreshToken;
             user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
             _userService.Update(user);
+            var userVM = _mapper.Map<UserVM>(user);
             var result = await _userService.SaveChangeAsync();
             if (result)
             {
@@ -139,7 +140,8 @@ namespace CMMS.API.Controllers
                     data = new
                     {
                         accessToken,
-                        refreshToken
+                        refreshToken, 
+                        user = userVM
                     },
                     pagination = new
                     {

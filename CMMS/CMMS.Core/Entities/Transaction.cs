@@ -12,7 +12,7 @@ namespace CMMS.Core.Entities
     {
         [Key]
         public string Id { get; set; }
-        public string TransactionType { get; set; }
+        public int TransactionType { get; set; }
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; }
         public string? InvoiceId { get; set; }

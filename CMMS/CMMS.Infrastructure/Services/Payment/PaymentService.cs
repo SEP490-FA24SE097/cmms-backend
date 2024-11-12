@@ -47,17 +47,17 @@ namespace CMMS.Infrastructure.Services.Payment
 
         public PaymentService(IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
-            IUnitOfWork unitOfWork, ILogger<PaymentService> logger, 
+            IUnitOfWork unitOfWork, ILogger<PaymentService> logger,
             IServiceScopeFactory serviceScopeFactory,
             ICustomerBalanceService customerBalanceService,
             ITransactionService transactionService,
-            IMaterialService materialService, 
+            IMaterialService materialService,
             IVariantService variantService,
             IInvoiceService invoiceService,
             IInvoiceDetailService invoiceDetailService,
             IShippingDetailService shippingDetailService,
             ITransaction transaction, IUserService userService,
-            IStoreInventoryService storeInventoryService, 
+            IStoreInventoryService storeInventoryService,
             ICartService cartService, IMapper mapper)
         {
             _configuration = configuration;
@@ -86,17 +86,8 @@ namespace CMMS.Infrastructure.Services.Payment
             {
                 // update customerBalance
                 customerBalance.CustomerId = customerBalance.Customer.Id;
-                customerBalance.TotalDebt += (decimal) invoiceInfo.Amount;
+                customerBalance.TotalDebt += (decimal)invoiceInfo.Amount;
                 _customerBalanceService.Update(customerBalance);
-
-                // insert transaction
-                var transaction = new Transaction();
-                transaction.Id = Guid.NewGuid().ToString();
-                transaction.TransactionType = ((int)TransactionType.DebtInvoice).ToString();
-                transaction.TransactionDate = DateTime.Now;
-                transaction.CustomerId = customerBalance.Customer.Id;
-                transaction.Amount = (decimal)invoiceInfo.Amount;
-                await _transactionService.AddAsync(transaction);
 
                 // insert invoice
                 var invoice = new Invoice
@@ -111,6 +102,17 @@ namespace CMMS.Infrastructure.Services.Payment
                 };
                 await _invoiceService.AddAsync(invoice);
                 await _invoiceService.SaveChangeAsync();
+
+
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = (int)TransactionType.DebtInvoice;
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = customerBalance.Customer.Id;
+                transaction.InvoiceId = invoice.Id;
+                transaction.Amount = (decimal)invoiceInfo.Amount;
+                await _transactionService.AddAsync(transaction);
 
                 // insert invoice detail
                 foreach (var cartItem in invoiceInfo.CartItems)
@@ -162,14 +164,7 @@ namespace CMMS.Infrastructure.Services.Payment
         {
             try
             {
-                // insert transaction
-                var transaction = new Transaction();
-                transaction.Id = Guid.NewGuid().ToString();
-                transaction.TransactionType = ((int)TransactionType.DebtInvoice).ToString();
-                transaction.TransactionDate = DateTime.Now;
-                transaction.CustomerId = invoiceInfo.CustomerId;
-                transaction.Amount = (decimal)invoiceInfo.Amount; 
-                await _transactionService.AddAsync(transaction);
+
                 // insert invoice
                 var invoice = new Invoice
                 {
@@ -184,6 +179,16 @@ namespace CMMS.Infrastructure.Services.Payment
                 };
                 await _invoiceService.AddAsync(invoice);
                 await _invoiceService.SaveChangeAsync();
+
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = (int)TransactionType.Cash;
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = invoiceInfo.CustomerId;
+                transaction.InvoiceId = invoice.Id;
+                transaction.Amount = (decimal)invoiceInfo.Amount;
+                await _transactionService.AddAsync(transaction);
 
                 // insert invoice detail
                 foreach (var cartItem in invoiceInfo.CartItems)
@@ -242,11 +247,11 @@ namespace CMMS.Infrastructure.Services.Payment
                 // insert transaction
                 var transaction = new Transaction();
                 transaction.Id = Guid.NewGuid().ToString();
-                transaction.TransactionType = ((int)TransactionType.DebtPurchase).ToString();
+                transaction.TransactionType = (int)TransactionType.DebtPurchase;
                 transaction.TransactionDate = DateTime.Now;
                 transaction.CustomerId = customerBalance.Customer.Id;
                 transaction.Amount = (decimal)invoiceInfo.Amount;
-                
+
                 if (invoiceInfo.InvoiceId != null)
                 {
                     string invoiceId = invoiceInfo.InvoiceId;
@@ -259,17 +264,16 @@ namespace CMMS.Infrastructure.Services.Payment
                     invoice.InvoiceStatus = (int)InvoiceStatus.Done;
                     _invoiceService.Update(invoice);
                 }
-             
+
                 customerBalance.TotalPaid += (decimal)totalPaided;
                 var customerBalanceLeft = customerBalance.TotalDebt - customerBalance.TotalPaid;
-                customerBalance.Balance = customerBalanceLeft;
 
                 _customerBalanceService.Update(customerBalance);
 
                 await _transactionService.AddAsync(transaction);
                 var result = await _unitOfWork.SaveChangeAsync();
+                await _efTransaction.CommitAsync();
                 if (result) return true;
-                 await _efTransaction.CommitAsync();
             }
             catch (Exception)
             {
@@ -279,7 +283,7 @@ namespace CMMS.Infrastructure.Services.Payment
             return false;
         }
 
-        public  string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
+        public string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
         {
             var paymentId = Guid.NewGuid().ToString();
             var customerId = paymentRequestData.CustomerId;
@@ -341,6 +345,17 @@ namespace CMMS.Infrastructure.Services.Payment
                             await _invoiceRepositoryScope.AddAsync(invoice);
                             await _unitOfWorkScope.SaveChangeAsync();
 
+                            // insert transaction
+                            var transaction = new Transaction();
+                            transaction.Id = Guid.NewGuid().ToString();
+                            transaction.TransactionType = (int)TransactionType.DebtInvoice;
+                            transaction.TransactionDate = DateTime.Now;
+                            transaction.CustomerId = customerId;
+                            transaction.InvoiceId = invoice.Id;
+                            transaction.Amount = totalAmount;
+                            await _transactionService.AddAsync(transaction);
+
+
                             // create invoiceDetail
                             foreach (var cartItem in paymentRequestData.CartItems)
                             {
@@ -359,9 +374,9 @@ namespace CMMS.Infrastructure.Services.Payment
                                 {
                                     var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
                                     invoiceDetail.VariantId = Guid.Parse(cartItem.VariantId);
-                                    invoiceDetail.LineTotal = variant.Price *  cartItem.Quantity;
+                                    invoiceDetail.LineTotal = variant.Price * cartItem.Quantity;
                                 }
-                       
+
                                 await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
                             }
 
@@ -395,6 +410,7 @@ namespace CMMS.Infrastructure.Services.Payment
                             await _unitOfWorkScope.SaveChangeAsync();
 
                             // Commit transaction sucecssfully
+
                             await _efTranscationScope.CommitAsync();
                         }
                         catch (Exception)
@@ -465,7 +481,7 @@ namespace CMMS.Infrastructure.Services.Payment
                             CustomerId = invoice.CustomerId,
                             InvoiceId = invoice.Id,
                             TransactionDate = DateTime.Now,
-                            TransactionType = ((int)TransactionType.OnlinePayment).ToString(),
+                            TransactionType = (int)TransactionType.OnlinePayment,
                         };
                         await _transactionRepositoryScope.AddAsync(transcation);
                         var result = await _unitOfWork.SaveChangeAsync();

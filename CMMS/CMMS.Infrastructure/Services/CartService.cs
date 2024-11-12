@@ -19,7 +19,6 @@ namespace CMMS.Infrastructure.Services
     public interface ICartService
     {
         Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel);
-
     }
     public class CartService : ICartService
     {

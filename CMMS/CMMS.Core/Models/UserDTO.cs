@@ -83,6 +83,7 @@ namespace CMMS.Core.Models
         public string District { get; set; }
         public string Ward { get; set; }
         public string Address { get; set; }
+        public string TaxCode { get; set; }
         public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
     }

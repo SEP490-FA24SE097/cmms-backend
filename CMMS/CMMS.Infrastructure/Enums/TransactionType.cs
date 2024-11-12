@@ -10,8 +10,7 @@ namespace CMMS.Infrastructure.Enums
     {
         DebtInvoice = 0,
         DebtPurchase = 1,
-        PurchaseFirst = 2,
-        PurchaseAfter = 3,
-        OnlinePayment = 4,
+        Cash = 2,
+        OnlinePayment = 3,
     }
 }
