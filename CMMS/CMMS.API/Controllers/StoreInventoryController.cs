@@ -57,7 +57,7 @@ namespace CMMS.API.Controllers
             {
                 var item = await _storeInventoryService.Get(x =>
                     x.MaterialId == materialId &&
-                    x.VariantId == variantId).Include(x => x.Store).Select(x => new
+                    x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,

@@ -13,10 +13,12 @@ namespace CMMS.Core.Entities
     {
         [Key]
         public Guid Id { get; set; }
+        public string? StoreId { get; set; }
         public string ReasonDescription { get; set; }
         public Decimal Total { get; set; }
         public string TotalByText { get; set; }
         public DateTime TimeStamp { get; set; }
+        public virtual Store Store { get; set; }
         public virtual ICollection<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
     }
 }

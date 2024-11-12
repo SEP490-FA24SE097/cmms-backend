@@ -30,16 +30,15 @@ namespace CMMS.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetFilter([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] Guid? supplierId, [FromQuery] decimal? lowerPrice, [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending, [FromQuery] bool? isCreatedDateDescending)
+        public IActionResult GetFilter([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] decimal? lowerPrice, [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending, [FromQuery] bool? isCreatedDateDescending)
         {
             try
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
-                    .Include(x => x.Unit).Include(x => x.Supplier)
+                    .Include(x => x.Unit)
                     .Where(x =>
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
-                        && (supplierId == null || x.SupplierId == supplierId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
                         && (upperPrice == null || x.SalePrice <= upperPrice)
                     );
@@ -85,7 +84,6 @@ namespace CMMS.API.Controllers
 
                     SalePrice = x.SalePrice,
                     Unit = x.Unit.Name,
-                    Supplier = x.Supplier.Name,
                     Category = x.Category.Name,
                     MinStock = x.MinStock,
                     ImageUrl = x.ImageUrl
@@ -521,7 +519,7 @@ namespace CMMS.API.Controllers
                     Include(x => x.Category).
                     Include(x => x.Unit).
                     Include(x => x.SubImages).
-                    Include(x => x.Supplier).Select(x => new MaterialDTO()
+                    Select(x => new MaterialDTO()
                     {
                         Id = x.Id,
                         Name = x.Name,
@@ -532,7 +530,6 @@ namespace CMMS.API.Controllers
 
                         SalePrice = x.SalePrice,
                         Unit = x.Unit.Name,
-                        Supplier = x.Supplier.Name,
                         Category = x.Category.Name,
                         MinStock = x.MinStock,
                         ImageUrl = x.ImageUrl,
@@ -587,7 +584,6 @@ namespace CMMS.API.Controllers
                     SalePrice = materialCm.SalePrice,
                     MinStock = materialCm.MinStock,
                     BrandId = materialCm.BrandId,
-                    SupplierId = materialCm.SupplierId,
                     UnitId = materialCm.UnitId,
                     CategoryId = materialCm.CategoryId,
                     Timestamp = TimeConverter.TimeConverter.GetVietNamTime(),
@@ -616,11 +612,10 @@ namespace CMMS.API.Controllers
                 material.ImageUrl = materialUM.ImageUrl.IsNullOrEmpty() ? material.ImageUrl : materialUM.ImageUrl;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.MinStock = materialUM.MinStock == 0 ? material.MinStock : materialUM.MinStock;
-                material.SupplierId = materialUM.SupplierId.IsNullOrEmpty() ? material.SupplierId : Guid.Parse(materialUM.SupplierId);
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty() ? material.BrandId : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty() ? material.CategoryId : Guid.Parse(materialUM.CategoryId);
                 material.UnitId = materialUM.UnitId.IsNullOrEmpty() ? material.UnitId : Guid.Parse(materialUM.UnitId);
-                material.IsRewardEligible = materialUM.IsRewardEligible;
+                material.IsRewardEligible = materialUM.IsRewardEligible==null?material.IsRewardEligible:(bool)materialUM.IsRewardEligible;
                 await _materialService.SaveChangeAsync();
                 return Ok(material);
             }
