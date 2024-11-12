@@ -19,7 +19,7 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet("stores")]
+        [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
@@ -37,7 +37,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("add-new")]
+        [HttpPost]
         public async Task<IActionResult> AddNewStore(StoreCM store)
         {
             var result = await _storeService.CreateNewStore(store);

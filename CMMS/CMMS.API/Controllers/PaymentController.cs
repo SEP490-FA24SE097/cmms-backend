@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
+using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
@@ -57,45 +58,58 @@ namespace CMMS.API.Controllers
             var customerId = "508bfd68-f940-4a55-823d-53e75d6e1194";
             // get total cart
             decimal totalCartAmount = 0;
-            foreach (var cartItem in invoiceInfo.CartItems)
-            {
-                
-                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                var totalItemPrice = material.SalePrice * cartItem.Quantity;
-                if (cartItem.VariantId != null)
-                {
-                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                    totalItemPrice = variant.Price * cartItem.Quantity;
-                }
-                totalCartAmount += totalItemPrice;
+            invoiceInfo.CustomerId = customerId;
 
+            if (invoiceInfo.Amount == null)
+            {
+                foreach (var cartItem in invoiceInfo.CartItems)
+                {
+                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                    var totalItemPrice = material.SalePrice * cartItem.Quantity;
+                    if (cartItem.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                        totalItemPrice = variant.Price * cartItem.Quantity;
+                    }
+                    totalCartAmount += totalItemPrice;
+                }
+                invoiceInfo.Amount = totalCartAmount;
             }
+
+            bool result = false;
+            CustomerBalanceVM customerBalance = null;
+            CustomerBalance customerBalanceEntity = null;
+            decimal customerBalanceAvailable = 0;
+
             switch (invoiceInfo.PaymentType)
             {
                 case PaymentType.OnlinePayment:
                     var paymentRequestData = new PaymentRequestData
                     {
-                        Amount = totalCartAmount,
                         CustomerId = customerId,
                         Note = invoiceInfo.Note,
                         OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
                         Address = invoiceInfo.Address,
+                        CartItems = invoiceInfo.CartItems,
                     };
-                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequest(paymentRequestData);
+
+                    // vnpay process 
+                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);
 
                 case PaymentType.DebtInvoice:
-                    var customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
+                    customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
                     if (customerBalance != null)
                     {
-                        if ((decimal)customerBalance.Balance >= totalCartAmount)
+                        var currentDebt = customerBalance.TotalDebt;
+                        customerBalanceAvailable = customerBalance.Balance - (totalCartAmount + currentDebt);
+                        if ((decimal)customerBalance.Balance >= customerBalanceAvailable)
                         {
-                            invoiceInfo.Amount = (decimal?)totalCartAmount;
-                            var customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);
-                            var result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
+                            invoiceInfo.Amount = totalCartAmount;
+                            customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);
+                            result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
                             if (result)
                                 return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-
                         }
                         else
                         {
@@ -103,19 +117,23 @@ namespace CMMS.API.Controllers
                         }
                     }
                     return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
-
-                    break;
                 case PaymentType.DebtPurchase:
+                    customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
+                    customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);
+                    result = await _paymentService.PurchaseDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
+                    if (result)
+                        return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
                     break;
                 case PaymentType.PurchaseFirst:
-                    break;
                 case PaymentType.PurchaseAfter:
-                    break;
+                    var paymentResult = await _paymentService.PaymentInvoiceAsync(invoiceInfo);
+                    if (paymentResult)
+                        return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                    return Ok(new { success = false, message = "Thất bại" });
             }
             return BadRequest("Faild create payment");
-
-
         }
+
         [HttpGet("vnpay-return")]
         public async Task<IActionResult> VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
         {

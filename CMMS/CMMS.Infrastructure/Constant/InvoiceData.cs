@@ -15,6 +15,7 @@ namespace CMMS.Infrastructure.Constant
         public List<CartItem>? CartItems { get; set; }
         public decimal? Amount { get; set; }
         public string? InvoiceId { get; set; }
+        public string? CustomerId { get; set; }
     }
     public enum PaymentType
     {

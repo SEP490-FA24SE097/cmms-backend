@@ -4,6 +4,7 @@ using CMMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241111104859_AddInvoiceType_UpdateCustomerBalanceField")]
+    partial class AddInvoiceType_UpdateCustomerBalanceField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -233,9 +236,6 @@ namespace CMMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("StoreId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTime>("TimeStamp")
                         .HasColumnType("datetime2");
 
@@ -247,8 +247,6 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("StoreId");
 
                     b.ToTable("GoodsDeliveryNotes");
                 });
@@ -300,9 +298,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("TimeStamp")
                         .HasColumnType("datetime2");
 
@@ -315,8 +310,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
-
-                    b.HasIndex("SupplierId");
 
                     b.HasIndex("VariantId");
 
@@ -372,10 +365,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("StoreId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid?>("VariantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -426,6 +415,9 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<decimal>("SalePrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
@@ -442,6 +434,8 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("SupplierId");
 
                     b.HasIndex("UnitId");
 
@@ -576,9 +570,6 @@ namespace CMMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("InvoiceDetailId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -599,8 +590,6 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("InvoiceDetailId");
 
                     b.ToTable("Stores");
                 });
@@ -982,15 +971,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNote", b =>
-                {
-                    b.HasOne("CMMS.Core.Entities.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId");
-
-                    b.Navigation("Store");
-                });
-
             modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNoteDetail", b =>
                 {
                     b.HasOne("CMMS.Core.Entities.GoodsDeliveryNote", "GoodsDeliveryNote")
@@ -1024,19 +1004,11 @@ namespace CMMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CMMS.Core.Entities.Supplier", "Supplier")
-                        .WithMany()
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("CMMS.Core.Entities.Variant", "Variant")
                         .WithMany("Imports")
                         .HasForeignKey("VariantId");
 
                     b.Navigation("Material");
-
-                    b.Navigation("Supplier");
 
                     b.Navigation("Variant");
                 });
@@ -1081,6 +1053,12 @@ namespace CMMS.Infrastructure.Migrations
                         .WithMany("Materials")
                         .HasForeignKey("InvoiceDetailId");
 
+                    b.HasOne("CMMS.Core.Entities.Supplier", "Supplier")
+                        .WithMany("Materials")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("CMMS.Core.Entities.Unit", "Unit")
                         .WithMany("Materials")
                         .HasForeignKey("UnitId")
@@ -1090,6 +1068,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
+
+                    b.Navigation("Supplier");
 
                     b.Navigation("Unit");
                 });
@@ -1150,13 +1130,6 @@ namespace CMMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("CMMS.Core.Entities.Store", b =>
-                {
-                    b.HasOne("CMMS.Core.Entities.InvoiceDetail", null)
-                        .WithMany("Stores")
-                        .HasForeignKey("InvoiceDetailId");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.StoreInventory", b =>
@@ -1352,8 +1325,6 @@ namespace CMMS.Infrastructure.Migrations
                 {
                     b.Navigation("Materials");
 
-                    b.Navigation("Stores");
-
                     b.Navigation("Variants");
                 });
 
@@ -1366,6 +1337,11 @@ namespace CMMS.Infrastructure.Migrations
                     b.Navigation("Variants");
 
                     b.Navigation("Warehouses");
+                });
+
+            modelBuilder.Entity("CMMS.Core.Entities.Supplier", b =>
+                {
+                    b.Navigation("Materials");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Unit", b =>

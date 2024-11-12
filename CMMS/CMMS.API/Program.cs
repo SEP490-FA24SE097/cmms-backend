@@ -31,23 +31,24 @@ namespace CMMS.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-			// Add CORS services
-			//builder.Services.AddCors(options =>
-			//{
-			//    options.AddPolicy("AllowAll",
-			//        builder =>
-			//        {
-			//            builder.WithOrigins("https://localhost:7095")  
-			//            .AllowAnyMethod()
-			//            .AllowAnyHeader()
-			//            .AllowCredentials();  // Cho phép gửi cookie
-			//        });
-			//});
-			// background worker 
-			//builder.Services.AddHostedService<PaymentBackgroundService>();
+            // Add CORS services
+            //builder.Services.AddCors(options =>
+            //{
+            //    options.AddPolicy("AllowAll",
+            //        builder =>
+            //        {
+            //            builder.WithOrigins("https://localhost:7095")  
+            //            .AllowAnyMethod()
+            //            .AllowAnyHeader()
+            //            .AllowCredentials();  // Cho phép gửi cookie
+            //        });
+            //});
+            // background worker 
+            //builder.Services.AddHostedService<PaymentBackgroundService>();
 
 
-			builder.Services.AddHttpClient();
+
+            builder.Services.AddHttpClient();
             builder.Services.AddDistributedMemoryCache();
    
             // Add services to the container.
@@ -130,6 +131,12 @@ namespace CMMS.API
             builder.Services.AddSingleton<IMailService, MailService>();
             builder.Services.AddScoped<ITransaction, EfTransaction>();
 
+            // Configure JSON options globally
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.MaxDepth = 64;
+                options.JsonSerializerOptions.WriteIndented = true; // Optional for pretty printing
+            });
 
             // swagger options
             builder.Services.AddSwaggerGen(option =>

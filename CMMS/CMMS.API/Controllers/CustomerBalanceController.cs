@@ -33,7 +33,8 @@ namespace CMMS.API.Controllers
         {
             var customerBalance = _customerBalanceSerivce.Get(_ => _.Id != null, _ => _.Customer);
             if(!model.CustomerName.IsNullOrEmpty())
-                customerBalance = _customerBalanceSerivce.Get(_ => _.Customer.FullName.Contains(model.CustomerName), _ => _.Customer);   
+                customerBalance = _customerBalanceSerivce.Get(_ => _.Customer.FullName.Contains(model.CustomerName) 
+                , _ => _.Customer);   
             var total = customerBalance.Count();
             var customerBalancePaged = customerBalance.ToPageList(model.defaultSearch.currentPage, model.defaultSearch.perPage)
                 .Sort(model.defaultSearch.sortBy, model.defaultSearch.isAscending);
@@ -49,6 +50,17 @@ namespace CMMS.API.Controllers
                 }
             });
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult> GetCustomerBalanceByIdAsync(string id)
+        {
+            var result = await _customerBalanceSerivce.FindAsync(id);
+            return Ok(new
+            {
+                data = result
+            });
+        }
+
         [HttpGet("{customerId}")]
         public ActionResult GetCustomerBalanceById(string customerId)
         {
@@ -68,7 +80,6 @@ namespace CMMS.API.Controllers
                 customerBalance.Customer = user;
                 customerBalance.Id = Guid.NewGuid().ToString();
                 customerBalance.CreatedAt = DateTime.Now;
-                customerBalance.Balance = model.TotalDebt;
                 await _customerBalanceSerivce.AddAsync(customerBalance);
                 var result = await _customerBalanceSerivce.SaveChangeAsync();
                 if (result)
@@ -97,7 +108,8 @@ namespace CMMS.API.Controllers
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomerBalanceAsync(string id) {
-                var result = await _customerBalanceSerivce.Remove(id);
+              await _customerBalanceSerivce.Remove(id);
+            var result = await _customerBalanceSerivce.SaveChangeAsync();
             if(result)
                 return Ok(new { success = true, message = "Xóa công nợ của user thành công" });
             return Ok(new { success = false, message = "Xóa công nợ của user thành công" });

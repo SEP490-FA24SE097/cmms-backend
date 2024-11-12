@@ -1,4 +1,5 @@
-﻿using CMMS.Core.Entities;
+﻿using AutoMapper;
+using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
@@ -17,9 +18,11 @@ namespace CMMS.Infrastructure.Services.Payment
 {
     public interface IPaymentService
     {
-        string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData);
+        string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData);
         Task<VnpayResponseData> VnpayReturnUrl(VnpayPayResponse vnpayPayResponse);
+        Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo);
         Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
+        Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
     }
     public class PaymentService : IPaymentService
     {
@@ -37,6 +40,10 @@ namespace CMMS.Infrastructure.Services.Payment
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly ITransaction _efTransaction;
+        private readonly IUserService _userService;
+        private readonly IStoreInventoryService _storeInventoryService;
+        private readonly ICartService _cartService;
+        private readonly IMapper _mapper;
 
         public PaymentService(IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
@@ -49,7 +56,9 @@ namespace CMMS.Infrastructure.Services.Payment
             IInvoiceService invoiceService,
             IInvoiceDetailService invoiceDetailService,
             IShippingDetailService shippingDetailService,
-            ITransaction transaction)
+            ITransaction transaction, IUserService userService,
+            IStoreInventoryService storeInventoryService, 
+            ICartService cartService, IMapper mapper)
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
@@ -65,6 +74,10 @@ namespace CMMS.Infrastructure.Services.Payment
             _variantService = variantService;
             _materialService = materialService;
             _efTransaction = transaction;
+            _userService = userService;
+            _storeInventoryService = storeInventoryService;
+            _cartService = cartService;
+            _mapper = mapper;
         }
 
         public async Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
@@ -72,9 +85,8 @@ namespace CMMS.Infrastructure.Services.Payment
             try
             {
                 // update customerBalance
-                var customerBalanceLeft = customerBalance.TotalDebt - (double)invoiceInfo.Amount;
-                customerBalance.Balance = customerBalanceLeft;
                 customerBalance.CustomerId = customerBalance.Customer.Id;
+                customerBalance.TotalDebt += (decimal) invoiceInfo.Amount;
                 _customerBalanceService.Update(customerBalance);
 
                 // insert transaction
@@ -93,6 +105,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     CustomerId = customerBalance.Customer.Id,
                     InvoiceDate = DateTime.Now,
                     InvoiceStatus = (int)InvoiceStatus.Pending,
+                    InvoiceType = (int)InvoiceType.Debt,
                     Note = invoiceInfo.Note,
                     TotalAmount = (decimal)invoiceInfo.Amount,
                 };
@@ -117,7 +130,13 @@ namespace CMMS.Infrastructure.Services.Payment
                         VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
                         Quantity = cartItem.Quantity,
                         InvoiceId = invoice.Id,
+                        StoreId = cartItem.StoreId,
                     };
+
+                    var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
+                    if (updateQuantityStatus == 0)
+                        return false;
+
                     await _invoiceDetailService.AddAsync(invoiceDetail);
                 }
                 // insert shipping detail.
@@ -139,14 +158,139 @@ namespace CMMS.Infrastructure.Services.Payment
             return false;
         }
 
-        public string VnpayCreatePayPaymentRequest(PaymentRequestData paymentRequestData)
+        public async Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo)
+        {
+            try
+            {
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = ((int)TransactionType.DebtInvoice).ToString();
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = invoiceInfo.CustomerId;
+                transaction.Amount = (decimal)invoiceInfo.Amount; 
+                await _transactionService.AddAsync(transaction);
+                // insert invoice
+                var invoice = new Invoice
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    CustomerId = invoiceInfo.CustomerId,
+                    InvoiceDate = DateTime.Now,
+                    InvoiceStatus = invoiceInfo.PaymentType.Equals(PaymentType.PurchaseAfter) ? (int)InvoiceStatus.Pending : (int)InvoiceStatus.Done,
+                    InvoiceType = (int)InvoiceType.Normal,
+                    Note = invoiceInfo.Note,
+                    // get total cart 
+                    TotalAmount = (decimal)invoiceInfo.Amount,
+                };
+                await _invoiceService.AddAsync(invoice);
+                await _invoiceService.SaveChangeAsync();
+
+                // insert invoice detail
+                foreach (var cartItem in invoiceInfo.CartItems)
+                {
+                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                    var lineTotal = material.SalePrice * cartItem.Quantity;
+                    if (cartItem.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                        lineTotal = variant.Price * cartItem.Quantity;
+                    }
+                    var invoiceDetail = new InvoiceDetail
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        LineTotal = lineTotal,
+                        MaterialId = Guid.Parse(cartItem.MaterialId),
+                        VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
+                        Quantity = cartItem.Quantity,
+                        InvoiceId = invoice.Id,
+                        StoreId = cartItem.StoreId
+                    };
+
+                    var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
+                    if (updateQuantityStatus == 0)
+                        return false;
+
+                    await _invoiceDetailService.AddAsync(invoiceDetail);
+                }
+                // insert shipping detail.
+                var shippingDetail = new ShippingDetail();
+                shippingDetail.Id = Guid.NewGuid().ToString();
+                shippingDetail.Invoice = invoice;
+                shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                shippingDetail.Address = invoiceInfo.Address;
+                await _shippingDetailService.AddAsync(shippingDetail);
+                var result = await _unitOfWork.SaveChangeAsync();
+                await _efTransaction.CommitAsync();
+                if (result) return true;
+            }
+            catch (Exception)
+            {
+                await _efTransaction.RollbackAsync();
+                throw;
+            }
+            return false;
+        }
+
+        public async Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
+        {
+            try
+            {
+                decimal? totalPaided = 0;
+                // update customerBalance
+                customerBalance.CustomerId = customerBalance.Customer.Id;
+                totalPaided = invoiceInfo.Amount;
+                // insert transaction
+                var transaction = new Transaction();
+                transaction.Id = Guid.NewGuid().ToString();
+                transaction.TransactionType = ((int)TransactionType.DebtPurchase).ToString();
+                transaction.TransactionDate = DateTime.Now;
+                transaction.CustomerId = customerBalance.Customer.Id;
+                transaction.Amount = (decimal)invoiceInfo.Amount;
+                
+                if (invoiceInfo.InvoiceId != null)
+                {
+                    string invoiceId = invoiceInfo.InvoiceId;
+                    var invoice = await _invoiceService.FindAsync(invoiceId);
+                    totalPaided = invoice.TotalAmount;
+                    transaction.Amount = (decimal)totalPaided;
+                    transaction.InvoiceId = invoiceId;
+
+                    // update invoice 
+                    invoice.InvoiceStatus = (int)InvoiceStatus.Done;
+                    _invoiceService.Update(invoice);
+                }
+             
+                customerBalance.TotalPaid += (decimal)totalPaided;
+                var customerBalanceLeft = customerBalance.TotalDebt - customerBalance.TotalPaid;
+                customerBalance.Balance = customerBalanceLeft;
+
+                _customerBalanceService.Update(customerBalance);
+
+                await _transactionService.AddAsync(transaction);
+                var result = await _unitOfWork.SaveChangeAsync();
+                if (result) return true;
+                 await _efTransaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await _efTransaction.RollbackAsync();
+                throw;
+            }
+            return false;
+        }
+
+        public  string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
         {
             var paymentId = Guid.NewGuid().ToString();
             var customerId = paymentRequestData.CustomerId;
             var orderInfo = paymentRequestData.OrderInfo;
             var note = paymentRequestData.Note != null ? paymentRequestData.Note : "";
             var totalAmount = paymentRequestData.Amount;
-            var shippingAddress = paymentRequestData.Address;
+
+            var customer = _userService.Get(_ => _.Id.Equals(customerId)).FirstOrDefault();
+            // get customer address
+            var customerAddress = $"{customer.Address} {customer.Ward} {customer.District} {customer.Province}";
+            var shippingAddress = paymentRequestData.Address != null ? paymentRequestData.Address : customerAddress;
             VnpayPayRequest vnpayPaymentRequest = new VnpayPayRequest
             {
                 vnp_Version = _configuration["Vnpay:Version"],
@@ -190,6 +334,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                 CustomerId = customerId,
                                 InvoiceDate = DateTime.Now,
                                 InvoiceStatus = (int)InvoiceStatus.Pending,
+                                InvoiceType = (int)InvoiceType.Debt,
                                 Note = note,
                                 TotalAmount = totalAmount
                             };
@@ -197,19 +342,28 @@ namespace CMMS.Infrastructure.Services.Payment
                             await _unitOfWorkScope.SaveChangeAsync();
 
                             // create invoiceDetail
-                            //foreach (var cartItem in )
-                            //{
-                            //    var invoiceDetail = new InvoiceDetail
-                            //    {
-                            //        Id = Guid.NewGuid().ToString(),
-                            //        LineTotal = cartItem.TotalAmount,
-                            //        MaterialId = cartItem.MaterialId,
-                            //        VariantId = cartItem.VariantId,
-                            //        Quantity = cartItem.Quantity,
-                            //        InvoiceId = invoice.Id,
-                            //    };
-                            //    await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
-                            //}
+                            foreach (var cartItem in paymentRequestData.CartItems)
+                            {
+                                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                                var invoiceDetail = new InvoiceDetail
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    LineTotal = material.SalePrice * cartItem.Quantity,
+                                    MaterialId = Guid.Parse(cartItem.MaterialId),
+                                    VariantId = Guid.Parse(cartItem.VariantId),
+                                    Quantity = cartItem.Quantity,
+                                    InvoiceId = invoice.Id,
+                                    StoreId = cartItem.StoreId
+                                };
+                                if (cartItem.VariantId != null)
+                                {
+                                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                                    invoiceDetail.VariantId = Guid.Parse(cartItem.VariantId);
+                                    invoiceDetail.LineTotal = variant.Price *  cartItem.Quantity;
+                                }
+                       
+                                await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
+                            }
 
                             // create payment
                             var payment = new Core.Entities.Payment
@@ -323,6 +477,17 @@ namespace CMMS.Infrastructure.Services.Payment
             {
                 throw;
             }
+        }
+
+        public async Task<int> UpdateStoreInventoryAsync(CartItem cartItem)
+        {
+            var item = _mapper.Map<AddItemModel>(cartItem);
+            var storeInventory = await _cartService.GetItemInStoreAsync(item);
+            var newQuantity = storeInventory.TotalQuantity - cartItem.Quantity;
+            storeInventory.TotalQuantity = newQuantity;
+            if (newQuantity < 0) return -1;
+            _storeInventoryService.Update(storeInventory);
+            return 1;
         }
     }
 }

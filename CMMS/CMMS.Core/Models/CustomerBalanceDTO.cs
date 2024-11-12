@@ -10,18 +10,18 @@ namespace CMMS.Core.Models
 {
     public class CustomerBalanceDTO
     {
-        public double TotalDebt { get; set; }
-        public double TotalPaid { get; set; } 
-        public double Balance { get; set; }
+        public decimal TotalDebt { get; set; }
+        public decimal TotalPaid { get; set; } 
+        public decimal Balance { get; set; }
         public string CustomerId { get; set; }
         public string? Note { get; set; }
     }
     public class CustomerBalanceUpdateModel 
     {
         public string Id { get; set; }
-        public double TotalDebt { get; set; }
-        public double TotalPaid { get; set; }
-        public double Balance { get; set; }
+        public decimal TotalDebt { get; set; }
+        public decimal TotalPaid { get; set; }
+        public decimal Balance { get; set; }
         public string? CustomerId { get; set; }
         public string? Note { get; set; }
     }
@@ -29,9 +29,9 @@ namespace CMMS.Core.Models
     public class CustomerBalanceVM
     {
         public string Id { get; set; }
-        public double TotalDebt { get; set; }
-        public double TotalPaid { get; set; }
-        public double Balance { get; set; }
+        public decimal TotalDebt { get; set; }
+        public decimal TotalPaid { get; set; }
+        public decimal Balance { get; set; }
         public string? Note { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
@@ -40,6 +40,7 @@ namespace CMMS.Core.Models
 
     public class CustomerBalanceFitlerModel
     {
+        public string? Id { get; set; }
         public string? CustomerName { get; set; }
         public DefaultSearch defaultSearch  { get; set; }
         public CustomerBalanceFitlerModel()
