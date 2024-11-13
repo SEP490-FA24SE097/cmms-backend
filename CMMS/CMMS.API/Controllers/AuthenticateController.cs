@@ -59,11 +59,11 @@ namespace CMMS.API.Controllers
             var userNameExist = await _userService.FindByUserName(signUpModel.UserName);
             if (emailExist != null)
             {
-                return BadRequest("Email already existed");
+                return BadRequest("Email đã được sử dụng");
             }
             else if (userNameExist != null)
             {
-                return BadRequest("Username already existed");
+                return BadRequest("User đã được sử dụng");
             }
 
             if (signUpModel.TaxCode != null)
@@ -211,7 +211,7 @@ namespace CMMS.API.Controllers
         {
             var result = await _userService.ConfirmAccount(email);
             if (result) return Ok(result);
-            else return BadRequest("Cannot confirm your email");
+            else return BadRequest("Xác thực email không thành công");
         }
 
     }

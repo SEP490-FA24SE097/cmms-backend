@@ -54,8 +54,8 @@ namespace CMMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePayment([FromBody] InvoiceData invoiceInfo)
         {
-            //var customerId = _currentUserService.GetUserId();
-            var customerId = "508bfd68-f940-4a55-823d-53e75d6e1194";
+            var customerId = _currentUserService.GetUserId();
+            //var customerId = "508bfd68-f940-4a55-823d-53e75d6e1194";
             // get total cart
             decimal totalCartAmount = 0;
             invoiceInfo.CustomerId = customerId;
