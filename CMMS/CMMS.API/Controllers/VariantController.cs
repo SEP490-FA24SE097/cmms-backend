@@ -88,6 +88,7 @@ namespace CMMS.API.Controllers
                     MaterialId = variant.MaterialId,
                     SKU = variant.SKU,
                     Price = variant.Price,
+                    CostPrice = variant.CostPrice,
                     VariantImageUrl = variant.VariantImageUrl
                 };
                 await _variantService.AddAsync(newVariant);
@@ -131,6 +132,7 @@ namespace CMMS.API.Controllers
 
                 existingVariant.SKU = variantUM.SKU;
                 existingVariant.Price = variantUM.Price;
+                existingVariant.CostPrice = variantUM.CostPrice;
                 existingVariant.VariantImageUrl = variantUM.VariantImageUrl;
 
                 _variantService.Update(existingVariant);

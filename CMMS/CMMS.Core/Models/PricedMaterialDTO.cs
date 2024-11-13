@@ -16,6 +16,7 @@ namespace CMMS.Core.Models
         public string? VariantName { get; set; }
         public string? VariantImage { get; set; }
         public decimal LastImportPrice { get; set; }
+        public decimal AverageImportPrice { get; set; }
         public decimal CostPrice { get; set; }
         public decimal SellPrice { get; set; }
     }
