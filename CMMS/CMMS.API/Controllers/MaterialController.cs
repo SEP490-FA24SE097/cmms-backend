@@ -582,6 +582,7 @@ namespace CMMS.API.Controllers
                     Description = materialCm.Description,
                     ImageUrl = materialCm.ImageUrl,
                     SalePrice = materialCm.SalePrice,
+                    CostPrice = materialCm.CostPrice,
                     MinStock = materialCm.MinStock,
                     BrandId = materialCm.BrandId,
                     UnitId = materialCm.UnitId,
@@ -611,6 +612,7 @@ namespace CMMS.API.Controllers
                 material.Description = materialUM.Description.IsNullOrEmpty() ? material.Description : materialUM.Description;
                 material.ImageUrl = materialUM.ImageUrl.IsNullOrEmpty() ? material.ImageUrl : materialUM.ImageUrl;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
+                material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
                 material.MinStock = materialUM.MinStock == 0 ? material.MinStock : materialUM.MinStock;
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty() ? material.BrandId : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty() ? material.CategoryId : Guid.Parse(materialUM.CategoryId);
@@ -688,7 +690,8 @@ namespace CMMS.API.Controllers
                             VariantName = null,
                             VariantImage = null,
                             LastImportPrice = latestImportPrice,
-                            CostPrice = averagePrice,
+                            AverageImportPrice = averagePrice,
+                            CostPrice = materials.FirstOrDefault().Material.CostPrice,
                             SellPrice = materials.FirstOrDefault().Material.SalePrice,
                         };
                         pricedMaterialList.Add(pricedMaterial);
@@ -719,7 +722,8 @@ namespace CMMS.API.Controllers
                                 VariantName = materials.FirstOrDefault().Variant.SKU,
                                 VariantImage = materials.FirstOrDefault().Variant.VariantImageUrl,
                                 LastImportPrice = latestImportPrice,
-                                CostPrice = averagePrice,
+                                AverageImportPrice = averagePrice,
+                                CostPrice = materials.FirstOrDefault().Variant.CostPrice,
                                 SellPrice = materials.FirstOrDefault().Variant.Price,
                             };
                             pricedMaterialList.Add(pricedMaterial);
