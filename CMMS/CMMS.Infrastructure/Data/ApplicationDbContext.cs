@@ -8,8 +8,8 @@ namespace CMMS.Infrastructure.Data
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-        public DbSet<Permission> Permissions { get;set; }
-        public DbSet<RolePermission> RolePermissions { get;set; }
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<CustomerBalance> CustomerBalances { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceDetail> InvoiceDetails { get; set; }
@@ -36,7 +36,7 @@ namespace CMMS.Infrastructure.Data
         public DbSet<GoodsDeliveryNote> GoodsDeliveryNotes { get; set; }
         public DbSet<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
         public DbSet<SubImage> SubImages { get; set; }
-
+        public DbSet<StoreMaterialImportRequest> StoreMaterialImportRequests { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
