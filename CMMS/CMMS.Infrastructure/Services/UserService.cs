@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using CMMS.Core.Constant;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
@@ -9,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CMMS.Infrastructure.Services
 {
@@ -30,6 +33,9 @@ namespace CMMS.Infrastructure.Services
         Task<bool> SaveChangeAsync();
         Task<bool> ConfirmAccount(string email);
         Task<ApplicationUser> FindAsync(string customerId);
+        Task<bool> IsEmailConfirmedAsync(ApplicationUser user);
+        Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
+        Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
     }
     public class UserService : IUserService
     {
@@ -205,6 +211,21 @@ namespace CMMS.Infrastructure.Services
         public async Task<ApplicationUser> FindAsync(string customerId)
         {
             return await _userRepository.FindAsync(customerId);
+        }
+
+        public async Task<bool> IsEmailConfirmedAsync(ApplicationUser user)
+        {
+            return await  _userManager.IsEmailConfirmedAsync(user);
+        }
+
+        public async Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user)
+        {
+            return await _userManager.GeneratePasswordResetTokenAsync(user);
+        }
+
+        public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword)
+        {
+           return await _userManager.ResetPasswordAsync(user, token, newPassword);
         }
     }
 }

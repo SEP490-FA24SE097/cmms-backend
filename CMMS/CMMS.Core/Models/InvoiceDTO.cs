@@ -22,7 +22,7 @@ namespace CMMS.Core.Models
             get
             {
                     // Chuyển GUID thành một chuỗi định dạng số và thêm tiền tố "ĐH"
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
+                    var number = Math.Abs(BitConverter.ToInt64(Guid.Parse(Id).ToByteArray(), 0));
                     return $"ĐH{number:D4}"; // Ví dụ: ĐH0001, ĐH0002
             }
         }
