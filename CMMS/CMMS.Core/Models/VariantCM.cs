@@ -11,6 +11,7 @@ namespace CMMS.Core.Models
         public Guid MaterialId { get; set; }
         public string SKU { get; set; }
         public decimal Price { get; set; }
+        public decimal CostPrice { get; set; }
         public string VariantImageUrl { get; set; }
         public ICollection<Attribute> Attributes { get; set; }
     }

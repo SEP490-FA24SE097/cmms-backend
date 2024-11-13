@@ -16,6 +16,7 @@ namespace CMMS.Core.Entities
         public Guid MaterialId { get; set; }
         public string SKU { get; set; }
         public decimal Price { get; set; }
+        public decimal CostPrice { get; set; }
         public string VariantImageUrl { get; set; }
         public virtual Material Material { get; set; }
         public virtual ICollection<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
