@@ -24,5 +24,6 @@ namespace CMMS.Core.Entities
         public virtual ICollection<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
         public virtual ICollection<Import> Imports { get; set; }
         public virtual ICollection<Warehouse> Warehouses { get; set; }
+        public virtual ConversionUnit ConversionUnit { get; set; }
     }
 }
