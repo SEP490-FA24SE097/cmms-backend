@@ -93,13 +93,14 @@ namespace CMMS.API.Controllers
                 foreach (var material in list)
                 {
                     var variants = _materialVariantAttributeService.GetAll()
-                        .Include(x => x.Variant).ThenInclude(x=>x.ConversionUnit)
+                        .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
                         .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
                         .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
                         {
                             VariantId = x.Key,
                             ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
+
+                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                             Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
@@ -560,11 +561,11 @@ namespace CMMS.API.Controllers
                         }).ToList()
                     }).FirstOrDefault();
                 var variants = _materialVariantAttributeService.GetAll()
-                    .Include(x => x.Variant).ThenInclude(x=>x.ConversionUnit)
+                    .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
                     .Include(x => x.Attribute)
                     .Where(x => x.Variant.MaterialId == Guid.Parse(id)).GroupBy(x => x.VariantId).ToList();
 
-                if (variants.Count<=0)
+                if (variants.Count <= 0)
                 {
                     var unitVariants = _variantService.Get(x => x.MaterialId == Guid.Parse(id)).Include(x => x.ConversionUnit).ToList();
                     return Ok(new
@@ -596,7 +597,7 @@ namespace CMMS.API.Controllers
                             variantId = x.Key,
                             sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                            ConversionUnitName=x.Select(x=>x.Variant.ConversionUnit.Name).FirstOrDefault(),
+                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                             image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                             CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
