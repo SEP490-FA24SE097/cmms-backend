@@ -20,8 +20,9 @@ namespace CMMS.Core.Models
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
         public Guid? ConversionUnitId { get; set; }
+        public string? ConversionUnitName { get; set; }
         public string Image { get; set; }
-        public List<AttributeDTO> Attributes { get; set; }
+        public List<AttributeDTO>? Attributes { get; set; }
     }
 
     public class AttributeDTO
