@@ -69,7 +69,7 @@ namespace CMMS.API.Controllers
                     Price = variant.Price,
                     variant.CostPrice,
                     variant.ConversionUnitId,
-                    ConversionUnitName = variant.ConversionUnit.Name,
+                    ConversionUnitName =variant.ConversionUnitId==null?null: variant.ConversionUnit.Name,
                     VariantImageUrl = variant.VariantImageUrl,
                     attributes = attributes
                 });
@@ -112,7 +112,7 @@ namespace CMMS.API.Controllers
                     Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                     CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
                     ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                    ConversionUnitName = x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
+                    ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                     VariantImageUrl = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                     attributes = x.Select(x => new { x.Attribute.Name, x.Value })
                 }).ToList();
