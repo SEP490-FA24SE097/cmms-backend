@@ -9,7 +9,7 @@ namespace CMMS.Core.Models
     public class VariantCM
     {
         public Guid MaterialId { get; set; }
-        public string SKU { get; set; }
+        public string? SKU { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
         public string VariantImageUrl { get; set; }

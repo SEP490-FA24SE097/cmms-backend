@@ -37,6 +37,7 @@ namespace CMMS.Infrastructure.Data
         public DbSet<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
         public DbSet<SubImage> SubImages { get; set; }
         public DbSet<StoreMaterialImportRequest> StoreMaterialImportRequests { get; set; }
+        public DbSet<ConversionUnit> ConversionUnits { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

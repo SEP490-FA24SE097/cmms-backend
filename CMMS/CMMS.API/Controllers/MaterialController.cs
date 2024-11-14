@@ -98,9 +98,11 @@ namespace CMMS.API.Controllers
                         .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
                         {
                             VariantId = x.Key,
+                            ConversionUnitId= x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
                             Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
                             Attributes = x.Select(x => new AttributeDTO()
                             {
                                 Name = x.Attribute.Name,
@@ -552,6 +554,7 @@ namespace CMMS.API.Controllers
                         {
                             variantId = x.Key,
                             sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
                             image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                             attributes = x.Select(x => new

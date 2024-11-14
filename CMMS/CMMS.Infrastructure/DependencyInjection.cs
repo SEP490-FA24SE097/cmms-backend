@@ -101,6 +101,9 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IStoreMaterialImportRequestRepository, StoreMaterialImportRequestRepository>();
             services.AddScoped<IStoreMaterialImportRequestService, StoreMaterialImportRequestService>();
+
+            services.AddScoped<IConversionUnitRepository, ConversionUnitRepository>();
+            services.AddScoped<IConversionUnitService, ConversionUnitService>();
             return services;
         }
     }
