@@ -18,6 +18,8 @@ namespace CMMS.Core.Models
         public Guid VariantId { get; set; }
         public string Sku { get; set; }
         public decimal Price { get; set; }
+        public decimal CostPrice { get; set; }
+        public Guid? ConversionUnitId { get; set; }
         public string Image { get; set; }
         public List<AttributeDTO> Attributes { get; set; }
     }
