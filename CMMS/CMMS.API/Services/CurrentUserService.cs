@@ -11,7 +11,7 @@ namespace CMMS.API.Services
     {
         string GetUserId();
         string getUserEmail();
-        Task<ApplicationUser> GetUser();
+        Task<ApplicationUser> GetCurrentUser();
     }
 
     public class CurrentUserService : ICurrentUserService
@@ -26,19 +26,20 @@ namespace CMMS.API.Services
             _userManager = userManager;
         }
 
-        public string GetCurrentUserId()
-        {
-            throw new NotImplementedException();
-        }
         public string GetUserId() =>
              _httpContextAccessor.HttpContext.
 				User.Claims.FirstOrDefault(_ => _.Type == CustomClaims.UserId)?.Value;
+
+        public string GetUserStoreId() =>
+     _httpContextAccessor.HttpContext.
+        User.Claims.FirstOrDefault(_ => _.Type == CustomClaims.StoreId)?.Value;
+
         public string getUserEmail()
         {
             return _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
         }
 
-        public async Task<ApplicationUser> GetUser()
+        public async Task<ApplicationUser> GetCurrentUser()
         {
             var userId = GetUserId();
             return await _userManager.FindByIdAsync(userId.ToString());

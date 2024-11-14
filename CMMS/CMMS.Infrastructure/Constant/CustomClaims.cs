@@ -4,5 +4,6 @@ namespace CMMS.Infrastructure.Constant
     {
         public const string Permissions = "permissions";
         public const string UserId = "userId";
+        public const string StoreId = "storeId";
     }
 }

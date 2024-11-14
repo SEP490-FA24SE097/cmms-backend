@@ -17,6 +17,8 @@ namespace CMMS.Core.Entities
         // giam gias theo so luong tien cua custoemr Type.
         public decimal? Discount { get; set; }
         public decimal? SalePrice { get; set; }
+        // khach hang da~ tra bao nhieu tien cua hoa don do'
+        public decimal? CustomerPaid { get; set; }
 
         public int InvoiceType { get; set; }
         public int InvoiceStatus { get; set; }

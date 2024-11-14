@@ -160,7 +160,7 @@ namespace CMMS.API.Controllers
         [HttpDelete("signOut")]
         public async Task<IActionResult> SignOut()
         {
-            var user = await _currentUserService.GetUser();
+            var user = await _currentUserService.GetCurrentUser();
             if (user is null)
                 return Unauthorized();
             user.RefreshToken = null;

@@ -48,6 +48,10 @@ namespace CMMS.API.Services
                 new Claim(ClaimTypes.Name, $"{user.FullName}"),
                 new Claim(ClaimTypes.Email, user.Email),
             };
+            if(user.StoreId != null)
+            {
+                authClaims.Add(new Claim(CustomClaims.StoreId, user.StoreId));
+            }
             if (roles != null)
             {
                 foreach (var role in roles)
@@ -70,7 +74,7 @@ namespace CMMS.API.Services
             var token = new JwtSecurityToken(
                 issuer: _configuration["JWT:ValidIssuer"],
                 audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddMinutes(20),
+                expires: DateTime.Now.AddMonths(1),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature)
             );

@@ -3,6 +3,7 @@ using CMMS.API.Helpers;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/store")]
     [ApiController]
+    [AllowAnonymous]
     public class StoreController : ControllerBase
     {
         private IStoreService _storeService;
