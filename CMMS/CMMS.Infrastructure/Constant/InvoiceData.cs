@@ -13,6 +13,7 @@ namespace CMMS.Infrastructure.Constant
         public string? Address { get; set; }
         public PaymentType PaymentType { get; set; }
         public List<CartItem>? CartItems { get; set; }
+        public string? PhoneReceive { get;set; }
         public decimal? Amount { get; set; }
         public string? InvoiceId { get; set; }
         public string? CustomerId { get; set; }

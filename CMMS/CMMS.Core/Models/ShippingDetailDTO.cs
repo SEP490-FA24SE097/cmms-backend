@@ -13,6 +13,7 @@ namespace CMMS.Core.Models
     {
         public string Id { get; set; }
         public string? Address { get; set; }
+        public string? PhoneReceive { get; set; }
         public DateTime? ShippingDate { get; set; }
         public DateTime? EstimatedArrival { get; set; }
         public string? InvoiceId { get; set; }
@@ -22,6 +23,7 @@ namespace CMMS.Core.Models
     {
         public string? Id { get; set; }
         public string Address { get; set; }
+        public string? PhoneReceive { get; set; }
         public DateTime? ShippingDate { get; set; }
         public DateTime EstimatedArrival { get; set; }
         public Invoice Invoice { get; set; }
@@ -31,6 +33,7 @@ namespace CMMS.Core.Models
     {
         public string? Id { get; set; }
         public string Address { get; set; }
+        public string? PhoneReceive { get; set; }
         public DateTime? ShippingDate { get; set; }
         public DateTime EstimatedArrival { get; set; }
     }

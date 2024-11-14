@@ -14,11 +14,20 @@ namespace CMMS.Core.Entities
         public string Id { get; set; }
         public DateTime InvoiceDate { get; set; }
         public decimal TotalAmount { get; set; }
+        // giam gias theo so luong tien cua custoemr Type.
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+
         public int InvoiceType { get; set; }
         public int InvoiceStatus { get; set; }
+        // website or in store
+        public int SellPlace { get; set; }
         public string? Note { get; set; }
         [ForeignKey("CustomerId")]
         public string CustomerId { get; set; }
+        // query nguoi ban. tai store.
+        public string? StaffId { get; set; } 
+        public string? StoreId { get;set; }    
         public ApplicationUser Customer { get; set; }
         public virtual ICollection<InvoiceDetail> InvoiceDetails { get; set; }
     }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,7 +29,8 @@ namespace CMMS.Core.Models
         public string Note { get; set; } = string.Empty;
         public int Status { get; set; } = 1;
         public string? StoreId { get; set; }
-        
+        public int? Type { get; set; } = 0;
+
 
     }
 

@@ -145,6 +145,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 var shippingDetail = new ShippingDetail();
                 shippingDetail.Id = Guid.NewGuid().ToString();
                 shippingDetail.Invoice = invoice;
+                shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                 shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                 shippingDetail.Address = invoiceInfo.Address;
                 await _shippingDetailService.AddAsync(shippingDetail);
@@ -221,6 +222,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 var shippingDetail = new ShippingDetail();
                 shippingDetail.Id = Guid.NewGuid().ToString();
                 shippingDetail.Invoice = invoice;
+                shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                 shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                 shippingDetail.Address = invoiceInfo.Address;
                 await _shippingDetailService.AddAsync(shippingDetail);
@@ -403,6 +405,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                 Address = shippingAddress,
                                 EstimatedArrival = DateTime.Now.AddDays(3),
                                 InvoiceId = invoice.Id,
+                                //PhoneReceive = invoiceInfo.PhoneReceive
                             };
                             await _shippingDetailRepositoryScope.AddAsync(shippingDetail);
 

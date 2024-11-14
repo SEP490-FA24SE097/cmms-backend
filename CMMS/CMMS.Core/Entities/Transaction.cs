@@ -18,6 +18,9 @@ namespace CMMS.Core.Entities
         public string? InvoiceId { get; set; }
         [ForeignKey(nameof(Customer))]
         public string CustomerId { get; set; }
+        public string? CreatedById { get; set; }
+        // cash or payment online
+        public int? TransactionPaymentType { get; set; }
         public ApplicationUser Customer { get; set; }
         public Invoice? Invoice { get; set; }
     }

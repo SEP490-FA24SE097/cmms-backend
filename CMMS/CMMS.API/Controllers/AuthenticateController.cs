@@ -17,6 +17,7 @@ using CMMS.Core.Entities;
 using CMMS.Infrastructure.Data;
 using NuGet.Common;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Controller;
+using CMMS.Infrastructure.Enums;
 
 namespace CMMS.API.Controllers
 {
@@ -81,6 +82,7 @@ namespace CMMS.API.Controllers
 
                 if (apiResponse.Code == "00")
                 {
+                    signUpModel.Type = (int)CustomerType.Agency;
                     var resultCreate = await _userService.CustomerSignUpAsync(signUpModel);
                     if (resultCreate.Succeeded)
                         return Ok(resultCreate.Succeeded);
@@ -90,6 +92,7 @@ namespace CMMS.API.Controllers
                     return BadRequest(apiResponse.Desc);
                 }
             }
+            signUpModel.Type = (int)CustomerType.Customer;
             var result = await _userService.CustomerSignUpAsync(signUpModel);
             var url = Url.Action(nameof(ConfirmAccount), nameof(AuthenticateController).Replace("Controller", ""), null, Request.Scheme);
             if (result.Succeeded)

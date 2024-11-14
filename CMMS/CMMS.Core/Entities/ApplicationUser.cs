@@ -17,13 +17,19 @@ namespace CMMS.Core.Entities
         public String? RefreshToken { get; set; }
         public string? TaxCode { get; set; }
         public int Type { get; set; }
-        public double? CreditLimit { get; set; }
+        public decimal? CreditLimit { get; set; }
+        // tien dang no can phai thu cua khac hang.
+        public decimal? CurrentDebt { get; set; }
+        public decimal? TotalDebt { get; set; }
+        public string? CreatedById { get; set; }
+        // gioi han cho hoa don no => Khi bat dau thuc hien hoa don no => 3 thang 
+        // neu co thanh toan hoa don no.
+        public DateTime? LimitCreditPurchaseTime { get; set; }
         public DateTime? DateExpireRefreshToken { get; set; }
         [ForeignKey(nameof(Store))]
         public string? StoreId { get; set; }
         public Store? Store { get; set; }
+        public ShippingDetail? ShippingDetail { get; set; }
         public ICollection<Invoice>? Invoices { get; set; }
-        public CustomerBalance? CustomerBalance { get; set; }
-
     }
 }
