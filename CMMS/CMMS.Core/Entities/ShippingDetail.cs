@@ -20,8 +20,8 @@ namespace CMMS.Core.Entities
         [ForeignKey(nameof(Invoice))]
         public string InvoiceId { get; set; }
         [ForeignKey(nameof(ApplicationUser))]
-        public string ShipperId { get; set; }
-        public ApplicationUser Shipper{ get; set; }
+        public string? ShipperId { get; set; }
+        public ApplicationUser? Shipper{ get; set; }
         public Invoice Invoice { get; set; }
     }
 }

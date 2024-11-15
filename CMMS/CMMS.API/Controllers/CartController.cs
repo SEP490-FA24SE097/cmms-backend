@@ -39,52 +39,6 @@ namespace CMMS.API.Controllers
             _currentUserService = currentUserService;
         }
 
-        [HttpPost("getCart")]
-        public async Task<IActionResult> GetUserCartAsync(CartItemRequest cartItems)
-        {
-            var listCartRequest = cartItems.CartItems.ToPageList(cartItems.currentPage, cartItems.perPage);
-            List<CartItemVM> listCartItemVM = new List<CartItemVM>();
-            foreach (var cartItem in listCartRequest)
-            {
-                var addItemModel = _mapper.Map<AddItemModel>(cartItem);
-                var item =  await _cartService.GetItemInStoreAsync(addItemModel);
-                if(item != null)
-                {
-                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
-                    if (cartItem.Quantity > item.TotalQuantity)
-                    {
-                        cartItemVM.IsChangeQuantity = true;
-                    }
-                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                    cartItemVM.ItemName = material.Name;
-                    cartItemVM.BasePrice = material.SalePrice;
-                    cartItemVM.ImageUrl = material.ImageUrl;
-                    cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
-                    if (cartItem.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                        cartItemVM.BasePrice = variant.Price;
-                        cartItemVM.ImageUrl = variant.VariantImageUrl;
-                        cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
-                    }
-                    listCartItemVM.Add(cartItemVM);
-                }
-            }
-
-            return Ok(new
-            {
-                data = listCartItemVM,
-                pagination = new
-                {
-                    total = cartItems.CartItems.Count(),
-                    perPage = cartItems.perPage,
-                    currentPage = cartItems.currentPage,
-                }
-            });
-        }
-
         [HttpPost]
         public async Task<IActionResult> AddItemToCartAsync(CartItemModel model)
         {

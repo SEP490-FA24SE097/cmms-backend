@@ -102,7 +102,7 @@ namespace CMMS.Infrastructure.Services
         public string GenerateTransactionCode(string prefix)
         {
             var transactionTotal = _transactionRepository.Get(_ => _.Id.Substring(0, 2).Contains(prefix));
-            string invoiceCode = $"HD{(transactionTotal.Count() + 1):D6}";
+            string invoiceCode = $"{prefix}{(transactionTotal.Count() + 1):D6}";
             return invoiceCode;
         }
     }

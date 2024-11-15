@@ -21,7 +21,18 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet]
+        [HttpPost("create-invoice-refund")]
+        public ActionResult CreateReturnInvoice()
+        {
+            return Ok();
+        }
+        [HttpGet("create-invoice")]
+        public ActionResult CreateOrderInStore()
+        {
+            return Ok();
+        }
+    #region CURD Store 
+    [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
@@ -82,5 +93,7 @@ namespace CMMS.API.Controllers
             var result = await _storeService.UpdateStore(storeDTO);
             return Ok(result);
         }
+
+        #endregion
     }
 }

@@ -147,7 +147,7 @@ namespace CMMS.API.Controllers
                     {
                         var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
                         invoiceDetail.ItemName = material.Name;
-                        invoiceDetail.BasePrice = material.SalePrice;
+                        invoiceDetail.SalePrice = material.SalePrice;
                         invoiceDetail.ImageUrl = material.ImageUrl;
                         invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
                         if (invoiceDetail.VariantId != null)
@@ -155,7 +155,7 @@ namespace CMMS.API.Controllers
                             var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
                             var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                            invoiceDetail.BasePrice = variant.Price;
+                            invoiceDetail.SalePrice = variant.Price;
                             invoiceDetail.ImageUrl = variant.VariantImageUrl;
                             invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
                         }

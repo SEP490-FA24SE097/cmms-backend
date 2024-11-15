@@ -18,12 +18,8 @@ namespace CMMS.Core.Entities
         public decimal LineTotal { get; set; }
         [ForeignKey(nameof(Invoice))]
         public string InvoiceId { get; set; }
-        [ForeignKey(nameof(Store))]
-        public string StoreId { get; set; }
         public virtual ICollection<Material> Materials { get; set; }
         public virtual ICollection<Variant>? Variants { get; set; }
-        public virtual ICollection<Store>? Stores { get; set; }
-
         public virtual Invoice Invoice { get; set; }
 	}
 }

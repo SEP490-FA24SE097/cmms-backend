@@ -1,6 +1,4 @@
 ﻿
-using CMMS.Core.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMMS.Core.Models
 {
@@ -11,26 +9,38 @@ namespace CMMS.Core.Models
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
-        public string CustomerId { get; set; }
+        public string? CustomerId { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? CustomerPaid { get; set; }
+        public string? StaffId { get; set; }
+        public string? StoreId { get; set; }
+        public int? SellPlace { get; set; }
     }
 
     public class InvoiceVM
     {
         public string Id { get; set; }
-        public string InvoiceCode
-        {
-            get
-            {
-                    // Chuyển GUID thành một chuỗi định dạng số và thêm tiền tố "ĐH"
-                    var number = Math.Abs(BitConverter.ToInt64(Guid.Parse(Id).ToByteArray(), 0));
-                    return $"ĐH{number:D4}"; // Ví dụ: ĐH0001, ĐH0002
-            }
-        }
         public DateTime InvoiceDate { get; set; }
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? CustomerPaid { get; set; }
+        public string? StaffId { get; set; }
+        public string? StoreId { get; set; }
         public UserVM? UserVM { get; set; }
+        public int? SellPlace { get; set; }
+        public string? BuyIn  { get
+            {
+                if(SellPlace == (int)Enums.SellPlace.Website)
+                {
+                    return "Website";
+                }
+                return "Tại cửa hàng";
+            }
+        }
         public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
         public ShippingDetaiInvoicelVM? shippingDetailVM { get; set; }
     }
@@ -41,6 +51,9 @@ namespace CMMS.Core.Models
         public string? CustomerName { get; set; }
         public string? CustomerId { get; set; }
         public string? InvoiceId { get; set; }
+        public string? StoreId { get; set; }
+        public int? InvoiceType { get; set; }
+        public int? InvoiceStatus { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
         public DefaultSearch defaultSearch { get; set; }

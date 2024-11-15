@@ -23,7 +23,7 @@ namespace CMMS.Core.Models
         public string? Address { get; set; }
         public string? TaxCode { get; set; }
         public string? Note { get; set; } = string.Empty;
-        public int Status { get; set; }
+        public int Status { get; set; } = 1;
         public string? StoreId { get; set; }
         public int? Type { get; set; } = 0;
         public decimal? CreditLimit { get; set; }
@@ -39,7 +39,7 @@ namespace CMMS.Core.Models
         {
             get
             {
-                if(Type == (int)Enums.CustomerType.Customer)
+                if (Type == (int)Enums.CustomerType.Customer)
                 {
                     return "Khách hàng";
                 }
@@ -79,7 +79,6 @@ namespace CMMS.Core.Models
     {
         public string Id { get; set; }
         public string FullName { get; set; }
-
         public string Email { get; set; }
         public string UserName { get; set; }
         public string Password { get; set; }
@@ -123,6 +122,12 @@ namespace CMMS.Core.Models
         public int Status { get; set; } = 1;
     }
 
+    public class ShipperVM : UserVM
+    {
+        public string? StoreName { get; set; }
+        public string? StoreId { get; set; }
+    }
+
     public class UserRoles : ApplicationUser
     {
         public List<string> RolesName { get; set; }
@@ -134,7 +139,7 @@ namespace CMMS.Core.Models
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? Status { get; set; }
-        public int? CustomerType { get; set; }  
+        public int? CustomerType { get; set; }
         // chi nhanh tao
         public string? StoreId { get; set; }
         public DefaultSearch defaultSearch { get; set; }

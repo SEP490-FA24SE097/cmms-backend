@@ -18,6 +18,21 @@ namespace CMMS.Infrastructure.Constant
         public string? InvoiceId { get; set; }
         public string? CustomerId { get; set; }
     }
+
+    public class InvoiceStoreData
+    {
+        public string? Note { get; set; }
+        public string? Address { get; set; }
+        public List<CartItem>? StoreItems { get; set; }
+        public string? PhoneReceive { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? CustomerPaid { get; set; }
+        public string? InvoiceId { get; set; }
+        public string? CustomerId { get; set; }
+        public string? ShipperId { get; set; }
+    }
+
     public enum PaymentType
     {
         DebtInvoice = 0,

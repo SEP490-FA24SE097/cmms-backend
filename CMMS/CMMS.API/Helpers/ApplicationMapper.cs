@@ -16,6 +16,8 @@ namespace CMMS.API.Helpers
             CreateMap<ApplicationUser, UserStoreVM>()
                  .ForMember(dest => dest.StoreCreateName, opt => opt.MapFrom(src => src.Store.Name))
                 .ReverseMap();
+
+            CreateMap<ApplicationUser, ShipperVM>().ReverseMap();
             #endregion
 
 
@@ -38,8 +40,14 @@ namespace CMMS.API.Helpers
             #endregion
 
             #region ShippingDetail
-            CreateMap<ShippingDetail, ShippingDetailVM>().ReverseMap();
-            CreateMap<ShippingDetail, ShippingDetaiInvoicelVM>().ReverseMap();
+            CreateMap<ShippingDetail, ShippingDetailVM>()
+                .ForMember(dest => dest.ShipperName, opt => opt.MapFrom(src => src.Shipper.FullName))
+                .ForMember(dest => dest.ShipperCode, opt => opt.MapFrom(src => src.Shipper.Id))
+                .ReverseMap();
+            CreateMap<ShippingDetail, ShippingDetaiInvoicelVM>()
+                .ForMember(dest => dest.ShipperName, opt => opt.MapFrom(src => src.Shipper.FullName))
+                .ForMember(dest => dest.ShipperCode, opt => opt.MapFrom(src => src.Shipper.Id))
+                .ReverseMap();
 
             #endregion
             #region Invoice

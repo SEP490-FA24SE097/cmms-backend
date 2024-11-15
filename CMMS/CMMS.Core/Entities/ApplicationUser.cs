@@ -20,7 +20,6 @@ namespace CMMS.Core.Entities
         public decimal? CreditLimit { get; set; }
         // tien dang no can phai thu cua khac hang.
         public decimal? CurrentDebt { get; set; }
-        public decimal? TotalDebt { get; set; }
         public string? CreatedById { get; set; }
         // gioi han cho hoa don no => Khi bat dau thuc hien hoa don no => 3 thang 
         // neu co thanh toan hoa don no.

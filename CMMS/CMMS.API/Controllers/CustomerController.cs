@@ -7,17 +7,20 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
 using Firebase.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Data;
 using System.Net.Http;
+using static CMMS.Core.Models.ShipperVM;
 
 namespace CMMS.API.Controllers
 {
     [Route("api/customers")]
     [ApiController]
+    [AllowAnonymous]
     public class CustomerController : ControllerBase
     {
         private IUserService _userService;
@@ -51,24 +54,17 @@ namespace CMMS.API.Controllers
             decimal? currentDebtTotal = 0;
             decimal? totalSale = 0;
 
-            var fitlerList = _userService
-            .Get(_ => (_.CreatedById != null || _.Invoices != null) &&
-            (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
-            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
-            (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
-            (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
-            , _ => _.Invoices);
-    
-            var filterUserList = new List<ApplicationUser>();
-
-            foreach (var customer in fitlerList)
+            var listCustomer =  _userService.Get(_ => _.Id != null, _ => _.Invoices);
+            var filterUserList = new List<string>();
+            foreach (var customer in listCustomer)
             {
-                var roles = await _userService.GetRolesAsync(customer);
+                var user = _mapper.Map<ApplicationUser>(customer);
+                var roles = await _userService.GetRolesAsync(user);
                 if (roles.IsNullOrEmpty() || roles.Contains(Role.Customer.ToString()))
                 {
-                    filterUserList.Add(customer);
-                    currentDebtTotal += customer.CurrentDebt;
-                    var customerInvoices = customer.Invoices;
+                    filterUserList.Add(customer.Id);
+                    currentDebtTotal += user.CurrentDebt;
+                    var customerInvoices = user.Invoices;
                     if (customerInvoices != null)
                     {
                         foreach (var invoice in customerInvoices)
@@ -78,7 +74,19 @@ namespace CMMS.API.Controllers
                     }
                 }
             }
-            var total = filterUserList.Count();
+
+            var fitlerList = _userService
+            .Get(_ => filterUserList.Contains(_.Id) &&
+            (_.CreatedById != null || _.Invoices != null) &&
+            (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
+            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+            (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
+            (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
+            , _ => _.Invoices);
+    
+
+          
+            var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
             var result = _mapper.Map<List<UserStoreVM>>(filterListPaged);
@@ -112,24 +120,18 @@ namespace CMMS.API.Controllers
             decimal? currentDebtTotal = 0;
             decimal? totalSale = 0;
 
-            var fitlerList = _userService
-            .Get(_ => (_.StoreId.Equals(storeId) && (_.CreatedById != null) || _.Invoices.Any(iv => iv.StoreId.Equals(storeId))) &&
-            (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
-            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
-            (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
-            (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
-            , _ => _.Invoices);
 
-            var filterUserList = new List<ApplicationUser>();
-
-            foreach (var customer in fitlerList)
+            var listCustomer = _userService.Get(_ => _.Id != null, _ => _.Invoices);
+            var filterUserList = new List<string>();
+            foreach (var customer in listCustomer)
             {
-                var roles = await _userService.GetRolesAsync(customer);
+                var user = _mapper.Map<ApplicationUser>(customer);
+                var roles = await _userService.GetRolesAsync(user);
                 if (roles.IsNullOrEmpty() || roles.Contains(Role.Customer.ToString()))
                 {
-                    filterUserList.Add(customer);
-                    currentDebtTotal += customer.CurrentDebt;
-                    var customerInvoices = customer.Invoices;
+                    filterUserList.Add(customer.Id);
+                    currentDebtTotal += user.CurrentDebt;
+                    var customerInvoices = user.Invoices;
                     if (customerInvoices != null)
                     {
                         foreach (var invoice in customerInvoices)
@@ -139,7 +141,18 @@ namespace CMMS.API.Controllers
                     }
                 }
             }
-            var total = filterUserList.Count();
+
+            var fitlerList = _userService
+            .Get(_ => filterUserList.Contains(_.Id) &&
+            (_.StoreId.Equals(storeId) && (_.CreatedById != null) || _.Invoices.Any(iv => iv.StoreId.Equals(storeId))) &&
+            (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
+            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+            (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
+            (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
+            , _ => _.Invoices);
+
+           
+            var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
             var result = _mapper.Map<List<UserStoreVM>>(filterListPaged);
@@ -175,15 +188,27 @@ namespace CMMS.API.Controllers
             });
         }
         [HttpPut("update-customer")]
-        public ActionResult UpdateCustomerInfoInStore(UserDTO model)
+        public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
-
-            return Ok();
+            var user = _mapper.Map<ApplicationUser>(model);
+             _userService.Update(user);
+            var result = await _userService.SaveChangeAsync();
+            return Ok(new
+            {
+                data = result
+            });
         }
-        [HttpPost("disable-customer")]
-        public ActionResult DisableCustomer()
+        [HttpPost("disable-customer/{id}")]
+        public async Task<ActionResult> DisableCustomerAsync(string id)
         {
-            return Ok();
+            var user = await _userService.FindAsync(id);
+            user.Status = (int)CustomerStatus.Disable;
+            _userService.Update(user);
+            var result = await _userService.SaveChangeAsync();
+            return Ok(new
+            {
+                data = result
+            });
         }
         [HttpPost]
         public async Task<ActionResult> AddCustomerInStoreAsync(UserDTO model)
@@ -223,13 +248,7 @@ namespace CMMS.API.Controllers
             var result = await _userService.CustomerSignUpAsync(model);
             return Ok(result);
         }
-        [HttpPost("remove-customer")]
-        public ActionResult DeleteCustomer()
-        {
-            return Ok();
-        }
         #endregion
-
 
         #region Customer Order History
         [HttpGet("history-order/{id}")]
@@ -257,16 +276,7 @@ namespace CMMS.API.Controllers
             return Ok();
         }
 
-        [HttpPost("create-invoice-refund")]
-        public ActionResult CreateReturnInvoice()
-        {
-            return Ok();
-        }
-        [HttpGet("create-invoice")]
-        public ActionResult CreateOrderInStore()
-        {
-            return Ok();
-        }
+
 
 
         #endregion
