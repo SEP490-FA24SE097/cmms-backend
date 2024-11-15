@@ -21,7 +21,7 @@ namespace CMMS.Core.Models
         public string Brand { get; set; }
         public bool IsRewardEligible { get; set; }
         public string ImageUrl { get; set; }
-
+        
         public List<SubImageDTO>? SubImages { get; set; }
     }
 
