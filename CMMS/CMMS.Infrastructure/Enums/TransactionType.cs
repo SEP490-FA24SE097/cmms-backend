@@ -15,4 +15,10 @@ namespace CMMS.Infrastructure.Enums
         PurchaseCustomerDebt = 4,
         FixCustomerDebt = 5,
     }
+
+    public enum TransactionPaymentType
+    {
+        COD = 0,
+        OnlinePayment = 1,
+    }
 }

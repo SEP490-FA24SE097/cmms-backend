@@ -28,7 +28,7 @@ namespace CMMS.Core.Entities
         [ForeignKey(nameof(Store))]
         public string? StoreId { get; set; }
         public Store? Store { get; set; }
-        public ShippingDetail? ShippingDetail { get; set; }
+        public virtual ICollection<ShippingDetail>? ShippingDetail { get; set; }
         public ICollection<Invoice>? Invoices { get; set; }
     }
 }

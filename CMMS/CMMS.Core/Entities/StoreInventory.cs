@@ -15,6 +15,7 @@ namespace CMMS.Core.Entities
         public Guid MaterialId { get; set; }
         public Guid? VariantId { get; set; }
         public decimal TotalQuantity { get; set; }
+        public decimal? InOrderQuantity { get; set; }
         public decimal MinStock { get; set; }
         public decimal MaxStock { get; set; }
         public DateTime LastUpdateTime { get; set; }

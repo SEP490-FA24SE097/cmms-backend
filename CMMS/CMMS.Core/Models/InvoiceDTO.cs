@@ -45,6 +45,36 @@ namespace CMMS.Core.Models
         public ShippingDetaiInvoicelVM? shippingDetailVM { get; set; }
     }
 
+    public class InvoiceShippingDetailsVM
+    {
+        public string Id { get; set; }
+        public DateTime InvoiceDate { get; set; }
+        public double TotalAmount { get; set; }
+        public int InvoiceStatus { get; set; }
+        public string? Note { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? CustomerPaid { get; set; }
+        public string? StaffId { get; set; }
+        public string? StaffName { get; set; }
+        public string? StoreId { get; set; }
+        public string? StoreName { get; set; }
+        public UserVM? UserVM { get; set; }
+        public int? SellPlace { get; set; }
+        public string? BuyIn
+        {
+            get
+            {
+                if (SellPlace == (int)Enums.SellPlace.Website)
+                {
+                    return "Website";
+                }
+                return "Tại cửa hàng";
+            }
+        }
+        public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
+    }
+
     public class InvoiceFitlerModel
     {
         public string? Id { get; set; }

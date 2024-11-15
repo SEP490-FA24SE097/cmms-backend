@@ -72,6 +72,7 @@ namespace CMMS.API.Controllers
                     cartItemVM.ImageUrl = material.ImageUrl;
                     cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
                     cartItemVM.InStock = item.TotalQuantity;
+                    cartItemVM.InOrder = item.InOrderQuantity;
                     if (cartItem.VariantId != null)
                     {
                         var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
