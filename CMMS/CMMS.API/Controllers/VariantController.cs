@@ -13,10 +13,12 @@ namespace CMMS.API.Controllers
     {
         private readonly IVariantService _variantService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
-        public VariantController(IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService)
+        private readonly IMaterialService _materialService;
+        public VariantController(IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService, IMaterialService materialService)
         {
             _variantService = variantService;
             _materialVariantAttributeService = materialVariantAttributeService;
+            _materialService = materialService;
         }
 
         // GET: api/variants
@@ -34,7 +36,7 @@ namespace CMMS.API.Controllers
                     Price = v.Price,
                     VariantImageUrl = v.VariantImageUrl
                 });
-                return Ok(new{data=result});
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {
@@ -65,6 +67,9 @@ namespace CMMS.API.Controllers
                     MaterialId = variant.MaterialId,
                     SKU = variant.SKU,
                     Price = variant.Price,
+                    variant.CostPrice,
+                    variant.ConversionUnitId,
+                    ConversionUnitName =variant.ConversionUnitId==null?null: variant.ConversionUnit.Name,
                     VariantImageUrl = variant.VariantImageUrl,
                     attributes = attributes
                 });
@@ -74,19 +79,64 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpGet("get-by-material-id")]
+        public async Task<IActionResult> GetByMaterialId([FromRoute] Guid materialId)
+        {
+            try
+            {
+                var variants = _variantService.Get(x => x.MaterialId == materialId).Include(x => x.ConversionUnit).ToList();
+                var variantIds = variants.Select(x => x.Id).ToList();
+                var attributes = _materialVariantAttributeService.Get(x => variantIds.Contains(x.VariantId))
+                    .Include(x => x.Attribute).Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
+               .GroupBy(x => x.VariantId).ToList();
 
+                if (attributes.Count <= 0)
+                {
+                    var unitVariants = variants.Select(x => new
+                    {
+                        VariantId = x.Id,
+                        ConversionUnitId = x.ConversionUnitId,
+                        ConversionUnitName = x.ConversionUnit.Name,
+                        Sku = x.SKU,
+                        Image = x.VariantImageUrl,
+                        Price = x.Price,
+                        CostPrice = x.CostPrice
+                    }).ToList();
+                    return Ok(new { data = unitVariants });
+                }
+                var list = attributes.Select(x => new
+                {
+                    Id = x.Key,
+                    MaterialId = materialId,
+                    SKU = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                    Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                    CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
+                    ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
+                    ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
+                    VariantImageUrl = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
+                    attributes = x.Select(x => new { x.Attribute.Name, x.Value })
+                }).ToList();
+
+                return Ok(new { data = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
         // POST: api/variants
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] VariantCM variant)
         {
             try
             {
+                var material = await _materialService.FindAsync(variant.MaterialId);
                 var dic = variant.Attributes.ToDictionary(x => x.Id, x => x.Value);
                 var newVariant = new Variant
                 {
                     Id = Guid.NewGuid(),
                     MaterialId = variant.MaterialId,
-                    SKU = variant.SKU,
+                    SKU = variant.SKU == null ? material.Name + "-" + string.Join("-", dic.Values) : variant.SKU,
                     Price = variant.Price,
                     CostPrice = variant.CostPrice,
                     VariantImageUrl = variant.VariantImageUrl

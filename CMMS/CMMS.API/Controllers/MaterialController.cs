@@ -64,13 +64,13 @@ namespace CMMS.API.Controllers
                 if (isPriceDescending == null)
                 {
                     if (isCreatedDateDescending == true)
-                    
+
                         materials = materials.OrderByDescending(x => x.Timestamp);
-                    
+
                     if (isCreatedDateDescending == false)
-                    
+
                         materials = materials.OrderBy(x => x.Timestamp);
-                    
+
                 }
 
                 var list = materials.Select(x => new MaterialDTO()
@@ -93,20 +93,41 @@ namespace CMMS.API.Controllers
                 foreach (var material in list)
                 {
                     var variants = _materialVariantAttributeService.GetAll()
-                        .Include(x => x.Variant)
+                        .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
                         .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == material.Id).ToList()
                         .GroupBy(x => x.VariantId).Select(x => new VariantDTO()
                         {
                             VariantId = x.Key,
+                            ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
+
+                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                             Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
                             Attributes = x.Select(x => new AttributeDTO()
                             {
                                 Name = x.Attribute.Name,
                                 Value = x.Value
                             }).ToList()
                         }).ToList();
+
+                    if (variants.Count <= 0)
+                    {
+                        var unitVariants = _variantService.Get(x => x.MaterialId == material.Id).Include(x => x.ConversionUnit).ToList();
+                        variants.AddRange(unitVariants.Select(x => new VariantDTO()
+                        {
+                            VariantId = x.Id,
+                            ConversionUnitId = x.ConversionUnitId,
+                            ConversionUnitName = x.ConversionUnit.Name,
+                            Sku = x.SKU,
+                            Image = x.VariantImageUrl,
+                            Price = x.Price,
+                            CostPrice = x.CostPrice,
+                            Attributes = null
+                        }));
+                    }
+
                     newList.Add(new MaterialVariantDTO()
                     {
                         Material = material,
@@ -540,9 +561,32 @@ namespace CMMS.API.Controllers
                         }).ToList()
                     }).FirstOrDefault();
                 var variants = _materialVariantAttributeService.GetAll()
-                    .Include(x => x.Variant)
+                    .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
                     .Include(x => x.Attribute)
-                    .Where(x => x.Variant.MaterialId == Guid.Parse(id)).ToList().GroupBy(x => x.VariantId);
+                    .Where(x => x.Variant.MaterialId == Guid.Parse(id)).GroupBy(x => x.VariantId).ToList();
+
+                if (variants.Count <= 0)
+                {
+                    var unitVariants = _variantService.Get(x => x.MaterialId == Guid.Parse(id)).Include(x => x.ConversionUnit).ToList();
+                    return Ok(new
+                    {
+                        data = new
+                        {
+                            material = result,
+                            variants = unitVariants.Select(x => new
+                            {
+                                VariantId = x.Id,
+                                ConversionUnitId = x.ConversionUnitId,
+                                ConversionUnitName = x.ConversionUnit.Name,
+                                Sku = x.SKU,
+                                Image = x.VariantImageUrl,
+                                Price = x.Price,
+                                CostPrice = x.CostPrice
+                            })
+                        }
+                    });
+
+                }
                 return Ok(new
                 {
                     data = new
@@ -552,8 +596,11 @@ namespace CMMS.API.Controllers
                         {
                             variantId = x.Key,
                             sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
+                            ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
+                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                             image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             price = x.Select(x => x.Variant.Price).FirstOrDefault(),
+                            CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
                             attributes = x.Select(x => new
                             {
                                 x.Attribute.Name,
@@ -617,7 +664,7 @@ namespace CMMS.API.Controllers
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty() ? material.BrandId : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty() ? material.CategoryId : Guid.Parse(materialUM.CategoryId);
                 material.UnitId = materialUM.UnitId.IsNullOrEmpty() ? material.UnitId : Guid.Parse(materialUM.UnitId);
-                material.IsRewardEligible = materialUM.IsRewardEligible==null?material.IsRewardEligible:(bool)materialUM.IsRewardEligible;
+                material.IsRewardEligible = materialUM.IsRewardEligible == null ? material.IsRewardEligible : (bool)materialUM.IsRewardEligible;
                 await _materialService.SaveChangeAsync();
                 return Ok(material);
             }

@@ -98,6 +98,12 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IGoodsDeliveryNoteDetailRepository, GoodsDeliveryNoteDetailRepository>();
             services.AddScoped<IGoodsDeliveryNoteDetailService, GoodsDeliveryNoteDetailService>();
+
+            services.AddScoped<IStoreMaterialImportRequestRepository, StoreMaterialImportRequestRepository>();
+            services.AddScoped<IStoreMaterialImportRequestService, StoreMaterialImportRequestService>();
+
+            services.AddScoped<IConversionUnitRepository, ConversionUnitRepository>();
+            services.AddScoped<IConversionUnitService, ConversionUnitService>();
             return services;
         }
     }

@@ -215,6 +215,28 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpPost("update-store-material-min-max-stock")]
+        public async Task<IActionResult> Update([FromQuery] string storeId, [FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] decimal? minStock, [FromQuery] decimal? maxStock)
+        {
+            try
+            {
+                var material = _storeInventoryService
+                    .Get(x => x.StoreId == storeId && x.MaterialId == materialId && x.VariantId == variantId)
+                    .FirstOrDefault();
+                if (material != null)
+                {
+                    material.MinStock = minStock == null ? material.MinStock : (decimal)minStock;
+                    material.MaxStock = maxStock == null ? material.MaxStock : (decimal)maxStock;
+                    material.LastUpdateTime = GetVietNamTime();
+                }
+                await _storeInventoryService.SaveChangeAsync();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
         [HttpPost("search-and-filter")]
         public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
         {

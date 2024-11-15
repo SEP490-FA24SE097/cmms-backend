@@ -18,9 +18,12 @@ namespace CMMS.Core.Entities
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
         public string VariantImageUrl { get; set; }
+        public Guid? ConversionUnitId { get; set; }
+        public bool? IsActive { get; set; }
         public virtual Material Material { get; set; }
         public virtual ICollection<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
         public virtual ICollection<Import> Imports { get; set; }
         public virtual ICollection<Warehouse> Warehouses { get; set; }
+        public virtual ConversionUnit ConversionUnit { get; set; }
     }
 }
