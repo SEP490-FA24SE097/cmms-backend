@@ -84,6 +84,7 @@ namespace CMMS.Infrastructure.Services
             var userList = _userRepository.Get(_ => _.Id.Contains("NVVC"));
             string userId = $"NVVC{(userList.Count() + 1):D6}";
             var user = _mapper.Map<ApplicationUser>(model);
+            user.EmailConfirmed = true;
             user.Id = userId;
             IdentityResult result = null;
             if (model.Password != null)

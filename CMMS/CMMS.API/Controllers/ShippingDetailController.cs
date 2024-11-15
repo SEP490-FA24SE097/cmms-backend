@@ -62,7 +62,7 @@ namespace CMMS.API.Controllers
                 (!filterModel.ToDate.HasValue || _.ShippingDate <= filterModel.ToDate) &&
                 (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
                 (string.IsNullOrEmpty(filterModel.ShippingDetailCode) || _.Id.Equals(filterModel.ShippingDetailCode)) &&
-                (filterModel.InvoiceStatus !=  null || _.Invoice.InvoiceStatus.Equals(filterModel.InvoiceStatus)) &&
+                (filterModel.InvoiceStatus ==  null || _.Invoice.InvoiceStatus.Equals(filterModel.InvoiceStatus)) &&
                 (string.IsNullOrEmpty(filterModel.ShipperId) || _.ShipperId.Equals(filterModel.ShipperId))
                 , _ => _.Invoice, _ => _.Invoice.InvoiceDetails, _ => _.Shipper, _ => _.Shipper.Store);
             var total = fitlerList.Count();
