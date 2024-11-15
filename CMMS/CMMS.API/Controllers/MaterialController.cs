@@ -22,12 +22,13 @@ namespace CMMS.API.Controllers
         private readonly IMaterialService _materialService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IImportService _importService;
+        private readonly IImportDetailService _importDetailService;
         private readonly IVariantService _variantService;
         private readonly IUnitService _unitService;
         private readonly ISubImageService _subImageService;
         private readonly IConversionUnitService _conversionUnitService;
         public MaterialController(IMaterialService materialService,
-            IMaterialVariantAttributeService materialVariantAttributeService, IVariantService variantService,
+            IMaterialVariantAttributeService materialVariantAttributeService, IVariantService variantService, IImportDetailService importDetailService,
             IImportService importService, IConversionUnitService conversionUnitService, ISubImageService subImageService, IUnitService unitService)
         {
             _materialService = materialService;
@@ -37,6 +38,7 @@ namespace CMMS.API.Controllers
             _conversionUnitService = conversionUnitService;
             _subImageService = subImageService;
             _unitService = unitService;
+            _importDetailService=importDetailService;
         }
 
 
@@ -97,7 +99,7 @@ namespace CMMS.API.Controllers
                     Brand = x.Brand.Name,
                     IsRewardEligible = x.IsRewardEligible,
                     Description = x.Description,
-
+                    MaterialCode = x.MaterialCode,
                     SalePrice = x.SalePrice,
                     Unit = x.Unit.Name,
                     Category = x.Category.Name,
@@ -786,88 +788,91 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        //[AllowAnonymous]
-        //[HttpGet("get-material-prices-list")]
-        //public async Task<IActionResult> GetMaterialsWithPrices([FromQuery] int page, [FromQuery] int itemPerPage)
-        //{
-        //    try
-        //    {
-        //        var pricedMaterialList = new List<PricedMaterialDto>();
-        //        var materialIdList = _materialService.Get(x => !x.Variants.Any()).Select(x => x.Id).ToList();
-        //        foreach (var id in materialIdList)
-        //        {
-        //            var materials = _importService.Get(x => x.MaterialId == id).Include(x => x.Material).ToList();
-        //            if (materials.Any())
-        //            {
-        //                var latestImportPrice =
-        //                    materials.OrderByDescending(x => x.TimeStamp).Select(x => x.TotalPrice / x.Quantity)
-        //                        .FirstOrDefault();
-        //                var averagePrice = materials.Average(x => x.TotalPrice / x.Quantity);
-        //                PricedMaterialDto pricedMaterial = new()
-        //                {
-        //                    MaterialId = materials.FirstOrDefault().MaterialId,
-        //                    MaterialName = materials.FirstOrDefault().Material.Name,
-        //                    MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
-        //                    VariantId = null,
-        //                    VariantName = null,
-        //                    VariantImage = null,
-        //                    LastImportPrice = latestImportPrice,
-        //                    AverageImportPrice = averagePrice,
-        //                    CostPrice = materials.FirstOrDefault().Material.CostPrice,
-        //                    SellPrice = materials.FirstOrDefault().Material.SalePrice,
-        //                };
-        //                pricedMaterialList.Add(pricedMaterial);
-        //            }
+        [AllowAnonymous]
+        [HttpGet("get-material-prices-list")]
+        public async Task<IActionResult> GetMaterialsWithPrices([FromQuery] int page, [FromQuery] int itemPerPage)
+        {
+            try
+            {
+                var pricedMaterialList = new List<PricedMaterialDto>();
+                var materialIdList = _materialService.Get(x => !x.Variants.Any()).Select(x => x.Id).ToList();
+                foreach (var id in materialIdList)
+                {
+                    var materials = _importDetailService.Get(x => x.MaterialId == id).Include(x => x.Material).ToList();
+                    if (materials.Any())
+                    {
+                        var latestImportPrice =
+                            materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
+                                .FirstOrDefault();
 
-        //        }
-        //        var variantIdList =
-        //            _materialService.GetAll()
-        //                .Include(x => x.Variants).Where(x => x.Variants.Any()).Select(x => x.Variants.Select(x => x.Id)).ToList();
-        //        foreach (var mId in variantIdList)
-        //        {
-        //            foreach (var id in mId)
-        //            {
-        //                var materials = _importService.Get(x => x.VariantId == id)
-        //                    .Include(x => x.Material).Include(x => x.Variant).ToList();
-        //                if (materials.Any())
-        //                {
-        //                    var latestImportPrice =
-        //                        materials.OrderByDescending(x => x.TimeStamp).Select(x => x.TotalPrice / x.Quantity)
-        //                            .FirstOrDefault();
-        //                    var averagePrice = materials.Average(x => x.TotalPrice / x.Quantity);
-        //                    PricedMaterialDto pricedMaterial = new()
-        //                    {
-        //                        MaterialId = materials.FirstOrDefault().MaterialId,
-        //                        MaterialName = materials.FirstOrDefault().Material.Name,
-        //                        MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
-        //                        VariantId = materials.FirstOrDefault().VariantId,
-        //                        VariantName = materials.FirstOrDefault().Variant.SKU,
-        //                        VariantImage = materials.FirstOrDefault().Variant.VariantImageUrl,
-        //                        LastImportPrice = latestImportPrice,
-        //                        AverageImportPrice = averagePrice,
-        //                        CostPrice = materials.FirstOrDefault().Variant.CostPrice,
-        //                        SellPrice = materials.FirstOrDefault().Variant.Price,
-        //                    };
-        //                    pricedMaterialList.Add(pricedMaterial);
-        //                }
-        //            }
-        //        }
-        //        var result = Helpers.LinqHelpers.ToPageList(pricedMaterialList, page - 1, itemPerPage);
-        //        return Ok(new
-        //        {
-        //            data = result,
-        //            pagination = new
-        //            {
-        //                total = pricedMaterialList.Count,
-        //                perPage = itemPerPage,
-        //                currentPage = page
-        //            }
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        //    }
-        //}
+                        var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
+                        PricedMaterialDto pricedMaterial = new()
+                        {
+                            MaterialId = materials.FirstOrDefault().MaterialId,
+                            MaterialName = materials.FirstOrDefault().Material.Name,
+                            MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
+                            VariantId = null,
+                            VariantName = null,
+                            VariantImage = null,
+                            LastImportPrice = latestImportPrice,
+                            AverageImportPrice = averagePrice,
+                            CostPrice = materials.FirstOrDefault().Material.CostPrice,
+                            SellPrice = materials.FirstOrDefault().Material.SalePrice,
+                        };
+                        pricedMaterialList.Add(pricedMaterial);
+                    }
+
+                }
+                var variantIdList =
+                    _materialService.GetAll()
+                        .Include(x => x.Variants).Where(x => x.Variants.Any()).Select(x => x.Variants.Select(x => x.Id)).ToList();
+                foreach (var mId in variantIdList)
+                {
+                    foreach (var id in mId)
+                    {
+                        var materials = _importDetailService.Get(x => x.VariantId == id)
+                            .Include(x => x.Material).Include(x => x.Variant).ToList();
+                        if (materials.Any())
+                        {
+                            var latestImportPrice =
+                                materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
+                                    .FirstOrDefault();
+                            var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
+                            PricedMaterialDto pricedMaterial = new()
+                            {
+                                MaterialId = materials.FirstOrDefault().MaterialId,
+                                MaterialName = materials.FirstOrDefault().Material.Name,
+                                MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
+                                VariantId = materials.FirstOrDefault().VariantId,
+                                VariantName = materials.FirstOrDefault().Variant.SKU,
+                                VariantImage = materials.FirstOrDefault().Variant.VariantImageUrl,
+                                LastImportPrice = latestImportPrice,
+                                AverageImportPrice = averagePrice,
+                                CostPrice = materials.FirstOrDefault().Variant.CostPrice,
+                                SellPrice = materials.FirstOrDefault().Variant.Price,
+                            };
+                            pricedMaterialList.Add(pricedMaterial);
+                        }
+                    }
+                }
+                var result = Helpers.LinqHelpers.ToPageList(pricedMaterialList, page - 1, itemPerPage);
+                return Ok(new
+                {
+                    data = result,
+                    pagination = new
+                    {
+                        total = pricedMaterialList.Count,
+                        perPage = itemPerPage,
+                        currentPage = page
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+
     }
 }
