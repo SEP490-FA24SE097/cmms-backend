@@ -26,6 +26,8 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<Transaction, bool>> where);
         Task<bool> SaveChangeAsync();
         #endregion
+
+        string GenerateTransactionCode(string prefix);
     }
     public class TransactionService : ITransactionService
     {
@@ -58,6 +60,7 @@ namespace CMMS.Infrastructure.Services
         {
             return _transactionRepository.FindAsync(id);
         }
+
 
         public IQueryable<Transaction> Get(Expression<Func<Transaction, bool>> where)
         {
@@ -94,5 +97,13 @@ namespace CMMS.Infrastructure.Services
             _transactionRepository.Update(Transaction);
         }
         #endregion
+
+
+        public string GenerateTransactionCode(string prefix)
+        {
+            var transactionTotal = _transactionRepository.Get(_ => _.Id.Substring(0, 2).Contains(prefix));
+            string invoiceCode = $"{prefix}{(transactionTotal.Count() + 1):D6}";
+            return invoiceCode;
+        }
     }
 }

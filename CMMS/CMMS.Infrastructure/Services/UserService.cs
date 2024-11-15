@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using CMMS.Core.Constant;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
@@ -8,13 +9,17 @@ using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CMMS.Infrastructure.Services
 {
     public interface IUserService
     {
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
+        Task<IdentityResult> ShipperSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
         Task<Message> AddAsync(UserCM user);
         Task<IList<String>> GetRolesAsync(ApplicationUser user);
@@ -30,6 +35,10 @@ namespace CMMS.Infrastructure.Services
         Task<bool> SaveChangeAsync();
         Task<bool> ConfirmAccount(string email);
         Task<ApplicationUser> FindAsync(string customerId);
+        Task<bool> IsEmailConfirmedAsync(ApplicationUser user);
+        Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
+        Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
+        string GenerateCustomerCode();
     }
     public class UserService : IUserService
     {
@@ -64,19 +73,51 @@ namespace CMMS.Infrastructure.Services
             return null;
         }
 
+        public async Task<IdentityResult> ShipperSignUpAsync(UserDTO model)
+        {
+
+            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
+            if (isDupplicate != null)
+            {
+                return null;
+            }
+            var userList = _userRepository.Get(_ => _.Id.Contains("NVVC"));
+            string userId = $"NVVC{(userList.Count() + 1):D6}";
+            var user = _mapper.Map<ApplicationUser>(model);
+            user.EmailConfirmed = true;
+            user.Id = userId;
+            IdentityResult result = null;
+            if (model.Password != null)
+                result = await _userManager.CreateAsync(user, model.Password);
+            else
+                result = await _userManager.CreateAsync(user);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
+            }
+
+            return result;
+        }
+
+
         public async Task<IdentityResult> CustomerSignUpAsync(UserDTO model)
         {
+     
             var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
             if (isDupplicate != null)
             {
                 return null;
             }
             var user = _mapper.Map<ApplicationUser>(model);
-
-            var result = await _userManager.CreateAsync(user, model.Password);
+            user.Id = GenerateCustomerCode();
+            IdentityResult result = null;
+            if (model.Password != null)
+                result = await _userManager.CreateAsync(user, model.Password);
+            else
+                result = await _userManager.CreateAsync(user);
             if (result.Succeeded)
             {
-                    await _userManager.AddToRoleAsync(user, Role.Customer.ToString());
+                await _userManager.AddToRoleAsync(user, Role.Customer.ToString());
             }
 
             return result;
@@ -92,22 +133,22 @@ namespace CMMS.Infrastructure.Services
                 return message;
             }
             var user = _mapper.Map<ApplicationUser>(userCM);
-
+            user.Id = GenerateCustomerCode();
             IdentityResult result = IdentityResult.Success;
-
+            user.Id = GenerateCustomerCode();
             if (userCM.Password != null)
             {
                 result = await _userManager.CreateAsync(user, userCM.Password);
             }
-            else {
-
+            else
+            {
                 // login by google EmailConfirmed is true
                 user.EmailConfirmed = true;
                 result = await _userManager.CreateAsync(user);
-                var loginProviderInfo = new UserLoginInfo(userCM.LoginProvider,userCM.ProviderKey, userCM.ProviderDisplayName);
-                result =  await _userManager.AddLoginAsync(user, loginProviderInfo);
+                var loginProviderInfo = new UserLoginInfo(userCM.LoginProvider, userCM.ProviderKey, userCM.ProviderDisplayName);
+                result = await _userManager.AddLoginAsync(user, loginProviderInfo);
             }
-           
+
             if (result.Succeeded)
             {
                 var roleName = userCM.RoleName;
@@ -205,6 +246,28 @@ namespace CMMS.Infrastructure.Services
         public async Task<ApplicationUser> FindAsync(string customerId)
         {
             return await _userRepository.FindAsync(customerId);
+        }
+
+        public async Task<bool> IsEmailConfirmedAsync(ApplicationUser user)
+        {
+            return await _userManager.IsEmailConfirmedAsync(user);
+        }
+
+        public async Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user)
+        {
+            return await _userManager.GeneratePasswordResetTokenAsync(user);
+        }
+
+        public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword)
+        {
+            return await _userManager.ResetPasswordAsync(user, token, newPassword);
+        }
+
+        public string GenerateCustomerCode()
+        {
+            var userTotal = _userRepository.GetAll();
+            string userId = $"KH{(userTotal.Count() + 1):D6}";
+            return userId;
         }
     }
 }

@@ -13,5 +13,6 @@ namespace CMMS.Infrastructure.Enums
         Sale_Staff = 3,
         Warehouse_Staff = 4,
         Customer = 5,
+        Shipper_Store = 6,
     }
 }

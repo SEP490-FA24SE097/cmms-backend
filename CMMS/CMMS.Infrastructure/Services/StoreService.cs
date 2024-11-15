@@ -8,9 +8,11 @@ using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,6 +30,22 @@ namespace CMMS.Infrastructure.Services
         Task<Message> RemoveUserManagedStore(string userId, string storeId);
         Task<Message> ManageStoreRotation(string userId, string storeId);
         Task<bool> StoreWasManaged(string storeId);
+
+
+        #region CRUD 
+        Task<Store> FindAsync(string id);
+        IQueryable<Store> GetAll();
+        IQueryable<Store> Get(Expression<Func<Store, bool>> where);
+        IQueryable<Store> Get(Expression<Func<Store, bool>> where, params Expression<Func<Store, object>>[] includes);
+        IQueryable<Store> Get(Expression<Func<Store, bool>> where, Func<IQueryable<Store>, IIncludableQueryable<Store, object>> include = null);
+        Task AddAsync(Store Store);
+        Task AddRange(IEnumerable<Store> Stores);
+        void Update(Store Store);
+        Task<bool> Remove(string id);
+        Task<bool> CheckExist(Expression<Func<Store, bool>> where);
+        Task<bool> SaveChangeAsync();
+        #endregion
+
 
     }
 
@@ -215,5 +233,63 @@ namespace CMMS.Infrastructure.Services
             return null;
 
         }
+
+        #region CURD 
+        public async Task AddAsync(Store Store)
+        {
+            await _storeRepository.AddAsync(Store);
+        }
+
+        public async Task AddRange(IEnumerable<Store> Stores)
+        {
+            await _storeRepository.AddRangce(Stores);
+        }
+
+        public Task<bool> CheckExist(Expression<Func<Store, bool>> where)
+        {
+            return _storeRepository.CheckExist(where);
+        }
+
+        public Task<Store> FindAsync(string id)
+        {
+            return _storeRepository.FindAsync(id);
+        }
+
+
+        public IQueryable<Store> Get(Expression<Func<Store, bool>> where)
+        {
+            return _storeRepository.Get(where);
+        }
+
+        public IQueryable<Store> Get(Expression<Func<Store, bool>> where, params Expression<Func<Store, object>>[] includes)
+        {
+            return _storeRepository.Get(where, includes);
+        }
+
+        public IQueryable<Store> Get(Expression<Func<Store, bool>> where, Func<IQueryable<Store>, IIncludableQueryable<Store, object>> include = null)
+        {
+            return _storeRepository.Get(where, include);
+        }
+
+        public IQueryable<Store> GetAll()
+        {
+            return _storeRepository.GetAll();
+        }
+
+        public async Task<bool> Remove(string id)
+        {
+            return await _storeRepository.Remove(id);
+        }
+
+        public async Task<bool> SaveChangeAsync()
+        {
+            return await _unitOfWork.SaveChangeAsync();
+        }
+
+        public void Update(Store Store)
+        {
+            _storeRepository.Update(Store);
+        }
+        #endregion
     }
 }

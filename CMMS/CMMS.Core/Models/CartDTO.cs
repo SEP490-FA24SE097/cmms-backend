@@ -40,9 +40,11 @@ namespace CMMS.Core.Models
     {
         public string ItemName { get; set; }
         public string ImageUrl { get; set; }
-        public decimal BasePrice { get; set; }
+        public decimal? InOrder { get; set; }
+        public decimal SalePrice { get; set; }
         public decimal ItemTotalPrice { get; set; }
         public bool IsChangeQuantity { get; set; } = false;
+        public decimal? InStock { get; set; }
     }
 
 

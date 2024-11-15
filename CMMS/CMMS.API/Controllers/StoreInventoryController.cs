@@ -9,6 +9,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using static CMMS.API.TimeConverter.TimeConverter;
+using CMMS.API.Constant;
+using AutoMapper;
+using CMMS.API.Services;
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using CMMS.API.Helpers;
 
 namespace CMMS.API.Controllers
 {
@@ -18,14 +23,86 @@ namespace CMMS.API.Controllers
     public class StoreInventoryController : ControllerBase
     {
         private readonly IStoreInventoryService _storeInventoryService;
+        private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
+        private readonly IVariantService _variantService;
+        private readonly IMaterialService _materialService;
+        private readonly IMapper _mapper;
+        private ICartService _cartService;
+        private ICurrentUserService _currentUserService;
 
-        public StoreInventoryController(IStoreInventoryService storeInventoryService)
+        public StoreInventoryController(IStoreInventoryService storeInventoryService,
+            ICartService cartService,
+            ICurrentUserService currentUserService,
+            IVariantService variantService,
+            IMaterialService materialService,
+            IMaterialVariantAttributeService materialVariantAttributeService,
+            IMapper mapper)
         {
             _storeInventoryService = storeInventoryService;
+            _materialVariantAttributeService = materialVariantAttributeService;
+            _variantService = variantService;
+            _materialService = materialService;
+            _mapper = mapper;
+            _cartService = cartService;
+            _currentUserService = currentUserService;
         }
 
 
 
+        [HttpPost]
+        public async Task<IActionResult> GetUserCartAsync(CartItemRequest cartItems)
+        {
+            var listCartRequest = cartItems.CartItems.ToPageList(cartItems.currentPage, cartItems.perPage);
+            List<CartItemVM> listCartItemVM = new List<CartItemVM>();
+            decimal totalAmount = 0;
+            foreach (var cartItem in listCartRequest)
+            {
+                var addItemModel = _mapper.Map<AddItemModel>(cartItem);
+                var item = await _cartService.GetItemInStoreAsync(addItemModel);
+                if (item != null)
+                {
+                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
+                    if (cartItem.Quantity > item.TotalQuantity)
+                    {
+                        cartItemVM.IsChangeQuantity = true;
+                    }
+                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                    cartItemVM.ItemName = material.Name;
+                    cartItemVM.SalePrice = material.SalePrice;
+                    cartItemVM.ImageUrl = material.ImageUrl;
+                    cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
+                    cartItemVM.InStock = item.TotalQuantity;
+                    cartItemVM.InOrder = item.InOrderQuantity;
+                    if (cartItem.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                        cartItemVM.SalePrice = variant.Price;
+                        cartItemVM.ImageUrl = variant.VariantImageUrl;
+                        cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
+                    }
+
+                    totalAmount += cartItemVM.ItemTotalPrice;
+                    listCartItemVM.Add(cartItemVM);
+                }
+            }
+
+            return Ok(new
+            {
+                data = new
+                {
+                    total = totalAmount,
+                    StoreItems = listCartItemVM
+                },
+                pagination = new
+                {
+                    total = cartItems.CartItems.Count(),
+                    perPage = cartItems.perPage,
+                    currentPage = cartItems.currentPage,
+                }
+            });
+        }
 
         [HttpGet("get-product-quantity-of-specific-store")]
         public async Task<IActionResult> Get([FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] string storeId)
@@ -201,5 +278,6 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
     }
 }

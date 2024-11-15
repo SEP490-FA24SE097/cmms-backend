@@ -17,6 +17,7 @@ using CMMS.Core.Entities;
 using CMMS.Infrastructure.Data;
 using NuGet.Common;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Controller;
+using CMMS.Infrastructure.Enums;
 
 namespace CMMS.API.Controllers
 {
@@ -59,11 +60,11 @@ namespace CMMS.API.Controllers
             var userNameExist = await _userService.FindByUserName(signUpModel.UserName);
             if (emailExist != null)
             {
-                return BadRequest("Email already existed");
+                return BadRequest("Email đã được sử dụng");
             }
             else if (userNameExist != null)
             {
-                return BadRequest("Username already existed");
+                return BadRequest("User đã được sử dụng");
             }
 
             if (signUpModel.TaxCode != null)
@@ -81,6 +82,7 @@ namespace CMMS.API.Controllers
 
                 if (apiResponse.Code == "00")
                 {
+                    signUpModel.Type = (int)CustomerType.Agency;
                     var resultCreate = await _userService.CustomerSignUpAsync(signUpModel);
                     if (resultCreate.Succeeded)
                         return Ok(resultCreate.Succeeded);
@@ -90,6 +92,7 @@ namespace CMMS.API.Controllers
                     return BadRequest(apiResponse.Desc);
                 }
             }
+            signUpModel.Type = (int)CustomerType.Customer;
             var result = await _userService.CustomerSignUpAsync(signUpModel);
             var url = Url.Action(nameof(ConfirmAccount), nameof(AuthenticateController).Replace("Controller", ""), null, Request.Scheme);
             if (result.Succeeded)
@@ -157,7 +160,7 @@ namespace CMMS.API.Controllers
         [HttpDelete("signOut")]
         public async Task<IActionResult> SignOut()
         {
-            var user = await _currentUserService.GetUser();
+            var user = await _currentUserService.GetCurrentUser();
             if (user is null)
                 return Unauthorized();
             user.RefreshToken = null;
@@ -211,7 +214,7 @@ namespace CMMS.API.Controllers
         {
             var result = await _userService.ConfirmAccount(email);
             if (result) return Ok(result);
-            else return BadRequest("Cannot confirm your email");
+            else return BadRequest("Xác thực email không thành công");
         }
 
     }

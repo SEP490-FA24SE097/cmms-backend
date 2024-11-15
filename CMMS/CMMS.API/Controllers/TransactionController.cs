@@ -35,7 +35,7 @@ namespace CMMS.API.Controllers
             (!filterModel.ToDate.HasValue || _.TransactionDate <= filterModel.ToDate) &&
             (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
             (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
-            (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(filterModel.TransactionType)) &&
+            (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
             (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Equals(filterModel.CustomerName)) &&
             (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId))
             , _ => _.Customer);

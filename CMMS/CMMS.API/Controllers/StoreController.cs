@@ -3,6 +3,7 @@ using CMMS.API.Helpers;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/store")]
     [ApiController]
+    [AllowAnonymous]
     public class StoreController : ControllerBase
     {
         private IStoreService _storeService;
@@ -19,7 +21,18 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
         }
 
-        [HttpGet]
+        [HttpPost("create-invoice-refund")]
+        public ActionResult CreateReturnInvoice()
+        {
+            return Ok();
+        }
+        [HttpGet("create-invoice")]
+        public ActionResult CreateOrderInStore()
+        {
+            return Ok();
+        }
+    #region CURD Store 
+    [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
@@ -80,5 +93,7 @@ namespace CMMS.API.Controllers
             var result = await _storeService.UpdateStore(storeDTO);
             return Ok(result);
         }
+
+        #endregion
     }
 }

@@ -54,9 +54,8 @@ namespace CMMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePayment([FromBody] InvoiceData invoiceInfo)
         {
-            //var customerId = _currentUserService.GetUserId();
-            var customerId = "508bfd68-f940-4a55-823d-53e75d6e1194";
-            // get total cart
+            var customerId = _currentUserService.GetUserId();
+
             decimal totalCartAmount = 0;
             invoiceInfo.CustomerId = customerId;
 
@@ -83,6 +82,8 @@ namespace CMMS.API.Controllers
 
             switch (invoiceInfo.PaymentType)
             {
+
+                // FIXXXXXXXXXXX
                 case PaymentType.OnlinePayment:
                     var paymentRequestData = new PaymentRequestData
                     {
@@ -97,6 +98,7 @@ namespace CMMS.API.Controllers
                     var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);
 
+                // FIXXXXXX
                 case PaymentType.DebtInvoice:
                     customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
                     if (customerBalance != null)
@@ -117,6 +119,8 @@ namespace CMMS.API.Controllers
                         }
                     }
                     return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
+
+                // FIXXXXXX
                 case PaymentType.DebtPurchase:
                     customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
                     customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);

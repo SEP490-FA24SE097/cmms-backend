@@ -25,6 +25,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> Remove(string id);
         Task<bool> CheckExist(Expression<Func<Invoice, bool>> where);
         Task<bool> SaveChangeAsync();
+        string GenerateInvoiceCode();
         #endregion
     }
     public class InvoiceService : IInvoiceService
@@ -58,6 +59,8 @@ namespace CMMS.Infrastructure.Services
         {
             return _invoiceRepository.FindAsync(id);
         }
+
+  
 
         public IQueryable<Invoice> Get(Expression<Func<Invoice, bool>> where)
         {
@@ -94,5 +97,12 @@ namespace CMMS.Infrastructure.Services
             _invoiceRepository.Update(Invoice);
         }
         #endregion
+
+        public string GenerateInvoiceCode()
+        {
+            var invoiceTotal = _invoiceRepository.GetAll();
+            string invoiceCode = $"HD{(invoiceTotal.Count() + 1):D6}";
+            return invoiceCode;
+        }
     }
 }
