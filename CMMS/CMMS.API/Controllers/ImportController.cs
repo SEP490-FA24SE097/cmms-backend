@@ -8,21 +8,30 @@ using System.Threading.Tasks;
 using CMMS.Core.Models;
 using static CMMS.API.TimeConverter.TimeConverter;
 using CMMS.API.TimeConverter;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [Route("api/imports")]
     [ApiController]
     public class ImportController : ControllerBase
     {
         private readonly IImportService _importService;
         private readonly IWarehouseService _warehouseService;
+        private readonly IImportDetailService _importDetailService;
+        private readonly IVariantService _variantService;
+        private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
 
-        public ImportController(IImportService importService, IWarehouseService warehouseService)
+        public ImportController(IImportService importService, IWarehouseService warehouseService, IImportDetailService importDetailService, IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _importService = importService;
             _warehouseService = warehouseService;
+            _importDetailService = importDetailService;
+            _variantService = variantService;
+            _materialVariantAttributeService = materialVariantAttributeService;
         }
 
         // GET: api/imports
@@ -72,37 +81,78 @@ namespace CMMS.API.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-
-                await _importService.AddAsync(new Import
+                var imp = new Import
                 {
                     Id = Guid.NewGuid(),
-                    MaterialId = import.MaterialId,
-                    VariantId = import.VariantId,
                     Quantity = import.Quantity,
                     TotalPrice = import.TotalPrice,
                     TimeStamp = GetVietNamTime(),
-                    SupplierId = import.SupplierId
-                });
+                    SupplierId = import.SupplierId,
+                    TotalDiscount = import.TotalDiscount,
+                    TotalDue = import.TotalDue,
+                    TotalPaid = import.TotalPaid,
+                    Note = import.Note,
+                    Status = import.IsCompleted ? "Đã nhập hàng" : "Phiếu tạm"
+                };
+                await _importService.AddAsync(imp);
                 await _importService.SaveChangeAsync();
-                var warehouse = _warehouseService
-                    .Get(x => x.MaterialId == import.MaterialId && x.VariantId == import.VariantId).FirstOrDefault();
-                if (warehouse != null)
+                await _importDetailService.AddRange(import.ImportDetails.Select(x => new ImportDetail()
                 {
-                    warehouse.TotalQuantity += import.Quantity;
-                    warehouse.LastUpdateTime = GetVietNamTime();
-                }
-                else
+                    Id = new Guid(),
+                    ImportId = imp.Id,
+                    VariantId = x.VariantId,
+                    MaterialId = x.MaterialId,
+                    PriceAfterDiscount = x.PriceAfterDiscount,
+                    DiscountPrice = x.DiscountPrice,
+                    UnitDiscount = x.UnitDiscount,
+                    UnitPrice = x.UnitPrice,
+                    Quantity = x.Quantity,
+                    Note = x.Note
+                }));
+                await _importDetailService.SaveChangeAsync();
+
+                if (import.IsCompleted)
                 {
-                    await _warehouseService.AddAsync(new Warehouse
+                    var list = _importService.Get(x => x.Id == imp.Id).Include(x => x.ImportDetails).Select(x => x.ImportDetails).FirstOrDefault();
+                    foreach (var item in list)
                     {
-                        Id = Guid.NewGuid(),
-                        MaterialId = import.MaterialId,
-                        VariantId = import.VariantId,
-                        TotalQuantity = import.Quantity,
-                        LastUpdateTime = GetVietNamTime()
-                    });
+                        var warehouse = _warehouseService
+                            .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
+                        if (item.VariantId == null)
+                        {
+                            if (warehouse != null)
+                            {
+                                warehouse.TotalQuantity += item.Quantity;
+                                warehouse.LastUpdateTime = GetVietNamTime();
+                            }
+                            else
+                            {
+                                await _warehouseService.AddAsync(new Warehouse
+                                {
+                                    Id = Guid.NewGuid(),
+                                    MaterialId = item.MaterialId,
+                                    VariantId = item.VariantId,
+                                    TotalQuantity = item.Quantity,
+                                    LastUpdateTime = GetVietNamTime()
+                                });
+                            }
+                            await _warehouseService.SaveChangeAsync();
+                        }
+                        else
+                        {
+                            var attributeVariantCheck =
+                                _variantService
+                                    .Get(x => x.Id == item.VariantId && x.MaterialVariantAttributes.Count > 0)
+                                    .Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                            if (attributeVariantCheck != null)
+                            {
+
+                            }
+                        }
+
+                    }
+
                 }
-                await _warehouseService.SaveChangeAsync();
                 return Ok();
             }
             catch (Exception ex)
@@ -112,6 +162,32 @@ namespace CMMS.API.Controllers
 
         }
 
-       
+        //[HttpPost]
+        //public async Task<IActionResult> CompleteImport([FromQuery] Guid importId)
+        //{
+        //    var list = _importService.Get(x => x.Id == importId).Include(x => x.ImportDetails).Select(x => x.ImportDetails).FirstOrDefault();
+        //    foreach (var item in list)
+        //    {
+        //        var warehouse = _warehouseService
+        //            .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
+        //        if (warehouse != null)
+        //        {
+        //            warehouse.TotalQuantity += item.Quantity;
+        //            warehouse.LastUpdateTime = GetVietNamTime();
+        //        }
+        //        else
+        //        {
+        //            await _warehouseService.AddAsync(new Warehouse
+        //            {
+        //                Id = Guid.NewGuid(),
+        //                MaterialId = item.MaterialId,
+        //                VariantId = item.VariantId,
+        //                TotalQuantity = item.Quantity,
+        //                LastUpdateTime = GetVietNamTime()
+        //            });
+        //        }
+        //    }
+        //}
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using CMMS.Core.Entities;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,17 +10,32 @@ namespace CMMS.Core.Models
 {
     public class MaterialCM
     {
-        public string Name { get; set; }
-        public string BarCode { get; set; }
-        public Guid CategoryId { get; set; }
-        public Guid UnitId { get; set; }
-        public Guid SupplierId { get; set; }
-        public Guid BrandId { get; set; }
-        public string Description { get; set; }
-        public decimal SalePrice { get; set; }
-        public decimal CostPrice { get; set; }
-        public decimal MinStock { get; set; }
-        public bool IsRewardEligible { get; set; }
-        public string ImageUrl { get; set; }
+        public class PostMaterialRequest
+        {
+            public string Barcode { get; set; }
+            public string Name { get; set; }
+            public decimal CostPrice { get; set; }
+            public decimal SalePrice { get; set; }
+            public List<IFormFile> ImagesFile { get; set; }
+            public float? WeightValue { get; set; }
+            public string? WeightUnit { get; set; }
+            public string? Description { get; set; }
+            public decimal MinStock { get; set; }
+            public decimal MaxStock { get; set; }
+            public string CoverImageUrl { get; set; }
+            public bool IsPoint { get; set; }
+            public Guid BasicUnitId { get; set; }
+            public List<MaterialUnitDto> MaterialUnitDtoList { get; set; }
+            public Guid CategoryId { get; set; }
+            public Guid BrandId { get; set; }
+        }
+
+        public class MaterialUnitDto
+        {
+            public Guid UnitId { get; set; }
+            public decimal ConversionRate { get; set; }
+            public decimal Price { get; set; }
+        }
+
     }
 }

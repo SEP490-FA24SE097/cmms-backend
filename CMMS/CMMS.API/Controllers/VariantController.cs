@@ -69,7 +69,7 @@ namespace CMMS.API.Controllers
                     Price = variant.Price,
                     variant.CostPrice,
                     variant.ConversionUnitId,
-                    ConversionUnitName =variant.ConversionUnitId==null?null: variant.ConversionUnit.Name,
+                  //  ConversionUnitName = variant.ConversionUnitId == null ? null : variant.ConversionUnit.Name,
                     VariantImageUrl = variant.VariantImageUrl,
                     attributes = attributes
                 });
@@ -96,7 +96,7 @@ namespace CMMS.API.Controllers
                     {
                         VariantId = x.Id,
                         ConversionUnitId = x.ConversionUnitId,
-                        ConversionUnitName = x.ConversionUnit.Name,
+                       // ConversionUnitName = x.ConversionUnit.Name,
                         Sku = x.SKU,
                         Image = x.VariantImageUrl,
                         Price = x.Price,
@@ -112,7 +112,7 @@ namespace CMMS.API.Controllers
                     Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                     CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
                     ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                    ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
+                    //ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Name).FirstOrDefault(),
                     VariantImageUrl = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                     attributes = x.Select(x => new { x.Attribute.Name, x.Value })
                 }).ToList();
@@ -131,6 +131,13 @@ namespace CMMS.API.Controllers
             try
             {
                 var material = await _materialService.FindAsync(variant.MaterialId);
+                var unitVariant =
+                    _variantService.Get(x => x.MaterialId == variant.MaterialId && x.MaterialVariantAttributes.Count <= 0)
+                        .Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                if (unitVariant != null)
+                {
+                    return BadRequest();
+                }
                 var dic = variant.Attributes.ToDictionary(x => x.Id, x => x.Value);
                 var newVariant = new Variant
                 {

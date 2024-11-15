@@ -14,7 +14,7 @@ namespace CMMS.Core.Models
         public string BarCode { get; set; }
         public string Category { get; set; }
         public string Unit { get; set; }
-        
+        public string MaterialCode { get; set; }
         public string Description { get; set; }
         public decimal SalePrice { get; set; }
         public decimal MinStock { get; set; }
