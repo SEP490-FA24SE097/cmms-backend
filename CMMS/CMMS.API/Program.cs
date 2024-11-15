@@ -6,6 +6,8 @@ using CMMS.Core.Entities;
 using CMMS.Infrastructure;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Handlers;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -146,7 +148,10 @@ namespace CMMS.API
 
             // auto mapper
             builder.Services.AddAutoMapper(typeof(Program));
-
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = GoogleCredential.FromFile("firebase.json")
+            });
 
             var app = builder.Build();
 

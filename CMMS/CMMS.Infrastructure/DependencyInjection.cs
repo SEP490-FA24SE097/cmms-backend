@@ -24,7 +24,7 @@ namespace CMMS.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<ITransaction, EfTransaction>();
 
-			services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<ICategoryService, CategoryService>();
 
             services.AddScoped<IUnitRepository, UnitRepository>();
@@ -75,11 +75,11 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<ICartService, CartService>();
 
-			services.AddScoped<IPaymentRepository, PaymentRepository>();
-			services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IPaymentRepository, PaymentRepository>();
+            services.AddScoped<IPaymentService, PaymentService>();
 
-			services.AddScoped<IInvoiceRepository, InvoiceRepository>();
-			services.AddScoped<IInvoiceService, InvoiceService>();
+            services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
 
             services.AddScoped<IInvoiceDetailRepository, InvoiceDetailRepository>();
             services.AddScoped<IInvoiceDetailService, InvoiceDetailService>();
@@ -104,6 +104,13 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IConversionUnitRepository, ConversionUnitRepository>();
             services.AddScoped<IConversionUnitService, ConversionUnitService>();
+
+            services.AddScoped<IImportDetailRepository, ImportDetailRepository>();
+            services.AddScoped<IImportDetailService, ImportDetailService>();
+
+            services.AddScoped<ISubImageRepository, SubImageRepository>();
+            services.AddScoped<ISubImageService, SubImageService>();
+
             return services;
         }
     }

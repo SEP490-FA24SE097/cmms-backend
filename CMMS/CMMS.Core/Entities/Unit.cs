@@ -15,5 +15,6 @@ namespace CMMS.Core.Entities
         public Guid Id { get; set; }
         public string Name { get; set; }
         public virtual ICollection<Material> Materials { get; set; }
+        public virtual ICollection<ConversionUnit> ConversionUnits { get; set; }
     }
 }

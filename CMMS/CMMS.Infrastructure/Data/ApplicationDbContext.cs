@@ -31,6 +31,7 @@ namespace CMMS.Infrastructure.Data
         public DbSet<Variant> Variants { get; set; }
         public DbSet<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
         public DbSet<Import> Imports { get; set; }
+        public DbSet<ImportDetail> ImportDetails { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<StoreInventory> StoreInventories { get; set; }
         public DbSet<GoodsDeliveryNote> GoodsDeliveryNotes { get; set; }

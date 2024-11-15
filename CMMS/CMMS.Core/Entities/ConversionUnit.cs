@@ -11,10 +11,11 @@ namespace CMMS.Core.Entities
     {
         [Key]
         public Guid Id { get; set; }
-        public string Name { get; set; }
         public decimal ConversionRate { get; set; }
         public decimal Price { get; set; }
         public Guid MaterialId { get; set; }
+        public Guid UnitId { get; set; }
         public virtual Material Material { get; set; }
+        public virtual Unit Unit { get; set; }
     }
 }

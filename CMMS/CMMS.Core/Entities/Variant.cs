@@ -19,8 +19,10 @@ namespace CMMS.Core.Entities
         public decimal CostPrice { get; set; }
         public string VariantImageUrl { get; set; }
         public Guid? ConversionUnitId { get; set; }
+        public Guid? AttributeVariantId { get; set; }
         public bool? IsActive { get; set; }
         public virtual Material Material { get; set; }
+        public virtual Variant? AttributeVariant { get; set; }
         public virtual ICollection<MaterialVariantAttribute> MaterialVariantAttributes { get; set; }
         public virtual ICollection<Import> Imports { get; set; }
         public virtual ICollection<Warehouse> Warehouses { get; set; }
