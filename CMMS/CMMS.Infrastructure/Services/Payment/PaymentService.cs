@@ -23,7 +23,7 @@ namespace CMMS.Infrastructure.Services.Payment
         Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo);
         Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
         Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
-        Task<int> UpdateStoreInventoryAsync(CartItem cartItem);
+        Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus);
     }
     public class PaymentService : IPaymentService
     {
@@ -136,7 +136,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     };
 
                     var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
-                    if (updateQuantityStatus == 0)
+                    if (updateQuantityStatus)
                         return false;
 
                     await _invoiceDetailService.AddAsync(invoiceDetail);
@@ -196,7 +196,7 @@ namespace CMMS.Infrastructure.Services.Payment
 
                         // update store quantity
                         var updateQuantityStatus = await UpdateStoreInventoryAsync(item);
-                        if (updateQuantityStatus == 0)
+                        if (updateQuantityStatus)
                             return false;
 
                         await _invoiceDetailService.AddAsync(invoiceDetail);
@@ -516,15 +516,43 @@ namespace CMMS.Infrastructure.Services.Payment
             }
         }
 
-        public async Task<int> UpdateStoreInventoryAsync(CartItem cartItem)
+
+        public async Task<bool> CanPurchase(CartItem cartItem)
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await _cartService.GetItemInStoreAsync(item);
-            var newQuantity = storeInventory.TotalQuantity - cartItem.Quantity;
-            storeInventory.TotalQuantity = newQuantity;
-            if (newQuantity < 0) return -1;
-            _storeInventoryService.Update(storeInventory);
-            return 1;
+            if(storeInventory != null)
+            {
+                var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
+                return cartItem.Quantity > availableQuantity;
+            }
+            return false;
+        }
+        public async Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus)
+        {
+            var item = _mapper.Map<AddItemModel>(cartItem);
+            var storeInventory = await _cartService.GetItemInStoreAsync(item);
+            if(storeInventory != null)
+            {
+                if (invoiceStatus == 0)
+                {
+                    storeInventory.InOrderQuantity += cartItem.Quantity;
+                }
+                else
+                {
+                    storeInventory.TotalQuantity -= cartItem.Quantity;
+                    storeInventory.InOrderQuantity -= cartItem.Quantity;
+                }
+                _storeInventoryService.Update(storeInventory);
+                var result = await _storeInventoryService.SaveChangeAsync();
+                if (result) return true;
+            }
+            return false;
+        }
+
+        public Task<bool> UpdateStoreInventoryAsync(CartItem cartItem)
+        {
+            throw new NotImplementedException();
         }
     }
 }

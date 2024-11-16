@@ -294,8 +294,8 @@ namespace CMMS.API.Controllers
                             InvoiceId = invoiceCode,
                         };
                         // update store quantity
-                        var updateQuantityStatus = await _paymentService.UpdateStoreInventoryAsync(item);
-                        if (updateQuantityStatus == 0)
+                        var updateQuantityStatus = await _paymentService.UpdateStoreInventoryAsync(item, 1);
+                        if (updateQuantityStatus)
                             // chỗ này phải lock process của luồng này lại k cho chạy đồng thời.
                             return Ok(new { success = false, message = "Số lượng hàng hóa có biến động kiểm tra lại" });
                         await _invoiceDetailService.AddAsync(invoiceDetail);
