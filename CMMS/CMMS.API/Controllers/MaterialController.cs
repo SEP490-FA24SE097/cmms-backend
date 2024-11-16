@@ -638,7 +638,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] MaterialCM.PostMaterialRequest materialCm)
+        public async Task<IActionResult> Create([FromForm] MaterialCM.PostMaterialRequest materialCm)
         {
             try
             {
