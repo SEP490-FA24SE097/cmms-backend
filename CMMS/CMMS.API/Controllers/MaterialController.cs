@@ -103,7 +103,7 @@ namespace CMMS.API.Controllers
                     SalePrice = x.SalePrice,
                     Unit = x.Unit.Name,
                     Category = x.Category.Name,
-                    MinStock = x.MinStock,
+                    MinStock = (decimal)x.MinStock,
                     ImageUrl = x.ImageUrl
 
                 }).ToList();
@@ -552,7 +552,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetMaterialById([FromRoute] string id)
+        public  IActionResult GetMaterialByIdAsync([FromRoute] string id)
         {
             try
             {
@@ -570,7 +570,7 @@ namespace CMMS.API.Controllers
                             SalePrice = x.SalePrice,
                             Unit = x.Unit.Name,
                             Category = x.Category.Name,
-                            MinStock = x.MinStock,
+                            MinStock = (decimal)x.MinStock,
                             ImageUrl = x.ImageUrl,
                             SubImages = x.SubImages.Select(x => new SubImageDTO()
                             {
