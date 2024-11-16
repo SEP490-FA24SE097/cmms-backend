@@ -34,7 +34,7 @@ namespace CMMS.API.Controllers
                 var list = conversionUnitName.Select(x => new ConversionUnit()
                 {
                     Id = new Guid(),
-                    Name = x.Name,
+                  //  Name = x.Name,
                     ConversionRate = x.ConversionRate,
                     Price = x.Price,
                     MaterialId = materialId
@@ -45,7 +45,21 @@ namespace CMMS.API.Controllers
                 var variants = _variantService.Get(x => x.MaterialId == materialId).ToList();
                 if (!variants.Any())
                 {
-                    var material = await _materialService.FindAsync(materialId);
+                    var material = _materialService.Get(x => x.Id == materialId).FirstOrDefault();
+                    if (material == null)
+                    {
+                        return BadRequest();
+                    }
+                    await _variantService.AddAsync(new Variant()
+                    {
+                        Id = new Guid(),
+                        VariantImageUrl = material.ImageUrl,
+                        Price = material.SalePrice,
+                        CostPrice = material.CostPrice,
+                        ConversionUnitId = null,
+                        SKU = material.Name + " (" + material.Unit.Name + ")",
+                        MaterialId = materialId
+                    });
                     await _variantService.AddRange(list.Select(x => new Variant()
                     {
                         Id = new Guid(),
@@ -53,7 +67,7 @@ namespace CMMS.API.Controllers
                         Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
                         CostPrice = material.CostPrice * x.ConversionRate,
                         ConversionUnitId = x.Id,
-                        SKU = material.Name + " (" + x.Name + ")",
+                       // SKU = material.Name + " (" + x.Name + ")",
                         MaterialId = materialId
                     }));
                     await _variantService.SaveChangeAsync();
@@ -73,7 +87,7 @@ namespace CMMS.API.Controllers
                             Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
                             CostPrice = material.CostPrice * x.ConversionRate,
                             ConversionUnitId = x.Id,
-                            SKU = material.Name + " (" + x.Name + ")",
+                          //  SKU = material.Name + " (" + x.Name + ")",
                             MaterialId = materialId
                         }));
                         await _variantService.SaveChangeAsync();
@@ -90,7 +104,8 @@ namespace CMMS.API.Controllers
                                 Price = x.Price * unit.ConversionRate,
                                 CostPrice = x.CostPrice * unit.ConversionRate,
                                 ConversionUnitId = unit.Id,
-                                SKU = x.SKU + " (" + unit.Name + ")",
+                              //  SKU = x.SKU + " (" + unit.Name + ")",
+                                AttributeVariantId = x.Id,
                                 MaterialId = materialId
                             }));
                         }

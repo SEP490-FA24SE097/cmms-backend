@@ -14,14 +14,14 @@ namespace CMMS.Core.Models
         public string BarCode { get; set; }
         public string Category { get; set; }
         public string Unit { get; set; }
-        
+        public string MaterialCode { get; set; }
         public string Description { get; set; }
         public decimal SalePrice { get; set; }
         public decimal MinStock { get; set; }
         public string Brand { get; set; }
         public bool IsRewardEligible { get; set; }
         public string ImageUrl { get; set; }
-
+        
         public List<SubImageDTO>? SubImages { get; set; }
     }
 

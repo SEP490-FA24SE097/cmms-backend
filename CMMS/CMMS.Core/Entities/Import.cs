@@ -11,14 +11,16 @@ namespace CMMS.Core.Entities
     {
         [Key]
         public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
-        public Guid? VariantId { get; set; }
-        public Guid SupplierId { get; set; }
+        public Guid? SupplierId { get; set; }
         public decimal Quantity { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal TotalDiscount { get; set; }
+        public string Status { get; set; }
+        public string? Note { get; set; }
         public DateTime TimeStamp { get; set; }
-        public virtual Material Material { get; set; }
-        public virtual Variant? Variant { get; set; }
-        public virtual Supplier Supplier { get; set; }
+        public decimal TotalDue { get; set; }
+        public decimal TotalPaid { get; set; }
+        public virtual Supplier? Supplier { get; set; }
+        public virtual ICollection<ImportDetail> ImportDetails { get; set; }
     }
 }
