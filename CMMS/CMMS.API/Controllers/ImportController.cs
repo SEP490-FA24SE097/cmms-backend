@@ -118,41 +118,28 @@ namespace CMMS.API.Controllers
                     {
                         var warehouse = _warehouseService
                             .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
-                        if (item.VariantId == null)
+
+                        if (warehouse != null)
                         {
-                            if (warehouse != null)
-                            {
-                                warehouse.TotalQuantity += item.Quantity;
-                                warehouse.LastUpdateTime = GetVietNamTime();
-                            }
-                            else
-                            {
-                                await _warehouseService.AddAsync(new Warehouse
-                                {
-                                    Id = Guid.NewGuid(),
-                                    MaterialId = item.MaterialId,
-                                    VariantId = item.VariantId,
-                                    TotalQuantity = item.Quantity,
-                                    LastUpdateTime = GetVietNamTime()
-                                });
-                            }
-                            await _warehouseService.SaveChangeAsync();
+                            warehouse.TotalQuantity += item.Quantity;
+                            warehouse.LastUpdateTime = GetVietNamTime();
                         }
                         else
                         {
-                            var attributeVariantCheck =
-                                _variantService
-                                    .Get(x => x.Id == item.VariantId && x.MaterialVariantAttributes.Count > 0)
-                                    .Include(x => x.MaterialVariantAttributes).FirstOrDefault();
-                            if (attributeVariantCheck != null)
+                            await _warehouseService.AddAsync(new Warehouse
                             {
-
-                            }
+                                Id = Guid.NewGuid(),
+                                MaterialId = item.MaterialId,
+                                VariantId = item.VariantId,
+                                TotalQuantity = item.Quantity,
+                                LastUpdateTime = GetVietNamTime()
+                            });
                         }
-
+                        await _warehouseService.SaveChangeAsync();
                     }
-
                 }
+
+
                 return Ok();
             }
             catch (Exception ex)
@@ -162,32 +149,44 @@ namespace CMMS.API.Controllers
 
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> CompleteImport([FromQuery] Guid importId)
-        //{
-        //    var list = _importService.Get(x => x.Id == importId).Include(x => x.ImportDetails).Select(x => x.ImportDetails).FirstOrDefault();
-        //    foreach (var item in list)
-        //    {
-        //        var warehouse = _warehouseService
-        //            .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
-        //        if (warehouse != null)
-        //        {
-        //            warehouse.TotalQuantity += item.Quantity;
-        //            warehouse.LastUpdateTime = GetVietNamTime();
-        //        }
-        //        else
-        //        {
-        //            await _warehouseService.AddAsync(new Warehouse
-        //            {
-        //                Id = Guid.NewGuid(),
-        //                MaterialId = item.MaterialId,
-        //                VariantId = item.VariantId,
-        //                TotalQuantity = item.Quantity,
-        //                LastUpdateTime = GetVietNamTime()
-        //            });
-        //        }
-        //    }
-        //}
+        [HttpPost("complete-import")]
+        public async Task<IActionResult> CompleteImport([FromQuery] Guid importId)
+        {
+            try
+            {
+                var list = _importService.Get(x => x.Id == importId).Include(x => x.ImportDetails)
+                    .Select(x => x.ImportDetails).FirstOrDefault();
+                foreach (var item in list)
+                {
+                    var warehouse = _warehouseService
+                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
+                    if (warehouse != null)
+                    {
+                        warehouse.TotalQuantity += item.Quantity;
+                        warehouse.LastUpdateTime = GetVietNamTime();
+                    }
+                    else
+                    {
+                        await _warehouseService.AddAsync(new Warehouse
+                        {
+                            Id = Guid.NewGuid(),
+                            MaterialId = item.MaterialId,
+                            VariantId = item.VariantId,
+                            TotalQuantity = item.Quantity,
+                            LastUpdateTime = GetVietNamTime()
+                        });
+                    }
+
+                    await _warehouseService.SaveChangeAsync();
+                }
+
+                return Ok();
+            }
+            catch (Exception ex )
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
 
     }
 }
