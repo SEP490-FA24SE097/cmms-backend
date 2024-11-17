@@ -76,7 +76,7 @@ namespace CMMS.API.Controllers
                 {
                     var attributeVariants = _variantService.Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count > 0 && x.ConversionUnitId == null).ToList();
                     var unitVariants = _variantService
-                        .Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count <= 0).ToList();
+                        .Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count <= 0).AsQueryable().Include(x=>x.MaterialVariantAttributes).ToList();
                     if (unitVariants.Count > 0)
                     {
                         var material = await _materialService.FindAsync(materialId);

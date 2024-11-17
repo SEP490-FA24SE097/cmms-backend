@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/units")]
     public class UnitController : Controller

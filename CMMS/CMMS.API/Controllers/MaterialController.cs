@@ -27,9 +27,10 @@ namespace CMMS.API.Controllers
         private readonly IUnitService _unitService;
         private readonly ISubImageService _subImageService;
         private readonly IConversionUnitService _conversionUnitService;
+        private readonly IStoreInventoryService _storeInventoryService;
         public MaterialController(IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService, IVariantService variantService, IImportDetailService importDetailService,
-            IImportService importService, IConversionUnitService conversionUnitService, ISubImageService subImageService, IUnitService unitService)
+            IImportService importService, IConversionUnitService conversionUnitService, ISubImageService subImageService, IUnitService unitService, IStoreInventoryService storeInventoryService)
         {
             _materialService = materialService;
             _materialVariantAttributeService = materialVariantAttributeService;
@@ -38,7 +39,8 @@ namespace CMMS.API.Controllers
             _conversionUnitService = conversionUnitService;
             _subImageService = subImageService;
             _unitService = unitService;
-            _importDetailService=importDetailService;
+            _importDetailService = importDetailService;
+            _storeInventoryService= storeInventoryService;
         }
 
 
@@ -132,8 +134,8 @@ namespace CMMS.API.Controllers
                     if (variants.Count <= 0)
                     {
                         var unitVariants = _variantService.Get(x => x.MaterialId == material.Id)
-                            .Include(x => x.ConversionUnit).ToList();
-                        variants.AddRange(unitVariants.AsQueryable().Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
+                            .Include(x => x.ConversionUnit);
+                        variants.AddRange(unitVariants.Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
                         {
                             VariantId = x.Id,
                             ConversionUnitId = x.ConversionUnitId,
@@ -617,7 +619,7 @@ namespace CMMS.API.Controllers
                             variantId = x.Key,
                             sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                            ConversionUnitName = x.AsQueryable().Include(x=>x.Variant).ThenInclude(x=>x.ConversionUnit).ThenInclude(x=>x.Unit).Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault(),
+                            ConversionUnitName = x.AsQueryable().Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault(),
                             image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                             CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
@@ -638,11 +640,11 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromForm] MaterialCM.PostMaterialRequest materialCm)
+        public async Task<IActionResult> Create([FromBody] MaterialCM.PostMaterialRequest materialCm)
         {
             try
             {
-                var images = await UploadImages.UploadFile(materialCm.ImagesFile);
+                var images = await UploadImages.UploadToFirebase(materialCm.ImagesFile);
                 var newGuid = new Guid();
                 var material = new Material
                 {
@@ -684,6 +686,7 @@ namespace CMMS.API.Controllers
                 }).ToList();
                 await _conversionUnitService.AddRange(list);
                 await _conversionUnitService.SaveChangeAsync();
+                var newMaterial = _materialService.Get(x => x.Id == material.Id).Include(x => x.Unit).FirstOrDefault();
                 await _variantService.AddAsync(new Variant()
                 {
                     Id = new Guid(),
@@ -691,20 +694,23 @@ namespace CMMS.API.Controllers
                     Price = material.SalePrice,
                     CostPrice = material.CostPrice,
                     ConversionUnitId = null,
-                    SKU = material.Name + " (" + material.Unit.Name + ")",
+                    SKU = material.Name + " (" + newMaterial.Unit.Name + ")",
                     MaterialId = material.Id
                 });
-
-                await _variantService.AddRange(list.AsQueryable().Include(x => x.Unit).Select(x => new Variant()
+                foreach (var item in list)
                 {
-                    Id = new Guid(),
-                    VariantImageUrl = material.ImageUrl,
-                    Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
-                    CostPrice = material.CostPrice * x.ConversionRate,
-                    ConversionUnitId = x.Id,
-                    SKU = material.Name + " (" + x.Unit.Name + ")",
-                    MaterialId = material.Id
-                }));
+                    var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
+                    await _variantService.AddAsync(new Variant()
+                    {
+                        Id = new Guid(),
+                        VariantImageUrl = material.ImageUrl,
+                        Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
+                        CostPrice = material.CostPrice * item.ConversionRate,
+                        ConversionUnitId = item.Id,
+                        SKU = material.Name + " (" + unitName.Unit.Name + ")",
+                        MaterialId = material.Id
+                    });
+                }
                 await _variantService.SaveChangeAsync();
                 return Ok();
             }
@@ -715,17 +721,16 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Update([FromQuery] string materialId, [FromBody] MaterialUM materialUM)
+        public async Task<IActionResult> Update([FromBody] MaterialUM materialUM)
         {
             try
             {
-                var material = await _materialService.FindAsync(Guid.Parse(materialId));
+                var material = await _materialService.FindAsync(materialUM.Id);
                 material.Name = materialUM.Name.IsNullOrEmpty() ? material.Name : materialUM.Name;
                 material.BarCode = materialUM.BarCode.IsNullOrEmpty() ? material.BarCode : materialUM.BarCode;
                 material.Description = materialUM.Description.IsNullOrEmpty()
                     ? material.Description
                     : materialUM.Description;
-                material.ImageUrl = materialUM.ImageUrl.IsNullOrEmpty() ? material.ImageUrl : materialUM.ImageUrl;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
                 material.MinStock = materialUM.MinStock == 0 ? material.MinStock : materialUM.MinStock;
@@ -735,11 +740,48 @@ namespace CMMS.API.Controllers
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty()
                     ? material.CategoryId
                     : Guid.Parse(materialUM.CategoryId);
-                material.UnitId = materialUM.UnitId.IsNullOrEmpty() ? material.UnitId : Guid.Parse(materialUM.UnitId);
-                material.IsRewardEligible = materialUM.IsRewardEligible == null
+                material.IsRewardEligible = materialUM.isPoint == null
                     ? material.IsRewardEligible
-                    : (bool)materialUM.IsRewardEligible;
+                    : (bool)materialUM.isPoint;
+                material.MaxStock = materialUM.MaxStock == 0 ? material.MaxStock : materialUM.MaxStock;
+                material.WeightUnit = materialUM.WeightUnit.IsNullOrEmpty() ? material.WeightUnit : materialUM.WeightUnit;
+                material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
                 await _materialService.SaveChangeAsync();
+                if (!materialUM.ImageFiles.IsNullOrEmpty())
+                {
+                    var images = await UploadImages.UploadToFirebase(materialUM.ImageFiles);
+                    _subImageService.AddRange(images.Select(x => new SubImage()
+                    {
+                        Id = new Guid(),
+                        MaterialId = materialUM.Id,
+                        SubImageUrl = x
+                    }));
+                    await _subImageService.SaveChangeAsync();
+                }
+
+                if (materialUM.StoreId != null)
+                {
+                    var variants = _variantService.Get(x => x.MaterialId == material.Id).ToList();
+                    foreach (var variant in variants)
+                    {
+                        var storeItem = _storeInventoryService
+                            .Get(x => x.StoreId == materialUM.StoreId && x.VariantId == variant.Id).FirstOrDefault();
+                        if(storeItem == null)
+                        {
+                            _storeInventoryService.AddAsync(new StoreInventory()
+                            {
+                                Id = new Guid(),
+                                VariantId = variant.Id,
+                                MaterialId = materialUM.Id,
+                                MinStock = materialUM.MinStock,
+                                MaxStock = materialUM.MaxStock,
+                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime(),
+                                TotalQuantity = 0
+                            });
+                        }
+                    }
+                    
+                }
                 return Ok(material);
             }
             catch (Exception ex)
@@ -872,7 +914,28 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HttpPost("upload")]
+        public async Task<IActionResult> UploadFile(List<IFormFile> file)
+        {
+            var bucketName = "ccms-d6bf2.firebasestorage.app";
+            GoogleCredential credential =
+                GoogleCredential.FromFile("firebase.json");
+            var storage = StorageClient.Create(credential);
+            List<string> images = [];
+            foreach (var item in file)
+            {
+                var objectName = $"{Path.GetRandomFileName()}_{item.FileName}";
 
+                using (var stream = item.OpenReadStream())
+                {
+                    await storage.UploadObjectAsync(bucketName, objectName, null, stream);
+                }
+                var publicUrl = $"https://firebasestorage.googleapis.com/v0/b/{bucketName}/o/{objectName}?alt=media";
+                images.Add(publicUrl);
+            }
+
+            return Ok(images);
+        }
 
     }
 }
