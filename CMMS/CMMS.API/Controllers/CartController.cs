@@ -21,29 +21,30 @@ namespace CMMS.API.Controllers
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly IMapper _mapper;
-        private ICartService _cartService;
         private ICurrentUserService _currentUserService;
+        private IStoreInventoryService _storeInventoryService;
 
-        public CartController(ICartService cartService,
+        public CartController(
             ICurrentUserService currentUserService,
             IVariantService variantService,
             IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService,
-            IMapper mapper)
+            IMapper mapper,
+            IStoreInventoryService storeInventoryService)
         {
             _materialVariantAttributeService = materialVariantAttributeService;
             _variantService = variantService;
             _materialService = materialService;
             _mapper = mapper;
-            _cartService = cartService;
             _currentUserService = currentUserService;
+            _storeInventoryService = storeInventoryService;
         }
 
         [HttpPost]
         public async Task<IActionResult> AddItemToCartAsync(CartItemModel model)
         {
             var addItemModel = _mapper.Map<AddItemModel>(model);
-            var item =  await _cartService.GetItemInStoreAsync(addItemModel);
+            var item =  await _storeInventoryService.GetItemInStoreAsync(addItemModel);
             if (model.Quantity <= item.TotalQuantity)
             {
                 return Ok(new { success = true, message = "Thêm sản phẩm vào giỏ hàng thành công" });

@@ -22,7 +22,6 @@ namespace CMMS.API.Controllers
     {
         private ICurrentUserService _currentUserService;
         private IPaymentService _paymentService;
-        private ICartService _cartService;
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly ICustomerBalanceService _customerBalanceService;
@@ -36,7 +35,6 @@ namespace CMMS.API.Controllers
 
         public PaymentController(IPaymentService paymentService,
             ICurrentUserService currentUserService,
-            ICartService cartService,
             IVariantService variantService,
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
@@ -44,7 +42,6 @@ namespace CMMS.API.Controllers
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
-            _cartService = cartService;
             _variantService = variantService;
             _materialService = materialService;
             _customerBalanceService = customerBalanceService;

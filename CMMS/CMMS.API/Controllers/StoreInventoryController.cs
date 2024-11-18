@@ -27,11 +27,9 @@ namespace CMMS.API.Controllers
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly IMapper _mapper;
-        private ICartService _cartService;
         private ICurrentUserService _currentUserService;
 
         public StoreInventoryController(IStoreInventoryService storeInventoryService,
-            ICartService cartService,
             ICurrentUserService currentUserService,
             IVariantService variantService,
             IMaterialService materialService,
@@ -43,10 +41,8 @@ namespace CMMS.API.Controllers
             _variantService = variantService;
             _materialService = materialService;
             _mapper = mapper;
-            _cartService = cartService;
             _currentUserService = currentUserService;
         }
-
 
 
         [HttpPost]
@@ -58,14 +54,13 @@ namespace CMMS.API.Controllers
             foreach (var cartItem in listCartRequest)
             {
                 var addItemModel = _mapper.Map<AddItemModel>(cartItem);
-                var item = await _cartService.GetItemInStoreAsync(addItemModel);
+                var item = await _storeInventoryService.GetItemInStoreAsync(addItemModel);
                 if (item != null)
                 {
                     CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
-                    if (cartItem.Quantity > item.TotalQuantity)
-                    {
-                        cartItemVM.IsChangeQuantity = true;
-                    }
+                    var canPurchase = await _storeInventoryService.CanPurchase(cartItem);
+                    if(!canPurchase) cartItemVM.IsChangeQuantity = true;
+
                     var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
                     cartItemVM.ItemName = material.Name;
                     cartItemVM.SalePrice = material.SalePrice;
