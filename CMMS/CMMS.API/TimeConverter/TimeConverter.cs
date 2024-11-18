@@ -6,10 +6,13 @@ namespace CMMS.API.TimeConverter
     {
         public static DateTime GetVietNamTime()
         {
-            var timeZoneId = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? "SE Asia Standard Time" // Windows ID
-                : "Asia/Bangkok";         // IANA ID for other platforms
-            return TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
+            var vietnamOffset = TimeSpan.FromHours(7);
+
+            
+            var utcNow = DateTimeOffset.UtcNow;
+
+            return utcNow.ToOffset(vietnamOffset).DateTime;
+
         }
     }
 }
