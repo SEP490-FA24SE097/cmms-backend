@@ -8,11 +8,15 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using CMMS.Infrastructure.Repositories;
+using AutoMapper;
+using CMMS.Infrastructure.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.Infrastructure.Services
 {
     public interface IStoreInventoryService
     {
+        #region CRUD
         Task<StoreInventory> FindAsync(Guid id);
         IQueryable<StoreInventory> GetAll();
         IQueryable<StoreInventory> Get(Expression<Func<StoreInventory, bool>> where);
@@ -24,19 +28,84 @@ namespace CMMS.Infrastructure.Services
         Task<bool> Remove(Guid id);
         Task<bool> CheckExist(Expression<Func<StoreInventory, bool>> where);
         Task<bool> SaveChangeAsync();
+
+        #endregion
+        Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel);
+        Task<bool> CanPurchase(CartItem cartItem);
+        Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus);
     }
 
     public class StoreInventoryService : IStoreInventoryService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IStoreInventoryRepository _inventoryRepository;
+        private readonly IMapper _mapper;
 
-        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository inventoryRepository)
+        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository inventoryRepository,
+            IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _inventoryRepository = inventoryRepository;
+            _mapper = mapper;
+
+        }
+        public async Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel)
+        {
+            StoreInventory storeInventory = null;
+            if (itemModel.VariantId != null)
+            {
+                var materialId = Guid.Parse(itemModel.MaterialId);
+                var variantId = Guid.Parse(itemModel.VariantId);
+                storeInventory = await _inventoryRepository.Get(x =>
+              x.StoreId.Equals(itemModel.StoreId)
+              && x.MaterialId.Equals(materialId)
+              && x.VariantId.Equals(variantId)).FirstOrDefaultAsync();
+            }
+            else
+            {
+                var materialId = Guid.Parse(itemModel.MaterialId);
+                storeInventory = await _inventoryRepository.Get(x =>
+              x.StoreId.Equals(itemModel.StoreId) &&
+              x.MaterialId.Equals(materialId) &&
+              x.VariantId == null).FirstOrDefaultAsync();
+            }
+            return storeInventory;
+        }
+        public async Task<bool> CanPurchase(CartItem cartItem)
+        {
+            var item = _mapper.Map<AddItemModel>(cartItem);
+            var storeInventory = await GetItemInStoreAsync(item);
+            if (storeInventory != null)
+            {
+                var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
+                return cartItem.Quantity > availableQuantity;
+            }
+            return false;
+        }
+        public async Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus)
+        {
+            var item = _mapper.Map<AddItemModel>(cartItem);
+            var storeInventory = await GetItemInStoreAsync(item);
+            if (storeInventory != null)
+            {
+                switch(invoiceStatus)
+                {
+                    case (int)InvoiceStatus.Pending :
+                        storeInventory.InOrderQuantity += cartItem.Quantity;
+                        break;
+                    case (int)InvoiceStatus.Done:
+                        storeInventory.TotalQuantity -= cartItem.Quantity;
+                        storeInventory.InOrderQuantity -= cartItem.Quantity;
+                        break;
+                }
+                _inventoryRepository.Update(storeInventory);
+                var result = await _unitOfWork.SaveChangeAsync();
+                if (result) return true;
+            }
+            return false;
         }
 
+        #region CRUD
         public async Task AddAsync(StoreInventory inventory)
         {
             await _inventoryRepository.AddAsync(inventory);
@@ -91,5 +160,7 @@ namespace CMMS.Infrastructure.Services
         {
             _inventoryRepository.Update(inventory);
         }
+        #endregion
+
     }
 }

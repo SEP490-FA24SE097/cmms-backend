@@ -49,12 +49,13 @@ namespace CMMS.Core.Models
     {
         public string Id { get; set; }
         public DateTime InvoiceDate { get; set; }
-        public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
+        public double TotalAmount { get; set; }
         public decimal? Discount { get; set; }
         public decimal? SalePrice { get; set; }
         public decimal? CustomerPaid { get; set; }
+        public decimal? NeedToPay { get; set; }
         public string? StaffId { get; set; }
         public string? StaffName { get; set; }
         public string? StoreId { get; set; }

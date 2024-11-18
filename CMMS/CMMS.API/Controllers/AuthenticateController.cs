@@ -28,7 +28,6 @@ namespace CMMS.API.Controllers
         private readonly IUserService _userService;
         private readonly ICurrentUserService _currentUserService;
         private readonly HttpClient _httpClient;
-        private readonly ICartService _cartService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMailService _mailService;
         private readonly IMapper _mapper;
@@ -38,7 +37,7 @@ namespace CMMS.API.Controllers
             IUserService userService,
             ICurrentUserService currentUserService,
             IMapper mapper, HttpClient httpClient,
-            ICartService cartService, IUnitOfWork unitOfWork,
+             IUnitOfWork unitOfWork,
             IMailService mailService)
         {
             _mapper = mapper;
@@ -46,7 +45,6 @@ namespace CMMS.API.Controllers
             _userService = userService;
             _currentUserService = currentUserService;
             _httpClient = httpClient;
-            _cartService = cartService;
             _unitOfWork = unitOfWork;
             _mailService = mailService;
 

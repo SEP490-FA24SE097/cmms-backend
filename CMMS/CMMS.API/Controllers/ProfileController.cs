@@ -27,8 +27,8 @@ namespace CMMS.API.Controllers
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private IShippingDetailService _shippingDetailService;
-        private ICartService _cartService;
         private readonly IInvoiceDetailService _invoiceDetailService;
+        private IStoreInventoryService _storeInventoryService;
 
         public ProfileController(IUserService userSerivce, IInvoiceService invoiceService,
             ITransactionService transactionService, ICurrentUserService currentUserService,
@@ -36,8 +36,8 @@ namespace CMMS.API.Controllers
             IVariantService variantService,
             IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService,
-            IShippingDetailService shippingDetailService, ICartService cartService,
-            IInvoiceDetailService invoiceDetailService)
+            IShippingDetailService shippingDetailService, 
+            IInvoiceDetailService invoiceDetailService, IStoreInventoryService storeInventoryService)
         {
             _userService = userSerivce;
             _invoiceService = invoiceService;
@@ -49,8 +49,8 @@ namespace CMMS.API.Controllers
             _variantService = variantService;
             _materialService = materialService;
             _shippingDetailService = shippingDetailService;
-            _cartService = cartService;
             _invoiceDetailService = invoiceDetailService;
+            _storeInventoryService = storeInventoryService;
         }
         [HttpGet]
         public async Task<IActionResult> GetAsync()
@@ -142,7 +142,7 @@ namespace CMMS.API.Controllers
                 foreach (var invoiceDetail in invoice.InvoiceDetails)
                 {
                     var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
-                    var item = await _cartService.GetItemInStoreAsync(itemInStoreModel);
+                    var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
                     if (item != null)
                     {
                         var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));

@@ -1,11 +1,13 @@
 ﻿using CMMS.Core.Entities;
 using CMMS.Infrastructure.Data;
+using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore.Query;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,6 +30,7 @@ namespace CMMS.Infrastructure.Services
         #endregion
 
         string GenerateTransactionCode(string prefix);
+        decimal GetAmountDebtLeftFromInvoice(string invoiceCode);
     }
     public class TransactionService : ITransactionService
     {
@@ -104,6 +107,27 @@ namespace CMMS.Infrastructure.Services
             var transactionTotal = _transactionRepository.Get(_ => _.Id.Substring(0, 2).Contains(prefix));
             string invoiceCode = $"{prefix}{(transactionTotal.Count() + 1):D6}";
             return invoiceCode;
+        }
+
+        public decimal GetAmountDebtLeftFromInvoice(string invoiceCode)
+        {
+            decimal customerPaid = 0;
+            decimal customerDeft = 0;
+
+
+            var transactionInvoice = _transactionRepository.Get(_ => _.InvoiceId.Equals(invoiceCode));
+            foreach (var transaction in transactionInvoice)
+            {
+                if (transaction.TransactionType == (int)TransactionType.PurchaseDebtInvoice)
+                {
+                    customerPaid += transaction.Amount;
+                }
+                else if (transaction.TransactionType == (int)TransactionType.SaleItem) {
+                    customerDeft += transaction.Amount; 
+                }
+            }
+            return customerDeft - customerPaid;
+
         }
     }
 }

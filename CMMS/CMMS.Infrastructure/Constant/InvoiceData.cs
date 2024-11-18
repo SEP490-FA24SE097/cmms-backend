@@ -32,6 +32,7 @@ namespace CMMS.Infrastructure.Constant
         public string? InvoiceId { get; set; }
         public string? CustomerId { get; set; }
         public string? ShipperId { get; set; }
+        public int? InvoiceType { get; set; }
     }
 
     public enum PaymentType

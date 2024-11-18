@@ -30,16 +30,16 @@ namespace CMMS.API.Controllers
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
-        private readonly ICartService _cartService;
+        private readonly ITransactionService _transactionService;
 
         public ShippingDetailController(IShippingDetailService shippingDetailService, IMapper mapper,
             IInvoiceService invoiceService, IUserService userService, IStoreService storeService,
             IStoreInventoryService storeInventoryService,
-            ICartService cartService,
             ICurrentUserService currentUserService,
             IVariantService variantService,
             IMaterialService materialService,
-            IMaterialVariantAttributeService materialVariantAttributeService)
+            IMaterialVariantAttributeService materialVariantAttributeService,
+            ITransactionService transactionService)
         {
             _mapper = mapper;
             _shippingDetailService = shippingDetailService;
@@ -50,7 +50,7 @@ namespace CMMS.API.Controllers
             _materialVariantAttributeService = materialVariantAttributeService;
             _variantService = variantService;
             _materialService = materialService;
-            _cartService = cartService;
+            _transactionService = transactionService;
 
         }
         [HttpGet("getShippingDetails")]
@@ -77,11 +77,12 @@ namespace CMMS.API.Controllers
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
                 item.Invoice.StaffId = staff.Id;
                 item.Invoice.StaffName = staff.FullName;
+                item.Invoice.NeedToPay = _transactionService.GetAmountDebtLeftFromInvoice(invoice.Id);
                 foreach (var invoiceDetails in item.Invoice.InvoiceDetails)
                 {
                     invoiceDetails.StoreId = item.Invoice.StoreId;
                     var addItemModel = _mapper.Map<AddItemModel>(invoiceDetails);
-                    var storeItem = await _cartService.GetItemInStoreAsync(addItemModel);
+                    var storeItem = await _storeInventoryService.GetItemInStoreAsync(addItemModel);
                     if (storeItem != null)
                     {
                         var material = await _materialService.FindAsync(storeItem.MaterialId);

@@ -23,7 +23,6 @@ namespace CMMS.Infrastructure.Services.Payment
         Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo);
         Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
         Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
-        Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus);
     }
     public class PaymentService : IPaymentService
     {
@@ -43,7 +42,6 @@ namespace CMMS.Infrastructure.Services.Payment
         private readonly ITransaction _efTransaction;
         private readonly IUserService _userService;
         private readonly IStoreInventoryService _storeInventoryService;
-        private readonly ICartService _cartService;
         private readonly IMapper _mapper;
 
         public PaymentService(IConfiguration configuration,
@@ -59,7 +57,7 @@ namespace CMMS.Infrastructure.Services.Payment
             IShippingDetailService shippingDetailService,
             ITransaction transaction, IUserService userService,
             IStoreInventoryService storeInventoryService,
-            ICartService cartService, IMapper mapper)
+             IMapper mapper)
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
@@ -77,7 +75,6 @@ namespace CMMS.Infrastructure.Services.Payment
             _efTransaction = transaction;
             _userService = userService;
             _storeInventoryService = storeInventoryService;
-            _cartService = cartService;
             _mapper = mapper;
         }
 
@@ -135,7 +132,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         InvoiceId = invoice.Id,
                     };
 
-                    var updateQuantityStatus = await UpdateStoreInventoryAsync(cartItem);
+                    var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
                     if (updateQuantityStatus)
                         return false;
 
@@ -195,7 +192,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         };
 
                         // update store quantity
-                        var updateQuantityStatus = await UpdateStoreInventoryAsync(item);
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                         if (updateQuantityStatus)
                             return false;
 
@@ -516,43 +513,5 @@ namespace CMMS.Infrastructure.Services.Payment
             }
         }
 
-
-        public async Task<bool> CanPurchase(CartItem cartItem)
-        {
-            var item = _mapper.Map<AddItemModel>(cartItem);
-            var storeInventory = await _cartService.GetItemInStoreAsync(item);
-            if(storeInventory != null)
-            {
-                var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
-                return cartItem.Quantity > availableQuantity;
-            }
-            return false;
-        }
-        public async Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus)
-        {
-            var item = _mapper.Map<AddItemModel>(cartItem);
-            var storeInventory = await _cartService.GetItemInStoreAsync(item);
-            if(storeInventory != null)
-            {
-                if (invoiceStatus == 0)
-                {
-                    storeInventory.InOrderQuantity += cartItem.Quantity;
-                }
-                else
-                {
-                    storeInventory.TotalQuantity -= cartItem.Quantity;
-                    storeInventory.InOrderQuantity -= cartItem.Quantity;
-                }
-                _storeInventoryService.Update(storeInventory);
-                var result = await _storeInventoryService.SaveChangeAsync();
-                if (result) return true;
-            }
-            return false;
-        }
-
-        public Task<bool> UpdateStoreInventoryAsync(CartItem cartItem)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
