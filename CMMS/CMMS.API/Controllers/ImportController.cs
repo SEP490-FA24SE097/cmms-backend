@@ -116,30 +116,88 @@ namespace CMMS.API.Controllers
                     var list = _importService.Get(x => x.Id == imp.Id).Include(x => x.ImportDetails).Select(x => x.ImportDetails).FirstOrDefault();
                     foreach (var item in list)
                     {
-                        var warehouse = _warehouseService
-                            .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
-
-                        if (warehouse != null)
+                        if (item.VariantId == null)
                         {
-                            warehouse.TotalQuantity += item.Quantity;
-                            warehouse.LastUpdateTime = GetVietNamTime();
+                            var warehouse = _warehouseService
+                                .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
+                            if (warehouse != null)
+                            {
+                                warehouse.TotalQuantity += item.Quantity;
+                                warehouse.LastUpdateTime = GetVietNamTime();
+                            }
+                            else
+                            {
+                                await _warehouseService.AddAsync(new Warehouse
+                                {
+                                    Id = Guid.NewGuid(),
+                                    MaterialId = item.MaterialId,
+                                    VariantId = item.Id,
+                                    TotalQuantity = item.Quantity,
+                                    LastUpdateTime = GetVietNamTime()
+                                });
+                            }
+                            await _warehouseService.SaveChangeAsync();
+
                         }
                         else
                         {
-                            await _warehouseService.AddAsync(new Warehouse
+                            var variant = _variantService.Get(x => x.Id == item.VariantId).Include(x => x.ConversionUnit).FirstOrDefault();
+                            if (variant != null)
                             {
-                                Id = Guid.NewGuid(),
-                                MaterialId = item.MaterialId,
-                                VariantId = item.VariantId,
-                                TotalQuantity = item.Quantity,
-                                LastUpdateTime = GetVietNamTime()
-                            });
+                                if (variant.ConversionUnitId == null)
+                                {
+                                    var warehouse = _warehouseService
+                                        .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
+                                    if (warehouse != null)
+                                    {
+                                        warehouse.TotalQuantity += item.Quantity;
+                                        warehouse.LastUpdateTime = GetVietNamTime();
+                                    }
+                                    else
+                                    {
+                                        await _warehouseService.AddAsync(new Warehouse
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            MaterialId = variant.MaterialId,
+                                            VariantId = variant.Id,
+                                            TotalQuantity = item.Quantity,
+                                            LastUpdateTime = GetVietNamTime()
+                                        });
+                                    }
+                                    await _warehouseService.SaveChangeAsync();
+                                }
+                                else
+                                {
+                                    var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                        .FirstOrDefault();
+                                    if (rootVariant != null)
+                                    {
+                                        var warehouse = _warehouseService
+                                            .Get(x => x.MaterialId == rootVariant.MaterialId && x.VariantId == rootVariant.Id).FirstOrDefault();
+                                        if (warehouse != null)
+                                        {
+                                            warehouse.TotalQuantity += item.Quantity * variant.ConversionUnit.ConversionRate;
+                                            warehouse.LastUpdateTime = GetVietNamTime();
+                                        }
+                                        else
+                                        {
+                                            await _warehouseService.AddAsync(new Warehouse
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                MaterialId = rootVariant.MaterialId,
+                                                VariantId = rootVariant.Id,
+                                                TotalQuantity = item.Quantity * variant.ConversionUnit.ConversionRate,
+                                                LastUpdateTime = GetVietNamTime()
+                                            });
+                                        }
+                                        await _warehouseService.SaveChangeAsync();
+                                    }
+                                }
+                            }
+
                         }
-                        await _warehouseService.SaveChangeAsync();
                     }
                 }
-
-
                 return Ok();
             }
             catch (Exception ex)
@@ -158,31 +216,64 @@ namespace CMMS.API.Controllers
                     .Select(x => x.ImportDetails).FirstOrDefault();
                 foreach (var item in list)
                 {
-                    var warehouse = _warehouseService
-                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
-                    if (warehouse != null)
+                    var variant = _variantService.Get(x => x.Id == item.VariantId).FirstOrDefault();
+                    if (variant != null)
                     {
-                        warehouse.TotalQuantity += item.Quantity;
-                        warehouse.LastUpdateTime = GetVietNamTime();
-                    }
-                    else
-                    {
-                        await _warehouseService.AddAsync(new Warehouse
+                        if (variant.ConversionUnitId == null)
                         {
-                            Id = Guid.NewGuid(),
-                            MaterialId = item.MaterialId,
-                            VariantId = item.VariantId,
-                            TotalQuantity = item.Quantity,
-                            LastUpdateTime = GetVietNamTime()
-                        });
+                            var warehouse = _warehouseService
+                                .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
+                            if (warehouse != null)
+                            {
+                                warehouse.TotalQuantity += item.Quantity;
+                                warehouse.LastUpdateTime = GetVietNamTime();
+                            }
+                            else
+                            {
+                                await _warehouseService.AddAsync(new Warehouse
+                                {
+                                    Id = Guid.NewGuid(),
+                                    MaterialId = variant.MaterialId,
+                                    VariantId = variant.Id,
+                                    TotalQuantity = item.Quantity,
+                                    LastUpdateTime = GetVietNamTime()
+                                });
+                            }
+                            await _warehouseService.SaveChangeAsync();
+                        }
+                        else
+                        {
+                            var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                .FirstOrDefault();
+                            if (rootVariant != null)
+                            {
+                                var warehouse = _warehouseService
+                                    .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
+                                if (warehouse != null)
+                                {
+                                    warehouse.TotalQuantity += item.Quantity;
+                                    warehouse.LastUpdateTime = GetVietNamTime();
+                                }
+                                else
+                                {
+                                    await _warehouseService.AddAsync(new Warehouse
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        MaterialId = variant.MaterialId,
+                                        VariantId = variant.Id,
+                                        TotalQuantity = item.Quantity,
+                                        LastUpdateTime = GetVietNamTime()
+                                    });
+                                }
+                                await _warehouseService.SaveChangeAsync();
+                            }
+                        }
                     }
-
-                    await _warehouseService.SaveChangeAsync();
                 }
 
                 return Ok();
             }
-            catch (Exception ex )
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }

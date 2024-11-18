@@ -153,7 +153,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Attributes", (string)null);
+                    b.ToTable("Attributes");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Brand", b =>
@@ -171,7 +171,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Brands", (string)null);
+                    b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Category", b =>
@@ -194,7 +194,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("ParentCategoryId");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.ConversionUnit", b =>
@@ -221,7 +221,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("ConversionUnits", (string)null);
+                    b.ToTable("ConversionUnits");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.CustomerBalance", b =>
@@ -255,7 +255,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("CustomerBalances", (string)null);
+                    b.ToTable("CustomerBalances");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNote", b =>
@@ -285,7 +285,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("StoreId");
 
-                    b.ToTable("GoodsDeliveryNotes", (string)null);
+                    b.ToTable("GoodsDeliveryNotes");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.GoodsDeliveryNoteDetail", b =>
@@ -320,7 +320,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("GoodsDeliveryNoteDetails", (string)null);
+                    b.ToTable("GoodsDeliveryNoteDetails");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Import", b =>
@@ -371,7 +371,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("Imports", (string)null);
+                    b.ToTable("Imports");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.ImportDetail", b =>
@@ -415,7 +415,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("ImportDetails", (string)null);
+                    b.ToTable("ImportDetails");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Invoice", b =>
@@ -464,7 +464,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Invoices", (string)null);
+                    b.ToTable("Invoices");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.InvoiceDetail", b =>
@@ -492,7 +492,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoiceDetails", (string)null);
+                    b.ToTable("InvoiceDetails");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Material", b =>
@@ -531,10 +531,10 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<string>("MaterialCode")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("MaxStock")
+                    b.Property<decimal?>("MaxStock")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("MinStock")
+                    b.Property<decimal?>("MinStock")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Name")
@@ -569,7 +569,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("Materials", (string)null);
+                    b.ToTable("Materials");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.MaterialVariantAttribute", b =>
@@ -594,7 +594,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("MaterialVariantAttributes", (string)null);
+                    b.ToTable("MaterialVariantAttributes");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Payment", b =>
@@ -629,7 +629,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Permission", b =>
@@ -643,7 +643,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Permissions", (string)null);
+                    b.ToTable("Permissions");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.RolePermission", b =>
@@ -658,7 +658,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.ShippingDetail", b =>
@@ -696,7 +696,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("ShipperId");
 
                     b.ToTable("ShippingDetails");
-
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Store", b =>
@@ -732,9 +731,8 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-                 
-                    b.ToTable("Stores");
 
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.StoreInventory", b =>
@@ -742,6 +740,9 @@ namespace CMMS.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("ImportQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("InOrderQuantity")
                         .HasColumnType("decimal(18,2)");
@@ -776,7 +777,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("StoreInventories", (string)null);
+                    b.ToTable("StoreInventories");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.StoreMaterialImportRequest", b =>
@@ -813,7 +814,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("StoreMaterialImportRequests", (string)null);
+                    b.ToTable("StoreMaterialImportRequests");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.SubImage", b =>
@@ -833,7 +834,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("MaterialId");
 
-                    b.ToTable("SubImages", (string)null);
+                    b.ToTable("SubImages");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Supplier", b =>
@@ -863,7 +864,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Suppliers", (string)null);
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Transaction", b =>
@@ -899,7 +900,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Unit", b =>
@@ -917,7 +918,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Units", (string)null);
+                    b.ToTable("Units");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.UserPermission", b =>
@@ -932,7 +933,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("UserPermissions", (string)null);
+                    b.ToTable("UserPermissions");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Variant", b =>
@@ -983,7 +984,7 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasIndex("SKU")
                         .IsUnique();
 
-                    b.ToTable("Variants", (string)null);
+                    b.ToTable("Variants");
                 });
 
             modelBuilder.Entity("CMMS.Core.Entities.Warehouse", b =>
@@ -1010,7 +1011,7 @@ namespace CMMS.Infrastructure.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.ToTable("Warehouses", (string)null);
+                    b.ToTable("Warehouses");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
