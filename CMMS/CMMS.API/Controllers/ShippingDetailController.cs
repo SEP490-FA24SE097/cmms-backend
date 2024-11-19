@@ -74,10 +74,13 @@ namespace CMMS.API.Controllers
             {
                 var invoice =  _invoiceService.Get(_ => _.Id.Equals(item.Invoice.Id), _ => _.Customer).FirstOrDefault();
                 var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
                 item.Invoice.StaffId = staff.Id;
                 item.Invoice.StaffName = staff.FullName;
                 item.Invoice.NeedToPay = _transactionService.GetAmountDebtLeftFromInvoice(invoice.Id);
+                item.Invoice.StoreName = store.Name;
+                item.Invoice.StoreId = store.Id;
                 foreach (var invoiceDetails in item.Invoice.InvoiceDetails)
                 {
                     invoiceDetails.StoreId = item.Invoice.StoreId;
@@ -230,5 +233,7 @@ namespace CMMS.API.Controllers
             });
         }
 
+
+        // cap nhat don hang that bai.
     }
 }
