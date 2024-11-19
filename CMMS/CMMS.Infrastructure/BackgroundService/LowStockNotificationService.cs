@@ -57,6 +57,14 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
 
                 }
             }
+            var  warehouseProductsWithSufficientStock = await _warehouseService.GetAll().Include(x=>x.Material)
+                .Where(p => p.TotalQuantity > p.Material.MinStock)
+                .Select(p => p.Id)
+                .ToListAsync(stoppingToken);
+            foreach (var productId in warehouseProductsWithSufficientStock)
+            {
+                _notifiedWarehouseProducts.Remove(productId); // Remove if product has sufficient stock
+            }
             foreach (var storeId in storeIds)
             {
                 var lowStockStoreProducts = await _storeInventoryService.GetAll().Include(x => x.Material)
