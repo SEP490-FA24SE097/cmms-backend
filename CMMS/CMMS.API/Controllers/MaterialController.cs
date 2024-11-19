@@ -40,7 +40,7 @@ namespace CMMS.API.Controllers
             _subImageService = subImageService;
             _unitService = unitService;
             _importDetailService = importDetailService;
-            _storeInventoryService= storeInventoryService;
+            _storeInventoryService = storeInventoryService;
         }
 
 
@@ -554,7 +554,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public  IActionResult GetMaterialByIdAsync([FromRoute] string id)
+        public IActionResult GetMaterialByIdAsync([FromRoute] string id)
         {
             try
             {
@@ -649,7 +649,7 @@ namespace CMMS.API.Controllers
                 var material = new Material
                 {
                     Id = newGuid,
-                    MaterialCode = "MAT" + newGuid.ToString("N").Substring(0, 4),
+                    MaterialCode = "MAT" + newGuid.ToString().ToLower().Substring(0, 4),
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
@@ -687,7 +687,7 @@ namespace CMMS.API.Controllers
                 await _conversionUnitService.AddRange(list);
                 await _conversionUnitService.SaveChangeAsync();
                 var newMaterial = _materialService.Get(x => x.Id == material.Id).Include(x => x.Unit).FirstOrDefault();
-                await _variantService.AddAsync(new Variant()
+                var newVariant = new Variant()
                 {
                     Id = new Guid(),
                     VariantImageUrl = material.ImageUrl,
@@ -696,7 +696,8 @@ namespace CMMS.API.Controllers
                     ConversionUnitId = null,
                     SKU = material.Name + " (" + newMaterial.Unit.Name + ")",
                     MaterialId = material.Id
-                });
+                };
+                await _variantService.AddAsync(newVariant);
                 foreach (var item in list)
                 {
                     var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
@@ -707,6 +708,7 @@ namespace CMMS.API.Controllers
                         Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
                         CostPrice = material.CostPrice * item.ConversionRate,
                         ConversionUnitId = item.Id,
+                        AttributeVariantId = newVariant.Id,
                         SKU = material.Name + " (" + unitName.Unit.Name + ")",
                         MaterialId = material.Id
                     });
@@ -761,12 +763,12 @@ namespace CMMS.API.Controllers
 
                 if (materialUM.StoreId != null)
                 {
-                    var variants = _variantService.Get(x => x.MaterialId == material.Id).ToList();
+                    var variants = _variantService.Get(x => x.MaterialId == material.Id&&x.ConversionUnitId==null).ToList();
                     foreach (var variant in variants)
                     {
                         var storeItem = _storeInventoryService
                             .Get(x => x.StoreId == materialUM.StoreId && x.VariantId == variant.Id).FirstOrDefault();
-                        if(storeItem == null)
+                        if (storeItem == null)
                         {
                             _storeInventoryService.AddAsync(new StoreInventory()
                             {
@@ -780,7 +782,7 @@ namespace CMMS.API.Controllers
                             });
                         }
                     }
-                    
+
                 }
                 return Ok(material);
             }

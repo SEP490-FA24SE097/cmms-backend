@@ -46,5 +46,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+	
+  <ProjectExtensions><VisualStudio><UserProperties firebase_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

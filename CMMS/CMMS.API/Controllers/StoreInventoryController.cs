@@ -127,6 +127,28 @@ namespace CMMS.API.Controllers
         {
             try
             {
+                if (variantId != null)
+                {
+                    var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
+                    if (variant != null)
+                    {
+                        if (variant.ConversionUnitId != null)
+                        {
+                            var rootVariantItems = _storeInventoryService
+                                .Get(x => x.VariantId == variant.AttributeVariantId).Include(x => x.Store).ToList();
+                            if (rootVariantItems.Count > 0)
+                            {
+                                return Ok(rootVariantItems.Select(x => new
+                                {
+
+                                    storeId = x.StoreId,
+                                    storeName = x.Store.Name,
+                                    quantity = x.TotalQuantity / variant.ConversionUnit.ConversionRate
+                                }));
+                            }
+                        }
+                    }
+                }
                 var item = await _storeInventoryService.Get(x =>
                     x.MaterialId == materialId &&
                     x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
@@ -149,24 +171,48 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var items = await _storeInventoryService.Get(x =>
-                    x.StoreId == storeId
-                    ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
+                var items = await _storeInventoryService.Get(x => x.StoreId == storeId).Include(x => x.Material).Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
+                {
+                    Id = x.Id,
+                    MaterialId = x.MaterialId,
+                    MaterialCode = x.Material.MaterialCode,
+                    MaterialName = x.Material.Name,
+                    MaterialImage = x.Material.ImageUrl,
+                    VariantId = x.VariantId,
+                    VariantName = x.Variant == null ? null : x.Variant.SKU,
+                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
+                    Quantity = x.TotalQuantity,
+                    LastUpdateTime = x.LastUpdateTime
+                }).ToListAsync();
+                List<WarehouseDTO> list = [];
+                foreach (var item in items)
+                {
+                    if (item.VariantId != null)
                     {
-                        x.Id,
-                        x.MaterialId,
-                        MaterialName = x.Material.Name,
-                        MaterialImage = x.Material.ImageUrl,
-                        x.VariantId,
-                        VariantName = x.Variant == null ? null : x.Variant.SKU,
-                        VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                        Quantity = x.TotalQuantity,
-                        x.MinStock,
-                        x.MaxStock,
-                        x.LastUpdateTime
-                    }).ToListAsync();
-                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
+                        var variant = _variantService.Get(x => x.Id == item.VariantId).Include(x => x.ConversionUnit)
+                            .FirstOrDefault();
+                        if (variant != null)
+                        {
+                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
+                            list.AddRange(subVariants.Select(x => new WarehouseDTO()
+                            {
+                                Id = item.Id,
+                                MaterialId = x.MaterialId,
+                                MaterialName = x.Material.Name,
+                                MaterialCode = x.Material.MaterialCode,
+                                MaterialImage = x.Material.ImageUrl,
+                                VariantId = x.Id,
+                                VariantName = x.SKU,
+                                VariantImage = x.VariantImageUrl,
+                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate,
+                                LastUpdateTime = item.LastUpdateTime
+                            }));
+                        }
 
+                    }
+                }
+                items.AddRange(list);
+                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
                 return Ok(new
                 {
                     data = result,
@@ -176,8 +222,6 @@ namespace CMMS.API.Controllers
                         perPage = itemPerPage,
                         currentPage = page
                     }
-
-
                 });
             }
             catch (Exception ex)
@@ -186,30 +230,30 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpPost("create-store-material")]
-        public async Task<IActionResult> Create(StoreMaterialCM storeMaterialCm)
-        {
-            try
-            {
-                await _storeInventoryService.AddAsync(new StoreInventory
-                {
-                    Id = new Guid(),
-                    StoreId = storeMaterialCm.StoreId,
-                    MaterialId = storeMaterialCm.MaterialId,
-                    VariantId = storeMaterialCm.VariantId,
-                    TotalQuantity = 0,
-                    MinStock = storeMaterialCm.MinStock,
-                    MaxStock = storeMaterialCm.MaxStock,
-                    LastUpdateTime = GetVietNamTime()
-                });
-                await _storeInventoryService.SaveChangeAsync();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
+        //[HttpPost("create-store-material")]
+        //public async Task<IActionResult> Create(StoreMaterialCM storeMaterialCm)
+        //{
+        //    try
+        //    {
+        //        await _storeInventoryService.AddAsync(new StoreInventory
+        //        {
+        //            Id = new Guid(),
+        //            StoreId = storeMaterialCm.StoreId,
+        //            MaterialId = storeMaterialCm.MaterialId,
+        //            VariantId = storeMaterialCm.VariantId,
+        //            TotalQuantity = 0,
+        //            MinStock = storeMaterialCm.MinStock,
+        //            MaxStock = storeMaterialCm.MaxStock,
+        //            LastUpdateTime = GetVietNamTime()
+        //        });
+        //        await _storeInventoryService.SaveChangeAsync();
+        //        return Ok();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        //    }
+        //}
         [HttpPost("update-store-material-min-max-stock")]
         public async Task<IActionResult> Update([FromQuery] string storeId, [FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] decimal? minStock, [FromQuery] decimal? maxStock)
         {

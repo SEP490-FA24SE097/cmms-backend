@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
@@ -17,7 +18,7 @@ public static class UploadImages
     {
         var bucketName = "ccms-d6bf2.firebasestorage.app";
         GoogleCredential credential =
-            GoogleCredential.FromFile("firebase.json");
+            GoogleCredential.FromFile("https://api.jsonbin.io/v3/b/673af944acd3cb34a8aa6440?meta=false");
         var storage = StorageClient.Create(credential);
         List<string> images = [];
         foreach (var item in file)
@@ -37,9 +38,13 @@ public static class UploadImages
 
     public static async Task<List<string>> UploadToFirebase(List<string> file)
     {
+        HttpClient client = new HttpClient();
+        HttpResponseMessage response = await client.GetAsync("https://api.jsonbin.io/v3/b/673af944acd3cb34a8aa6440?meta=false");
+        response.EnsureSuccessStatusCode();
+        string jsonStrring = await response.Content.ReadAsStringAsync();
         var bucketName = "ccms-d6bf2.firebasestorage.app";
         GoogleCredential credential =
-            GoogleCredential.FromFile("firebase.json");
+            GoogleCredential.FromJson(jsonStrring);
         var storage = StorageClient.Create(credential);
         List<string> images = [];
         foreach (var base64Image in file)

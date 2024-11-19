@@ -30,20 +30,49 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                await BalanceQuantity();
+                // await BalanceQuantity();
 
-                var items = await _warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant).Select(x => new
+                var items = await _warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
                 {
-                    x.Id,
-                    x.MaterialId,
+                    Id = x.Id,
+                    MaterialId = x.MaterialId,
+                    MaterialCode = x.Material.MaterialCode,
                     MaterialName = x.Material.Name,
                     MaterialImage = x.Material.ImageUrl,
-                    x.VariantId,
+                    VariantId = x.VariantId,
                     VariantName = x.Variant == null ? null : x.Variant.SKU,
                     VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
                     Quantity = x.TotalQuantity,
-                    x.LastUpdateTime
+                    LastUpdateTime = x.LastUpdateTime
                 }).ToListAsync();
+                List<WarehouseDTO> list = [];
+                foreach (var item in items)
+                {
+                    if (item.VariantId != null)
+                    {
+                        var variant = _variantService.Get(x => x.Id == item.VariantId).Include(x => x.ConversionUnit)
+                            .FirstOrDefault();
+                        if (variant != null)
+                        {
+                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).Include(x=>x.Material).Include(x => x.ConversionUnit).ToList();
+                            list.AddRange(subVariants.Select(x => new WarehouseDTO()
+                            {
+                                Id = item.Id,
+                                MaterialId = x.MaterialId,
+                                MaterialName = x.Material.Name,
+                                MaterialCode = x.Material.MaterialCode,
+                                MaterialImage = x.Material.ImageUrl,
+                                VariantId = x.Id,
+                                VariantName = x.SKU,
+                                VariantImage = x.VariantImageUrl,
+                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate,
+                                LastUpdateTime = item.LastUpdateTime
+                            }));
+                        }
+
+                    }
+                }
+                items.AddRange(list);
                 var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
 
                 return Ok(new
@@ -106,121 +135,121 @@ namespace CMMS.API.Controllers
             }
         }
 
-        private async Task BalanceQuantity()
-        {
-            var list = _warehouseService.Get(x => x.VariantId != null)
-                    .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
-                    .Include(x => x.Variant).ThenInclude(x => x.AttributeVariant)
-                    .Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ToList();
+        //private async Task BalanceQuantity()
+        //{
+        //    var list = _warehouseService.Get(x => x.VariantId != null)
+        //            .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit)
+        //            .Include(x => x.Variant).ThenInclude(x => x.AttributeVariant)
+        //            .Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ToList();
 
-            HashSet<Variant> check = [];
-            ICollection<BasedQuantity> basedQuantities = [];
-            if (list.Any())
-            {
-                foreach (var item in list)
-                {
-                    if (item.Variant != null)
-                    {
+        //    HashSet<Variant> check = [];
+        //    ICollection<BasedQuantity> basedQuantities = [];
+        //    if (list.Any())
+        //    {
+        //        foreach (var item in list)
+        //        {
+        //            if (item.Variant != null)
+        //            {
 
-                        if (item.Variant.MaterialVariantAttributes.Count > 0)
-                        {
-                            var cons = _conversionUnitService.Get(x => x.Id == item.MaterialId).ToList();
-                            var based = _variantService.Get(x =>
-                                x.ConversionUnitId == null && x.AttributeVariantId == null && x.Id == item.VariantId &&
-                                x.MaterialVariantAttributes.Count > 0).FirstOrDefault();
-                            if (based != null)
-                            {
-                                var basedQuantity = _warehouseService.Get(x => x.VariantId == item.VariantId)
-                                    .FirstOrDefault();
-                                basedQuantities.Add(new BasedQuantity()
-                                {
-                                    MaterialId = basedQuantity.MaterialId,
-                                    VariantId = (Guid)basedQuantity.VariantId,
-                                    Quantity = basedQuantity.TotalQuantity
-                                });
-                            }
+        //                if (item.Variant.MaterialVariantAttributes.Count > 0)
+        //                {
+        //                    var cons = _conversionUnitService.Get(x => x.Id == item.MaterialId).ToList();
+        //                    var based = _variantService.Get(x =>
+        //                        x.ConversionUnitId == null && x.AttributeVariantId == null && x.Id == item.VariantId &&
+        //                        x.MaterialVariantAttributes.Count > 0).FirstOrDefault();
+        //                    if (based != null)
+        //                    {
+        //                        var basedQuantity = _warehouseService.Get(x => x.VariantId == item.VariantId)
+        //                            .FirstOrDefault();
+        //                        basedQuantities.Add(new BasedQuantity()
+        //                        {
+        //                            MaterialId = basedQuantity.MaterialId,
+        //                            VariantId = (Guid)basedQuantity.VariantId,
+        //                            Quantity = basedQuantity.TotalQuantity
+        //                        });
+        //                    }
 
-                            foreach (var con in cons)
-                            {
-                                var variants = _variantService.Get(x =>
-                                    x.ConversionUnitId == con.Id && x.AttributeVariantId == item.VariantId).ToList();
+        //                    foreach (var con in cons)
+        //                    {
+        //                        var variants = _variantService.Get(x =>
+        //                            x.ConversionUnitId == con.Id && x.AttributeVariantId == item.VariantId).ToList();
 
 
-                                if (variants.Count > 0)
-                                {
-                                    check.AddRange(variants);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var cons = _conversionUnitService.Get(x => x.Id == item.MaterialId).ToList();
-                            var based = _variantService.Get(x =>
-                                x.ConversionUnitId == null && x.AttributeVariantId == null && x.Id == item.VariantId &&
-                                x.MaterialVariantAttributes.Count < 0).FirstOrDefault();
-                            if (based != null)
-                            {
-                                var basedQuantity = _warehouseService.Get(x => x.VariantId == item.VariantId)
-                                    .FirstOrDefault();
-                                basedQuantities.Add(new BasedQuantity()
-                                {
-                                    MaterialId = basedQuantity.MaterialId,
-                                    VariantId = (Guid)basedQuantity.VariantId,
-                                    Quantity = basedQuantity.TotalQuantity
-                                });
-                            }
+        //                        if (variants.Count > 0)
+        //                        {
+        //                            check.AddRange(variants);
+        //                        }
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    var cons = _conversionUnitService.Get(x => x.Id == item.MaterialId).ToList();
+        //                    var based = _variantService.Get(x =>
+        //                        x.ConversionUnitId == null && x.AttributeVariantId == null && x.Id == item.VariantId &&
+        //                        x.MaterialVariantAttributes.Count < 0).FirstOrDefault();
+        //                    if (based != null)
+        //                    {
+        //                        var basedQuantity = _warehouseService.Get(x => x.VariantId == item.VariantId)
+        //                            .FirstOrDefault();
+        //                        basedQuantities.Add(new BasedQuantity()
+        //                        {
+        //                            MaterialId = basedQuantity.MaterialId,
+        //                            VariantId = (Guid)basedQuantity.VariantId,
+        //                            Quantity = basedQuantity.TotalQuantity
+        //                        });
+        //                    }
 
-                            foreach (var con in cons)
-                            {
-                                var variants = _variantService.Get(x => x.ConversionUnitId == con.Id).ToList();
+        //                    foreach (var con in cons)
+        //                    {
+        //                        var variants = _variantService.Get(x => x.ConversionUnitId == con.Id).ToList();
 
-                                if (variants.Count > 0)
-                                {
-                                    check.AddRange(variants);
-                                }
-                            }
-                        }
-                    }
+        //                        if (variants.Count > 0)
+        //                        {
+        //                            check.AddRange(variants);
+        //                        }
+        //                    }
+        //                }
+        //            }
 
-                }
-            }
-            var distinctList = check.DistinctBy(x => x.Id).Select(x => x.Id);
-            foreach (var variantId in distinctList)
-            {
-                foreach (var item in list)
-                {
-                    if (item.VariantId == variantId)
-                    {
-                        var baseQuantity = basedQuantities
-                            .FirstOrDefault(x => x.MaterialId == item.MaterialId);
-                        var conversionRate = _variantService.Get(x => x.Id == item.VariantId)
-                            .Include(x => x.ConversionUnit).Select(x => x.ConversionUnit.ConversionRate)
-                            .FirstOrDefault();
+        //        }
+        //    }
+        //    var distinctList = check.DistinctBy(x => x.Id).Select(x => x.Id);
+        //    foreach (var variantId in distinctList)
+        //    {
+        //        foreach (var item in list)
+        //        {
+        //            if (item.VariantId == variantId)
+        //            {
+        //                var baseQuantity = basedQuantities
+        //                    .FirstOrDefault(x => x.MaterialId == item.MaterialId);
+        //                var conversionRate = _variantService.Get(x => x.Id == item.VariantId)
+        //                    .Include(x => x.ConversionUnit).Select(x => x.ConversionUnit.ConversionRate)
+        //                    .FirstOrDefault();
 
-                        item.TotalQuantity = baseQuantity.Quantity / conversionRate;
-                        item.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+        //                item.TotalQuantity = baseQuantity.Quantity / conversionRate;
+        //                item.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
 
-                    }
-                    else
-                    {
-                        var baseQuantity = basedQuantities
-                            .FirstOrDefault(x => x.MaterialId == item.MaterialId);
-                        var conversionRate = _variantService.Get(x => x.Id == item.VariantId)
-                            .Include(x => x.ConversionUnit).Select(x => x.ConversionUnit.ConversionRate)
-                            .FirstOrDefault();
-                        await _warehouseService.AddAsync(new Warehouse
-                        {
-                            Id = Guid.NewGuid(),
-                            MaterialId = item.MaterialId,
-                            VariantId = item.VariantId,
-                            TotalQuantity = baseQuantity.Quantity / conversionRate,
-                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                        });
-                    }
-                }
-            }
-            await _warehouseService.SaveChangeAsync();
-        }
+        //            }
+        //            else
+        //            {
+        //                var baseQuantity = basedQuantities
+        //                    .FirstOrDefault(x => x.MaterialId == item.MaterialId);
+        //                var conversionRate = _variantService.Get(x => x.Id == item.VariantId)
+        //                    .Include(x => x.ConversionUnit).Select(x => x.ConversionUnit.ConversionRate)
+        //                    .FirstOrDefault();
+        //                await _warehouseService.AddAsync(new Warehouse
+        //                {
+        //                    Id = Guid.NewGuid(),
+        //                    MaterialId = item.MaterialId,
+        //                    VariantId = item.VariantId,
+        //                    TotalQuantity = baseQuantity.Quantity / conversionRate,
+        //                    LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+        //                });
+        //            }
+        //        }
+        //    }
+        //    await _warehouseService.SaveChangeAsync();
+        //}
     }
 }
 
