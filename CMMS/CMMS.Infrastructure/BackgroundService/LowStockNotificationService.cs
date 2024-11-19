@@ -120,8 +120,9 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             {
                 _notifiedProducts.Remove(productId); // Remove if product has sufficient stock
             }
-        }
-        await Task.Delay(3600000 * 12, stoppingToken);
+            await Task.Delay(3600000 * 12, stoppingToken);
+        }       
+        
     }
 }
 
