@@ -24,6 +24,8 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
+using CMMS.Infrastructure.BackgroundService;
+using CMMS.Infrastructure.SignalRHub;
 
 namespace CMMS.API
 {
@@ -48,7 +50,9 @@ namespace CMMS.API
             // background worker 
             //builder.Services.AddHostedService<PaymentBackgroundService>();
 
-
+            builder.Services.AddSignalR();
+            builder.Services.AddHostedService<LowStockNotificationService>();
+            builder.Services.AddHostedService<NewRequestNotificationService>();
 
             builder.Services.AddHttpClient();
             builder.Services.AddDistributedMemoryCache();
@@ -157,7 +161,8 @@ namespace CMMS.API
 
             // Configure the HTTP request pipeline.
             //app.UseCors("AllowAll");
-
+            app.MapHub<StoreNotificationHub>("/store-notification-hub");
+            app.MapHub<WarehouseNotificationHub>("/warehouse-notification-hub");
             app.UseSwagger();
             app.UseSwaggerUI();
 

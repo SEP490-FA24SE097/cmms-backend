@@ -4,6 +4,7 @@ using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace CMMS.API.Controllers
 {
@@ -13,11 +14,13 @@ namespace CMMS.API.Controllers
     {
         private readonly IStoreMaterialImportRequestService _requestService;
         private readonly IStoreInventoryService _storeInventoryService;
+        private readonly IVariantService _variantService;
 
-        public StoreMaterialImportRequestController(IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService)
+        public StoreMaterialImportRequestController(IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService, IVariantService variantService)
         {
             _storeInventoryService = storeInventoryService;
             _requestService = requestService;
+            _variantService = variantService;
 
         }
 
@@ -26,7 +29,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                await _requestService.AddAsync(new StoreMaterialImportRequest
+                var request = new StoreMaterialImportRequest
                 {
                     Id = new Guid(),
                     StoreId = importRequest.StoreId,
@@ -35,7 +38,14 @@ namespace CMMS.API.Controllers
                     Quantity = importRequest.Quantity,
                     Status = "Processing",
                     LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                });
+                };
+                var check = await _requestService.CheckExist(x =>
+                    x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.Status == "Processing" && x.StoreId == request.StoreId);
+                if (check)
+                {
+                    return BadRequest("Yêu cầu nhập hàng này đang được xử lý không thể tạo thêm yêu cầu");
+                }
+                await _requestService.AddAsync(request);
                 await _requestService.SaveChangeAsync();
                 return Ok();
             }
@@ -71,7 +81,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
             }
         }
-        [HttpPost("confirm-store-material-import-request")]
+        [HttpPost("confirm-or-cancel-store-material-import-request")]
         public async Task<IActionResult> Confirm([FromQuery] Guid requestId, [FromQuery] bool isConfirmed)
         {
             try
@@ -85,35 +95,92 @@ namespace CMMS.API.Controllers
                         return BadRequest();
                     }
                     request.Status = "Confirmed";
-                    var material = _storeInventoryService
-                        .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
-                    if (material != null)
+                    if (request.VariantId == null)
                     {
-                        material.TotalQuantity += request.Quantity;
+                        var warehouse = _storeInventoryService
+                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                        if (warehouse != null)
+                        {
+                            warehouse.TotalQuantity += request.Quantity;
+                            warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                        }
+                        else
+                        {
+                            await _storeInventoryService.AddAsync(new StoreInventory()
+                            {
+                                Id = Guid.NewGuid(),
+                                MaterialId = request.MaterialId,
+                                VariantId = request.Id,
+                                TotalQuantity = request.Quantity,
+                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                            });
+                        }
+                        await _storeInventoryService.SaveChangeAsync();
+
                     }
                     else
                     {
-                        _storeInventoryService.AddAsync(new StoreInventory
+                        var variant = _variantService.Get(x => x.Id == request.VariantId).Include(x => x.ConversionUnit).FirstOrDefault();
+                        if (variant != null)
                         {
-                            Id = new Guid(),
-                            TotalQuantity = request.Quantity,
-                            MaterialId = request.MaterialId,
-                            VariantId = request.VariantId,
-                            MinStock = 0,
-                            MaxStock = 10000,
-                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime(),
-                            StoreId = request.StoreId
-                        });
+                            if (variant.ConversionUnitId == null)
+                            {
+                                var warehouse = _storeInventoryService
+                                    .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
+                                if (warehouse != null)
+                                {
+                                    warehouse.TotalQuantity += request.Quantity;
+                                    warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                }
+                                else
+                                {
+                                    await _storeInventoryService.AddAsync(new StoreInventory()
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        MaterialId = variant.MaterialId,
+                                        VariantId = variant.Id,
+                                        TotalQuantity = request.Quantity,
+                                        LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                                    });
+                                }
+                                await _storeInventoryService.SaveChangeAsync();
+                            }
+                            else
+                            {
+                                var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                    .FirstOrDefault();
+                                if (rootVariant != null)
+                                {
+                                    var warehouse = _storeInventoryService
+                                        .Get(x => x.MaterialId == rootVariant.MaterialId && x.VariantId == rootVariant.Id).FirstOrDefault();
+                                    if (warehouse != null)
+                                    {
+                                        warehouse.TotalQuantity += request.Quantity * variant.ConversionUnit.ConversionRate;
+                                        warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                    }
+                                    else
+                                    {
+                                        await _storeInventoryService.AddAsync(new StoreInventory()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            MaterialId = rootVariant.MaterialId,
+                                            VariantId = rootVariant.Id,
+                                            TotalQuantity = request.Quantity * variant.ConversionUnit.ConversionRate,
+                                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                                        });
+                                    }
+                                    await _storeInventoryService.SaveChangeAsync();
+                                }
+                            }
+                        }
+
                     }
-                    await _storeInventoryService.SaveChangeAsync();
                 }
                 else
                 {
                     request.Status = "Canceled";
                 }
-                request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                 await _requestService.SaveChangeAsync();
-
                 return Ok();
             }
             catch (Exception e)
@@ -133,6 +200,7 @@ namespace CMMS.API.Controllers
                     store = x.Store.Name,
                     x.StoreId,
                     material = x.Material.Name,
+                    materialCode = x.Material.MaterialCode,
                     x.MaterialId,
                     variant = x.Variant.SKU,
                     x.VariantId,
