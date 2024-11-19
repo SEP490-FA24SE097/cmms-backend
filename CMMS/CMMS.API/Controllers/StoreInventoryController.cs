@@ -143,7 +143,7 @@ namespace CMMS.API.Controllers
 
                                     storeId = x.StoreId,
                                     storeName = x.Store.Name,
-                                    quantity = x.TotalQuantity / variant.ConversionUnit.ConversionRate
+                                    quantity = x.TotalQuantity-x.InOrderQuantity / variant.ConversionUnit.ConversionRate
                                 }));
                             }
                         }
@@ -155,7 +155,7 @@ namespace CMMS.API.Controllers
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,
-                        quantity = x.TotalQuantity
+                        quantity = x.TotalQuantity-x.InOrderQuantity
                     }).ToListAsync();
 
                 return Ok(new

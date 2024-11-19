@@ -23,15 +23,17 @@ namespace CMMS.API.Controllers
         private readonly IWarehouseService _warehouseService;
         private readonly IImportDetailService _importDetailService;
         private readonly IVariantService _variantService;
+        private readonly IMaterialService _materialService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
 
-        public ImportController(IImportService importService, IWarehouseService warehouseService, IImportDetailService importDetailService, IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService)
+        public ImportController(IImportService importService, IWarehouseService warehouseService, IImportDetailService importDetailService, IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService, IMaterialService materialService)
         {
             _importService = importService;
             _warehouseService = warehouseService;
             _importDetailService = importDetailService;
             _variantService = variantService;
             _materialVariantAttributeService = materialVariantAttributeService;
+            _materialService = materialService;
         }
 
         // GET: api/imports
@@ -216,36 +218,35 @@ namespace CMMS.API.Controllers
                     .Select(x => x.ImportDetails).FirstOrDefault();
                 foreach (var item in list)
                 {
-                    var variant = _variantService.Get(x => x.Id == item.VariantId).FirstOrDefault();
-                    if (variant != null)
+                    if (item.VariantId == null)
                     {
-                        if (variant.ConversionUnitId == null)
+                        var warehouse = _warehouseService
+                            .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId).FirstOrDefault();
+                        if (warehouse != null)
                         {
-                            var warehouse = _warehouseService
-                                .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
-                            if (warehouse != null)
-                            {
-                                warehouse.TotalQuantity += item.Quantity;
-                                warehouse.LastUpdateTime = GetVietNamTime();
-                            }
-                            else
-                            {
-                                await _warehouseService.AddAsync(new Warehouse
-                                {
-                                    Id = Guid.NewGuid(),
-                                    MaterialId = variant.MaterialId,
-                                    VariantId = variant.Id,
-                                    TotalQuantity = item.Quantity,
-                                    LastUpdateTime = GetVietNamTime()
-                                });
-                            }
-                            await _warehouseService.SaveChangeAsync();
+                            warehouse.TotalQuantity += item.Quantity;
+                            warehouse.LastUpdateTime = GetVietNamTime();
                         }
                         else
                         {
-                            var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
-                                .FirstOrDefault();
-                            if (rootVariant != null)
+                            await _warehouseService.AddAsync(new Warehouse
+                            {
+                                Id = Guid.NewGuid(),
+                                MaterialId = item.MaterialId,
+                                VariantId = item.Id,
+                                TotalQuantity = item.Quantity,
+                                LastUpdateTime = GetVietNamTime()
+                            });
+                        }
+                        await _warehouseService.SaveChangeAsync();
+
+                    }
+                    else
+                    {
+                        var variant = _variantService.Get(x => x.Id == item.VariantId).Include(x => x.ConversionUnit).FirstOrDefault();
+                        if (variant != null)
+                        {
+                            if (variant.ConversionUnitId == null)
                             {
                                 var warehouse = _warehouseService
                                     .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
@@ -267,7 +268,35 @@ namespace CMMS.API.Controllers
                                 }
                                 await _warehouseService.SaveChangeAsync();
                             }
+                            else
+                            {
+                                var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                    .FirstOrDefault();
+                                if (rootVariant != null)
+                                {
+                                    var warehouse = _warehouseService
+                                        .Get(x => x.MaterialId == rootVariant.MaterialId && x.VariantId == rootVariant.Id).FirstOrDefault();
+                                    if (warehouse != null)
+                                    {
+                                        warehouse.TotalQuantity += item.Quantity * variant.ConversionUnit.ConversionRate;
+                                        warehouse.LastUpdateTime = GetVietNamTime();
+                                    }
+                                    else
+                                    {
+                                        await _warehouseService.AddAsync(new Warehouse
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            MaterialId = rootVariant.MaterialId,
+                                            VariantId = rootVariant.Id,
+                                            TotalQuantity = item.Quantity * variant.ConversionUnit.ConversionRate,
+                                            LastUpdateTime = GetVietNamTime()
+                                        });
+                                    }
+                                    await _warehouseService.SaveChangeAsync();
+                                }
+                            }
                         }
+
                     }
                 }
 
