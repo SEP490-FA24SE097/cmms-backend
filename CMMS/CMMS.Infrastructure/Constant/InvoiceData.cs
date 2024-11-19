@@ -37,7 +37,17 @@ namespace CMMS.Infrastructure.Constant
         public int? InvoiceType { get; set; }
     }
 
-    public enum PaymentType
+    public class InvoiceDataUpdateStatus
+    {
+        public string Reason { get; set; }
+        public string InvoiceId { get; set; }
+        public List<CartItem>? RefundItems { get; set; }
+        public int UpdateType { get; set; }
+    }
+
+
+
+        public enum PaymentType
     {
         DebtInvoice = 0,
         DebtPurchase = 1,

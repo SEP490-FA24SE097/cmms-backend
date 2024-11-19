@@ -155,7 +155,6 @@ namespace CMMS.Infrastructure.Services.Payment
                 foreach (var group in groupCartItems)
                 {
                     var storeId = group.Key;
-                    decimal totalStoreItemAmout = 0;
 
                     var invoiceCode = _invoiceService.GenerateInvoiceCode();
                     foreach (var item in group)
@@ -215,7 +214,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         transaction.TransactionDate = DateTime.Now;
                         transaction.CustomerId = invoiceInfo.CustomerId;
                         transaction.InvoiceId = invoice.Id;
-                        transaction.Amount = totalStoreItemAmout;
+                        transaction.Amount = (decimal)invoiceInfo.SalePrice;
                         transaction.TransactionPaymentType = 1;
                         await _transactionService.AddAsync(transaction);
 

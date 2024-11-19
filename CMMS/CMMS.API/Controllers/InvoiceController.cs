@@ -71,7 +71,7 @@ namespace CMMS.API.Controllers
             (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
             (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
             (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Equals(filterModel.CustomerName)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.Id)) &&
+            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
             (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
             (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
             , _ => _.Customer);
@@ -456,6 +456,24 @@ namespace CMMS.API.Controllers
                 throw;
             }
             return Ok();
+        }
+
+        [HttpPost("invoice-failed")]
+        public async Task<IActionResult> InvoiceFailed(ShippingDetailDTO model)
+        {
+            var shippingDetail = await _shippingDetailService.FindAsync(model.Id);
+            if (shippingDetail != null)
+            {
+                shippingDetail.ShippingDate = model.ShippingDate;
+                shippingDetail.ShipperId = model.ShipperId;
+                shippingDetail.TransactionPaymentType = model.TransactionPaymentType;
+                shippingDetail.Address = model.Address;
+                shippingDetail.EstimatedArrival = (DateTime)model.EstimatedArrival;
+                _shippingDetailService.Update(shippingDetail);
+                var result = await _shippingDetailService.SaveChangeAsync();
+                if (result) return Ok(new { success = true, message = "Cập nhật thông tin giao hàng thành công" });
+            }
+            return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
         }
     }
 }
