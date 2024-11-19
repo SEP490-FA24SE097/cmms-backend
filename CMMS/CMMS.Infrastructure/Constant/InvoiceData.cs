@@ -15,6 +15,8 @@ namespace CMMS.Infrastructure.Constant
         public List<CartItem>? CartItems { get; set; }
         public string? PhoneReceive { get;set; }
         public decimal? Amount { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
         public string? InvoiceId { get; set; }
         public string? CustomerId { get; set; }
     }

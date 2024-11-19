@@ -82,15 +82,10 @@ namespace CMMS.Infrastructure.Services.Payment
         {
             try
             {
-                // update customerBalance
-                customerBalance.CustomerId = customerBalance.Customer.Id;
-                customerBalance.TotalDebt += (decimal)invoiceInfo.Amount;
-                _customerBalanceService.Update(customerBalance);
-
                 // insert invoice
                 var invoice = new Invoice
                 {
-                    Id = Guid.NewGuid().ToString(),
+                    Id = _invoiceService.GenerateInvoiceCode(),
                     CustomerId = customerBalance.Customer.Id,
                     InvoiceDate = DateTime.Now,
                     InvoiceStatus = (int)InvoiceStatus.Pending,
@@ -101,14 +96,16 @@ namespace CMMS.Infrastructure.Services.Payment
                 await _invoiceService.AddAsync(invoice);
                 await _invoiceService.SaveChangeAsync();
 
-
                 // insert transaction
                 var transaction = new Transaction();
-                transaction.Id = Guid.NewGuid().ToString();
-                //transaction.TransactionType = (int)TransactionType.DebtInvoice;
+
+                transaction = new Transaction();
+                transaction.Id = "DH" + invoice.Id;
+                transaction.TransactionType = (int)TransactionType.SaleItem;
                 transaction.TransactionDate = DateTime.Now;
-                transaction.CustomerId = customerBalance.Customer.Id;
+                transaction.CustomerId = invoice.CustomerId;
                 transaction.InvoiceId = invoice.Id;
+                transaction.TransactionPaymentType = 1;
                 transaction.Amount = (decimal)invoiceInfo.Amount;
                 await _transactionService.AddAsync(transaction);
 
@@ -138,14 +135,6 @@ namespace CMMS.Infrastructure.Services.Payment
 
                     await _invoiceDetailService.AddAsync(invoiceDetail);
                 }
-                // insert shipping detail.
-                var shippingDetail = new ShippingDetail();
-                shippingDetail.Id = Guid.NewGuid().ToString();
-                shippingDetail.Invoice = invoice;
-                shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
-                shippingDetail.Address = invoiceInfo.Address;
-                await _shippingDetailService.AddAsync(shippingDetail);
                 var result = await _unitOfWork.SaveChangeAsync();
                 await _efTransaction.CommitAsync();
                 if (result) return true;
@@ -178,7 +167,7 @@ namespace CMMS.Infrastructure.Services.Payment
                             var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
                             totalItemPrice = variant.Price * item.Quantity;
                         }
-                        totalStoreItemAmout += totalItemPrice;
+                        //totalStoreItemAmout += totalItemPrice;
 
                         // insert invoice Details
                         var invoiceDetail = new InvoiceDetail
@@ -193,9 +182,6 @@ namespace CMMS.Infrastructure.Services.Payment
 
                         // update store quantity
                         var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
-                        if (updateQuantityStatus)
-                            return false;
-
                         await _invoiceDetailService.AddAsync(invoiceDetail);
                     }
 
@@ -210,8 +196,9 @@ namespace CMMS.Infrastructure.Services.Payment
                         Note = invoiceInfo.Note,
                         StoreId = storeId,
                         // get total cart 
-                        SalePrice = totalStoreItemAmout,
-                        TotalAmount = totalStoreItemAmout,
+                        SalePrice = invoiceInfo.SalePrice,
+                        TotalAmount = (decimal)invoiceInfo.Amount,
+                        Discount = invoiceInfo.Discount != null ? invoiceInfo.Discount : 0,
                         SellPlace = (int)SellPlace.Website,
 
                     };
@@ -233,13 +220,13 @@ namespace CMMS.Infrastructure.Services.Payment
                         await _transactionService.AddAsync(transaction);
 
                         //await _invoiceService.SaveChangeAsync();
-                        var shippingDetail = new ShippingDetail();
-                        shippingDetail.Id = "GH" + invoiceCode;
-                        shippingDetail.Invoice = invoice;
-                        shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                        shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
-                        shippingDetail.Address = invoiceInfo.Address;
-                        await _shippingDetailService.AddAsync(shippingDetail);
+                        //var shippingDetail = new ShippingDetail();
+                        //shippingDetail.Id = "GH" + invoiceCode;
+                        //shippingDetail.Invoice = invoice;
+                        //shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
+                        //shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                        //shippingDetail.Address = invoiceInfo.Address;
+                        //await _shippingDetailService.AddAsync(shippingDetail);
                     }
                 }
                 var result = await _unitOfWork.SaveChangeAsync();
