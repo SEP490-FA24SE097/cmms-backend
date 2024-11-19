@@ -51,9 +51,10 @@ namespace CMMS.API
             //builder.Services.AddHostedService<PaymentBackgroundService>();
 
             builder.Services.AddSignalR();
-            builder.Services.AddHostedService<LowStockNotificationService>();
-            builder.Services.AddHostedService<NewRequestNotificationService>();
-
+           // builder.Services.AddHostedService<LowStockNotificationService>();
+           // builder.Services.AddHostedService<NewRequestNotificationService>();
+            builder.Services.AddScoped<LowStockNotificationService>();
+            builder.Services.AddScoped<NewRequestNotificationService>();
             builder.Services.AddHttpClient();
             builder.Services.AddDistributedMemoryCache();
    
