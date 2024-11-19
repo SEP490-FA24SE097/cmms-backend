@@ -82,6 +82,7 @@ namespace CMMS.API.Controllers
 
             foreach (var invoice in result)
             {
+
                 var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
                 var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
                 invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
@@ -185,20 +186,22 @@ namespace CMMS.API.Controllers
             var totalAmount = invoiceInfo.TotalAmount;
             var discount = invoiceInfo.Discount;
             var salePrices = invoiceInfo.SalePrice;
-            var customerPaid = invoiceInfo.CustomerPaid;
+            var customerPaid = invoiceInfo.CustomerPaid != null ? invoiceInfo.CustomerPaid : 0;
             var customerId = invoiceInfo.CustomerId;
-            var shipperId = invoiceInfo.ShipperId;
-            var phoneRecevied = invoiceInfo.PhoneReceive;
+            var shipperId = invoiceInfo.ShipperId != null ? invoiceInfo.ShipperId : null;
+            var phoneRecevied = invoiceInfo.PhoneReceive != null ? invoiceInfo.PhoneReceive : null;
             var note = invoiceInfo.Note;
 
             var storeManager = await _currentUserService.GetCurrentUser();
             try
             {
                 // quick sale => sale in store
-                if(invoiceInfo.InvoiceType == (int)InvoiceStoreType.QuickSale)
+                if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.QuickSale)
                 {
-                    var invoice = await _invoiceService.FindAsync(invoiceInfo.InvoiceId);
-                    string invoiceCode = invoice.Id;
+                    string invoiceCode = _invoiceService.GenerateInvoiceCode();
+
+                    Invoice invoice = new Invoice();
+                    invoice.Id = invoiceCode;
                     invoice.StoreId = storeManager.StoreId;
                     invoice.InvoiceStatus = (int)InvoiceStatus.Done;
                     invoice.InvoiceType = (int)InvoiceType.Normal;
@@ -207,8 +210,8 @@ namespace CMMS.API.Controllers
                     invoice.TotalAmount = (decimal)totalAmount;
                     invoice.SalePrice = salePrices;
                     invoice.Discount = discount;
-                    invoice.CustomerPaid = customerPaid;
-                    _invoiceService.Update(invoice);
+                    invoice.CustomerId = customerId;
+                    await _invoiceService.AddAsync(invoice);
 
                     // create invoiceDetail
                     foreach (var item in invoiceInfo.StoreItems)
@@ -237,36 +240,24 @@ namespace CMMS.API.Controllers
 
                     Transaction transaction = null;
                     transaction = new Transaction();
-                    transaction.Id = "DH" + invoiceCode;
-                    transaction.TransactionType = (int)TransactionType.SaleItem;
+
+                    transaction = new Transaction();
+                    transaction.Id = "TT" + invoiceCode;
+                    transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
                     transaction.TransactionDate = DateTime.Now;
                     transaction.CustomerId = customerId;
                     transaction.InvoiceId = invoice.Id;
-                    transaction.TransactionPaymentType = 1;
                     transaction.Amount = (decimal)salePrices;
+                    transaction.TransactionPaymentType = 1;
                     await _transactionService.AddAsync(transaction);
-
-                    if (invoiceInfo.CustomerPaid > 0)
-                    {
-                        // tao them 1 transaction nua la thanh toan cho hoa don do.
-                        invoice.CustomerPaid = invoiceInfo.CustomerPaid;
-                        transaction = new Transaction();
-                        transaction.Id = "TT" + invoiceCode;
-                        transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
-                        transaction.TransactionDate = DateTime.Now;
-                        transaction.CustomerId = customerId;
-                        transaction.InvoiceId = invoice.Id;
-                        transaction.Amount = (decimal)customerPaid;
-                        transaction.TransactionPaymentType = 1;
-                        await _transactionService.AddAsync(transaction);
-                    }
 
                     var result = await _invoiceService.SaveChangeAsync();
 
                     await _efTransaction.CommitAsync();
-                    if (result) return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                    if (result) return Ok(new { success = true, message = "Tạo đơn hàng bán nhanh thành công" });
 
-                } else if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.DeliverySale)
+                }
+                else if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.DeliverySale)
                 {
                     // hoa don do cua hang tu tao
                     if (invoiceInfo.InvoiceId == null)
@@ -399,6 +390,7 @@ namespace CMMS.API.Controllers
                         invoice.TotalAmount = (decimal)totalAmount;
                         invoice.SalePrice = salePrices;
                         invoice.Discount = discount;
+                        invoice.CustomerId = customerId;
                         invoice.CustomerPaid = customerPaid;
 
                         _invoiceService.Update(invoice);
@@ -454,11 +446,9 @@ namespace CMMS.API.Controllers
                         await _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
-                        if (result) return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                        if (result) return Ok(new { success = true, message = "Tạo đơn bán giao hàng thành công" });
                     }
                 }
-
-            
             }
             catch (Exception)
             {

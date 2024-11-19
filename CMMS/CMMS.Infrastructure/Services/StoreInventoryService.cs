@@ -78,7 +78,7 @@ namespace CMMS.Infrastructure.Services
             if (storeInventory != null)
             {
                 var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
-                return cartItem.Quantity > availableQuantity;
+                if (cartItem.Quantity <= availableQuantity) return true;
             }
             return false;
         }
