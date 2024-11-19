@@ -45,7 +45,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<Store, bool>> where);
         Task<bool> SaveChangeAsync();
         #endregion
-
+        string GenerateStoreId();
 
     }
 
@@ -65,6 +65,7 @@ namespace CMMS.Infrastructure.Services
             _mapper = mapper;
             _userRepository = userRepository;
         }
+
         public Task<Message> CloseStore(string storeId)
         {
             throw new NotImplementedException();
@@ -81,7 +82,7 @@ namespace CMMS.Infrastructure.Services
             }
 
             var storeEntity = _mapper.Map<Store>(store);
-            storeEntity.Id = Guid.NewGuid().ToString();
+            storeEntity.Id = GenerateStoreId();
 
             await _storeRepository.AddAsync(storeEntity);
             var result = await _unitOfWork.SaveChangeAsync();
@@ -234,6 +235,8 @@ namespace CMMS.Infrastructure.Services
 
         }
 
+
+
         #region CURD 
         public async Task AddAsync(Store Store)
         {
@@ -289,6 +292,13 @@ namespace CMMS.Infrastructure.Services
         public void Update(Store Store)
         {
             _storeRepository.Update(Store);
+        }
+
+        public string GenerateStoreId()
+        {
+            var transactionTotal = _storeRepository.GetAll();
+            string invoiceCode = $"CH{(transactionTotal.Count() + 1):D6}";
+            return invoiceCode;
         }
         #endregion
     }

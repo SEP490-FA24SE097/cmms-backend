@@ -56,4 +56,20 @@ namespace CMMS.Core.Models
         public string Quantity { get; set; }
     }
 
+    public class PreCheckOutModel 
+    {
+        public decimal? TotalAmount { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+        public List<PreCheckOutItemCartModel> Items { get; set; }
+    }
+
+    public class PreCheckOutItemCartModel
+    {
+        public string StoreId { get; set; }
+        public string StoreName { get; set; }
+        public decimal TotalStoreAmount { get; set; }
+        public List<CartItemVM> StoreItems { get; set; }    
+    }
+
 }

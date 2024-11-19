@@ -53,6 +53,7 @@ namespace CMMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> AddNewStore(StoreCM store)
         {
+            
             var result = await _storeService.CreateNewStore(store);
             return Ok(result);
         }

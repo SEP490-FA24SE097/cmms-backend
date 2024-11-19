@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CMMS.API.Constant;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
@@ -26,19 +27,16 @@ namespace CMMS.API.Controllers
         private readonly IMaterialService _materialService;
         private readonly ICustomerBalanceService _customerBalanceService;
         private readonly IMapper _mapper;
-        private readonly IInvoiceService _invoiceService;
-        private readonly IInvoiceDetailService _invoiceDetailService;
-        private readonly ITransactionService _transactionService;
+        private IStoreService _storeService;
+        private IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly ITransaction _efTransaction;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IShippingDetailService _shippingDetailService;
 
         public PaymentController(IPaymentService paymentService,
             ICurrentUserService currentUserService,
             IVariantService variantService,
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
-            IMapper mapper)
+            IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
@@ -46,6 +44,8 @@ namespace CMMS.API.Controllers
             _materialService = materialService;
             _customerBalanceService = customerBalanceService;
             _mapper = mapper;
+            _storeService = storeService;
+            _materialVariantAttributeService = materialVariantAttributeService;
 
         }
         [HttpPost]
@@ -140,6 +140,60 @@ namespace CMMS.API.Controllers
         {
             var resultData = await _paymentService.VnpayReturnUrl(vnpayPayResponse);
             return Ok(resultData);
+        }
+
+        [HttpPost("pre-checkout")]
+        public async Task<IActionResult> CheckoutResponseData([FromBody] CartItemRequest cartItems)
+        {
+            var groupCartItems = cartItems.CartItems.GroupBy(_ => _.StoreId);
+            PreCheckOutModel preCheckOutModel = new PreCheckOutModel();
+            decimal totalAmount = 0;
+            List<PreCheckOutItemCartModel> ListStoreVM = new List<PreCheckOutItemCartModel>();
+            foreach (var group in groupCartItems)
+            {
+                var storeId = group.Key;
+                var store = await _storeService.FindAsync(storeId);
+                decimal totalStoreItemAmout = 0;
+
+                PreCheckOutItemCartModel preCheckOutItemCartModel = new PreCheckOutItemCartModel();
+                List<CartItemVM> listStoresItemVM = new List<CartItemVM>();
+                foreach (var item in group)
+                {
+                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(item);
+                    var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+                    cartItemVM.ItemName = material.Name;
+                    cartItemVM.SalePrice = material.SalePrice;
+                    cartItemVM.ImageUrl = material.ImageUrl;
+                    cartItemVM.ItemTotalPrice = material.SalePrice * item.Quantity;
+                    if (item.VariantId != null)
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                        cartItemVM.SalePrice = variant.Price;
+                        cartItemVM.ImageUrl = variant.VariantImageUrl;
+                        cartItemVM.ItemTotalPrice = variant.Price * item.Quantity;
+                    }
+                    totalStoreItemAmout += cartItemVM.ItemTotalPrice;
+                    listStoresItemVM.Add(cartItemVM);
+                }
+                totalAmount += totalStoreItemAmout;
+                preCheckOutItemCartModel.StoreItems = listStoresItemVM;
+                preCheckOutItemCartModel.StoreId = store.Id;
+                preCheckOutItemCartModel.StoreName = store.Name;
+                preCheckOutItemCartModel.TotalStoreAmount = totalAmount;
+                ListStoreVM.Add(preCheckOutItemCartModel);
+
+            }
+            preCheckOutModel.Items = ListStoreVM;
+            preCheckOutModel.TotalAmount = totalAmount;
+            // handle discount value
+            preCheckOutModel.Discount = 0;
+            preCheckOutModel.SalePrice = totalAmount - preCheckOutModel.Discount;
+            return Ok(new
+            {
+                data = preCheckOutModel
+            });
         }
     }
 }
