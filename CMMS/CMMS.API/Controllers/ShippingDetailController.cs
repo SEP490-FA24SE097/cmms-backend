@@ -4,6 +4,7 @@ using CMMS.API.Helpers;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
+using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
 using Firebase.Auth;
@@ -26,11 +27,13 @@ namespace CMMS.API.Controllers
         private IInvoiceService _invoiceService;
         private IUserService _userService;
         private IStoreService _storeService;
+        private ITransaction _efTransaction;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly ITransactionService _transactionService;
+        private readonly IInvoiceDetailService _invoiceDetailService;
 
         public ShippingDetailController(IShippingDetailService shippingDetailService, IMapper mapper,
             IInvoiceService invoiceService, IUserService userService, IStoreService storeService,
@@ -39,7 +42,9 @@ namespace CMMS.API.Controllers
             IVariantService variantService,
             IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService,
-            ITransactionService transactionService)
+            ITransactionService transactionService, 
+            IInvoiceDetailService invoiceDetailService, 
+            ITransaction efTransaction)
         {
             _mapper = mapper;
             _shippingDetailService = shippingDetailService;
@@ -51,6 +56,8 @@ namespace CMMS.API.Controllers
             _variantService = variantService;
             _materialService = materialService;
             _transactionService = transactionService;
+            _invoiceDetailService = invoiceDetailService;
+            _efTransaction = efTransaction;
 
         }
         [HttpGet("getShippingDetails")]
@@ -78,7 +85,7 @@ namespace CMMS.API.Controllers
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
                 item.Invoice.StaffId = staff.Id;
                 item.Invoice.StaffName = staff.FullName;
-                item.Invoice.NeedToPay = _transactionService.GetAmountDebtLeftFromInvoice(invoice.Id);
+                //item.Invoice.NeedToPay = _transactionService.GetAmountDebtLeftFromInvoice(invoice.Id);
                 item.Invoice.StoreName = store.Name;
                 item.Invoice.StoreId = store.Id;
                 foreach (var invoiceDetails in item.Invoice.InvoiceDetails)
@@ -120,25 +127,54 @@ namespace CMMS.API.Controllers
         [HttpPost("update-shippingDetail-status")]
         public async Task<IActionResult> UpdateShippingDetailStatus(ShippingDetailDTO model)
         {
-            var shippingDetail = await _shippingDetailService.FindAsync(model.Id);
-            if (shippingDetail != null)
+            try
             {
-                // update invoice status
-                var invoice = await _invoiceService.FindAsync(shippingDetail.InvoiceId);
-                invoice.InvoiceStatus = (int)InvoiceStatus.Done;
-                _invoiceService.Update(invoice);
-                shippingDetail.ShippingDate = model.ShippingDate;
-                shippingDetail.TransactionPaymentType = model.TransactionPaymentType;
-                shippingDetail.Address = model.Address;
-                shippingDetail.EstimatedArrival = (DateTime)model.EstimatedArrival;
-                _shippingDetailService.Update(shippingDetail);
-                var result = await _shippingDetailService.SaveChangeAsync();
+                var shippingDetail =  await _shippingDetailService.Get(_ => _.Id.Equals(model.Id), _ => _.Invoice).FirstOrDefaultAsync();
+                if (shippingDetail != null)
+                {
+                    // update invoice status
+                    var invoice = await _invoiceService.FindAsync(shippingDetail.InvoiceId);
+                    invoice.InvoiceStatus = (int)InvoiceStatus.Done;
+                    _invoiceService.Update(invoice);
+                    shippingDetail.ShippingDate = model.ShippingDate;
+                    shippingDetail.TransactionPaymentType = model.TransactionPaymentType;
+                    shippingDetail.Address = model.Address;
+                    shippingDetail.EstimatedArrival = (DateTime)model.EstimatedArrival;
+                    _shippingDetailService.Update(shippingDetail);
 
-                // update so lunog trong kho.
+                    // tao transaction mới là thu tiền thành công.
+                    var transaction = new Transaction();
+                    transaction.Id = "TTGH" + invoice.Id;
+                    transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
+                    transaction.TransactionDate = DateTime.Now;
+                    transaction.CustomerId = shippingDetail.Invoice.CustomerId;
+                    transaction.InvoiceId = invoice.Id;
+                    transaction.Amount = (decimal)shippingDetail.NeedToPay;
+                    transaction.TransactionPaymentType = 1;
+                    await _transactionService.AddAsync(transaction);
 
-                if (result) return Ok(new { success = true, message = "Cập nhật tình trạng giao hàng thành công" });
+                    // update so lunog trong kho. 
+                    var invoiceDetail = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                    foreach (var item in invoiceDetail)
+                    {
+                        var cartItem = _mapper.Map<CartItem>(item);
+                        cartItem.StoreId = invoice.StoreId;
+                        // update store quantity
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Done);
+                    }
+                    var result = await _transactionService.SaveChangeAsync();
+                    await _efTransaction.CommitAsync();
+                    if (result) return Ok(new { success = true, message = "Cập nhật tình trạng giao hàng thành công" });
+                }
+                return BadRequest("Không tìm thấy shipping detail");
+
             }
-            return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
+            catch (Exception)
+            {
+                await _efTransaction.RollbackAsync(); 
+                throw;
+            }
+          
         }
 
         [HttpPut("update-shippingDetail")]

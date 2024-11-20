@@ -66,6 +66,7 @@ namespace CMMS.API.Helpers
                 .ReverseMap();
             CreateMap<InvoiceDetail, InvoiceShippingDetailsVM>().ReverseMap();
             CreateMap<AddItemModel, InvoiceDetailVM>().ReverseMap();
+            CreateMap<InvoiceDetail, CartItem>().ReverseMap();
             #endregion
 
             #region Transaction

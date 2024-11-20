@@ -19,6 +19,7 @@ namespace CMMS.Core.Models
         public int? TransactionPaymentType { get; set; }
         public string? InvoiceId { get; set; }
         public string? ShipperId { get; set; }
+        public string? Note { get; set; }
     }
 
     public class ShippingDetailVM
@@ -40,6 +41,7 @@ namespace CMMS.Core.Models
         public DateTime EstimatedArrival { get; set; }
         public string? ShipperName { get; set; }
         public string? ShipperCode { get; set; }
+        public string? Note { get; set; }
         public InvoiceShippingDetailsVM Invoice { get; set; }
     }
 
@@ -50,6 +52,7 @@ namespace CMMS.Core.Models
         public string? PhoneReceive { get; set; }
         public string? ShipperName { get;set; }
         public string? ShipperCode { get; set; }
+        public string? Note { get; set; }
         public DateTime? ShippingDate { get; set; }
         public DateTime EstimatedArrival { get; set; }
     }

@@ -78,7 +78,7 @@ namespace CMMS.Infrastructure.Services
             if (storeInventory != null)
             {
                 var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
-                return cartItem.Quantity > availableQuantity;
+                if (cartItem.Quantity <= availableQuantity) return true;
             }
             return false;
         }
@@ -96,6 +96,11 @@ namespace CMMS.Infrastructure.Services
                     case (int)InvoiceStatus.Done:
                         storeInventory.TotalQuantity -= cartItem.Quantity;
                         storeInventory.InOrderQuantity -= cartItem.Quantity;
+                        break;
+                    case (int)InvoiceStatus.Cancel:
+                    case (int)InvoiceStatus.Refund:
+                        storeInventory.TotalQuantity += cartItem.Quantity;
+                        storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                 }
                 _inventoryRepository.Update(storeInventory);

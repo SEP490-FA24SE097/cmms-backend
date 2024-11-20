@@ -29,6 +29,7 @@ namespace CMMS.API.Controllers
         private readonly IMapper _mapper;
         private IStoreService _storeService;
         private IMaterialVariantAttributeService _materialVariantAttributeService;
+        private IStoreInventoryService _storeInventoryService;
         private readonly ITransaction _efTransaction;
 
         public PaymentController(IPaymentService paymentService,
@@ -36,7 +37,8 @@ namespace CMMS.API.Controllers
             IVariantService variantService,
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
-            IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService)
+            IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService,
+            IStoreInventoryService storeInventoryService)
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
@@ -46,6 +48,7 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
             _storeService = storeService;
             _materialVariantAttributeService = materialVariantAttributeService;
+            _storeInventoryService = storeInventoryService;
 
         }
         [HttpPost]
@@ -97,24 +100,17 @@ namespace CMMS.API.Controllers
 
                 // FIXXXXXX
                 case PaymentType.DebtInvoice:
-                    customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
-                    if (customerBalance != null)
-                    {
-                        var currentDebt = customerBalance.TotalDebt;
-                        customerBalanceAvailable = customerBalance.Balance - (totalCartAmount + currentDebt);
-                        if ((decimal)customerBalance.Balance >= customerBalanceAvailable)
-                        {
-                            invoiceInfo.Amount = totalCartAmount;
-                            customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);
-                            result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
-                            if (result)
-                                return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-                        }
-                        else
-                        {
-                            return Ok(new { success = false, message = "Số hóa tiền trong điều kiện hóa đơn trả sau của bạn không đủ" });
-                        }
-                    }
+                    //customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
+                    //if (customerBalance != null)
+                    //{
+                        result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
+                        if (result)
+                            return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                        //else
+                        //{
+                        //    return Ok(new { success = false, message = "Số hóa tiền trong điều kiện hóa đơn trả sau của bạn không đủ" });
+                        //}
+                    //}
                     return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
 
                 // FIXXXXXX
@@ -130,7 +126,7 @@ namespace CMMS.API.Controllers
                     var paymentResult = await _paymentService.PaymentInvoiceAsync(invoiceInfo);
                     if (paymentResult)
                         return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-                    return Ok(new { success = false, message = "Thất bại" });
+                    return BadRequest("Tạo đơn hàng không thành công vui lòng thử lại");
             }
             return BadRequest("Faild create payment");
         }
@@ -161,6 +157,9 @@ namespace CMMS.API.Controllers
                 {
                     CartItemVM cartItemVM = _mapper.Map<CartItemVM>(item);
                     var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+                    var canPurchase = await _storeInventoryService.CanPurchase(item);
+                    if (!canPurchase) cartItemVM.IsChangeQuantity = true;
+
                     cartItemVM.ItemName = material.Name;
                     cartItemVM.SalePrice = material.SalePrice;
                     cartItemVM.ImageUrl = material.ImageUrl;
