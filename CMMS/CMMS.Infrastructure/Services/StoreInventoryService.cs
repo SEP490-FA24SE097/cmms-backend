@@ -90,7 +90,7 @@ namespace CMMS.Infrastructure.Services
             {
                 switch(invoiceStatus)
                 {
-                    case (int)InvoiceStatus.Pending :
+                    case (int)InvoiceStatus.Pending:
                         storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                     case (int)InvoiceStatus.Done:
@@ -104,8 +104,7 @@ namespace CMMS.Infrastructure.Services
                         break;
                 }
                 _inventoryRepository.Update(storeInventory);
-                var result = await _unitOfWork.SaveChangeAsync();
-                if (result) return true;
+                return true;
             }
             return false;
         }

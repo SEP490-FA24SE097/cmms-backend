@@ -358,8 +358,8 @@ namespace CMMS.API.Controllers
                                 Quantity = item.Quantity,
                                 InvoiceId = invoiceCode,
                             };
-                            //// update store quantity
-                            //var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, InvoiceStatus.Shipping);
+                            // update store quantity
+                            var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                             //if (updateQuantityStatus)
                             //    // chỗ này phải lock process của luồng này lại k cho chạy đồng thời.
                             //    return Ok(new { success = false, message = "Số lượng hàng hóa có biến động kiểm tra lại" });
@@ -392,7 +392,7 @@ namespace CMMS.API.Controllers
                         invoice.TotalAmount = (decimal)totalAmount;
                         invoice.SalePrice = salePrices;
                         invoice.Discount = discount;
-                        invoice.CustomerId = customerId;
+                        invoice.CustomerId = invoice.CustomerId;
                         invoice.CustomerPaid = customerPaid;
 
                         _invoiceService.Update(invoice);
@@ -406,24 +406,16 @@ namespace CMMS.API.Controllers
                         var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoiceCode));
                         foreach (var invoiceDetail in invoiceDetails)
                         {
-
+                            var item = _mapper.Map<CartItem>(invoiceDetail);
+                            var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                         }
                         var needToPay = salePrices - discount;
 
-                        Transaction transaction = null;
-                        transaction = new Transaction();
-                        transaction.Id = "DH" + invoiceCode;
-                        transaction.TransactionType = (int)TransactionType.SaleItem;
-                        transaction.TransactionDate = DateTime.Now;
-                        transaction.CustomerId = customerId;
-                        transaction.InvoiceId = invoice.Id;
-                        transaction.TransactionPaymentType = 1;
-                        transaction.Amount = (decimal)salePrices;
-                        await _transactionService.AddAsync(transaction);
 
                         if (invoiceInfo.CustomerPaid > 0)
                         {
                             // tao them 1 transaction nua la thanh toan cho hoa don do.
+                            Transaction transaction = null;
                             invoice.CustomerPaid = invoiceInfo.CustomerPaid;
                             needToPay -= invoiceInfo.CustomerPaid;
 
@@ -460,7 +452,7 @@ namespace CMMS.API.Controllers
                 await _efTransaction.RollbackAsync();
                 throw;
             }
-            return Ok();
+            return BadRequest("Failed");
         }
 
         [HttpPost("update-invoice")]
