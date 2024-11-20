@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace CMMS.API.TimeConverter;
+namespace CMMS.API.Helpers;
 
 public static class TimeConverter
 {

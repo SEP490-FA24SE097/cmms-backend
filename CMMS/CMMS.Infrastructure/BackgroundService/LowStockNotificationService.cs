@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using CMMS.API.Helpers;
 namespace CMMS.Infrastructure.BackgroundService;
 
 public class LowStockNotificationService : Microsoft.Extensions.Hosting.BackgroundService
@@ -104,7 +105,10 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                                 Id = new Guid(),
                                 MaterialId = product.MaterialId,
                                 VariantId = product.VariantId,
-                                Quantity = product.ImportQuantity == null ? 0 : (decimal)product.ImportQuantity
+                                Quantity = product.ImportQuantity == null ? 0 : (decimal)product.ImportQuantity,
+                                Status = "Processing",
+                                StoreId = storeId,
+                                LastUpdateTime = Helpers.TimeConverter.GetVietNamTime()
                             });
                             await storeMaterialImportRequestService.SaveChangeAsync();
                         }
