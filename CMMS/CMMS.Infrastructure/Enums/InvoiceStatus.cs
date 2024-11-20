@@ -14,6 +14,7 @@ namespace CMMS.Infrastructure.Enums
         Done = 3,
 		Cancel = 4,
 		Refund = 5,
+		NotReceived = 6,
     }
 	public enum InvoiceType
 	{

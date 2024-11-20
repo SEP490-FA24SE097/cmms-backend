@@ -15,6 +15,8 @@ namespace CMMS.Core.Entities
         public string Address { get; set; }
         public DateTime? ShippingDate { get; set; }
         public string? PhoneReceive { get; set; }
+        public string? Note { get; set; }
+        public decimal? NeedToPay { get; set; }
         public DateTime EstimatedArrival { get; set; }
         public int? TransactionPaymentType { get; set; }
         [ForeignKey(nameof(Invoice))]

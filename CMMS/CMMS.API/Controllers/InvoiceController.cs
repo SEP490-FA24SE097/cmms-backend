@@ -11,6 +11,7 @@ using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
+using Google.Apis.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -238,10 +239,8 @@ namespace CMMS.API.Controllers
                         await _invoiceDetailService.AddAsync(invoiceDetail);
                     }
 
-                    Transaction transaction = null;
-                    transaction = new Transaction();
+                    Transaction transaction = new Transaction();
 
-                    transaction = new Transaction();
                     transaction.Id = "TT" + invoiceCode;
                     transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
                     transaction.TransactionDate = DateTime.Now;
@@ -304,10 +303,10 @@ namespace CMMS.API.Controllers
                             TotalAmount = (decimal)totalAmount,
                             SalePrice = invoiceInfo.SalePrice,
                             SellPlace = (int)Infrastructure.Enums.SellPlace.InStore,
+                            Discount = discount,
                         };
 
-                        await _invoiceService.AddAsync(invoice);
-                        await _invoiceService.SaveChangeAsync();
+                        var needToPay = salePrices;
 
                         Transaction transaction = null;
 
@@ -323,6 +322,7 @@ namespace CMMS.API.Controllers
 
                         if (invoiceInfo.CustomerPaid > 0)
                         {
+                            needToPay -= invoiceInfo.CustomerPaid;
                             // tao them 1 transaction nua la thanh toan cho hoa don do.
                             invoice.CustomerPaid = invoiceInfo.CustomerPaid;
 
@@ -336,6 +336,7 @@ namespace CMMS.API.Controllers
                             transaction.TransactionPaymentType = 1;
                             await _transactionService.AddAsync(transaction);
                         }
+                        await _invoiceService.AddAsync(invoice);
                         await _invoiceService.SaveChangeAsync();
                         // generate invoice detail
                         foreach (var item in invoiceInfo.StoreItems)
@@ -371,6 +372,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
+                        shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
                         await _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
@@ -406,6 +408,7 @@ namespace CMMS.API.Controllers
                         {
 
                         }
+                        var needToPay = salePrices - discount;
 
                         Transaction transaction = null;
                         transaction = new Transaction();
@@ -422,6 +425,7 @@ namespace CMMS.API.Controllers
                         {
                             // tao them 1 transaction nua la thanh toan cho hoa don do.
                             invoice.CustomerPaid = invoiceInfo.CustomerPaid;
+                            needToPay -= invoiceInfo.CustomerPaid;
 
                             transaction = new Transaction();
                             transaction.Id = "TT" + invoiceCode;
@@ -442,6 +446,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
+                        shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
                         await _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
@@ -458,21 +463,98 @@ namespace CMMS.API.Controllers
             return Ok();
         }
 
-        [HttpPost("invoice-failed")]
-        public async Task<IActionResult> InvoiceFailed(ShippingDetailDTO model)
+        [HttpPost("update-invoice")]
+        public async Task<IActionResult> InvoiceFailed(InvoiceDataUpdateStatus model)
         {
-            var shippingDetail = await _shippingDetailService.FindAsync(model.Id);
-            if (shippingDetail != null)
+            try
             {
-                shippingDetail.ShippingDate = model.ShippingDate;
-                shippingDetail.ShipperId = model.ShipperId;
-                shippingDetail.TransactionPaymentType = model.TransactionPaymentType;
-                shippingDetail.Address = model.Address;
-                shippingDetail.EstimatedArrival = (DateTime)model.EstimatedArrival;
-                _shippingDetailService.Update(shippingDetail);
-                var result = await _shippingDetailService.SaveChangeAsync();
-                if (result) return Ok(new { success = true, message = "Cập nhật thông tin giao hàng thành công" });
+                var shippingDetail = _shippingDetailService.Get(_ => _.Id.Equals(model.ShippingDetailId), _ => _.Invoice).FirstOrDefault();
+                if (model.UpdateType == 0)
+                {
+                    if (shippingDetail != null)
+                    {
+                        shippingDetail.ShippingDate = model.ShippingDate;
+                        shippingDetail.Note = model.Reason;
+                        _shippingDetailService.Update(shippingDetail);
+
+                        var invoice = shippingDetail.Invoice;
+                        invoice.InvoiceStatus = (int)InvoiceStatus.NotReceived;
+                        _invoiceService.Update(invoice);
+                        var result = await _shippingDetailService.SaveChangeAsync();
+                        if (result) return Ok(new { success = true, message = "Cập nhật thông tin đơn hàng thành công" });
+                    }
+                }
+                // refund invoice
+                else
+                {
+                    // create refund invoice
+                    string invoiceCode = _invoiceService.GenerateInvoiceCode();
+                    decimal totalRefundAmount = 0;
+                    foreach (var item in model.RefundItems)
+                    {
+                        var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+                        var totalItemPrice = material.SalePrice * item.Quantity;
+                        if (item.VariantId != null)
+                        {
+                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+                            totalItemPrice = variant.Price * item.Quantity;
+                        }
+                        // insert invoice Details
+                        var invoiceDetail = new InvoiceDetail
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            LineTotal = totalItemPrice,
+                            MaterialId = Guid.Parse(item.MaterialId),
+                            VariantId = item.VariantId != null ? Guid.Parse(item.VariantId) : null,
+                            Quantity = item.Quantity,
+                            InvoiceId = invoiceCode,
+                        };
+                        totalRefundAmount += totalItemPrice;
+                        // update store quantity
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Refund);
+                        await _invoiceDetailService.AddAsync(invoiceDetail);
+                    }
+
+                    var invoice = new Invoice
+                    {
+                        Id = invoiceCode,
+                        CustomerId = shippingDetail.Invoice.CustomerId,
+                        InvoiceDate = DateTime.Now,
+                        InvoiceStatus = (int)InvoiceStatus.Refund,
+                        InvoiceType = (int)InvoiceType.Normal,
+                        Note = shippingDetail.Note,
+                        StoreId = shippingDetail.Invoice.StoreId,
+                        // get total cart 
+                        SalePrice = totalRefundAmount,
+                        TotalAmount = (decimal)totalRefundAmount,
+                        Discount = 0,
+                        SellPlace = (int)Core.Enums.SellPlace.InStore,
+                    };
+                    await _invoiceService.AddAsync(invoice);
+
+                    var transaction = new Transaction();
+                    transaction.Id = "TH" + invoiceCode;
+                    transaction.TransactionType = (int)TransactionType.SaleItem;
+                    transaction.TransactionDate = DateTime.Now;
+                    transaction.CustomerId = shippingDetail.Invoice.CustomerId;
+                    transaction.InvoiceId = invoice.Id;
+                    transaction.Amount = (decimal)totalRefundAmount;
+                    transaction.TransactionPaymentType = 1;
+                    await _transactionService.AddAsync(transaction);
+
+                    var result = await _transactionService.SaveChangeAsync();
+                    await _efTransaction.CommitAsync();
+                    if (result)
+                        return Ok(new { success = true, message = "Tạo hóa đơn trả hàng thành công" });
+                }
             }
+            catch (Exception)
+            {
+                _efTransaction.RollbackAsync();
+                throw;
+            }
+        
+
             return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
         }
     }

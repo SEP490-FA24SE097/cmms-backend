@@ -97,6 +97,11 @@ namespace CMMS.Infrastructure.Services
                         storeInventory.TotalQuantity -= cartItem.Quantity;
                         storeInventory.InOrderQuantity -= cartItem.Quantity;
                         break;
+                    case (int)InvoiceStatus.Cancel:
+                    case (int)InvoiceStatus.Refund:
+                        storeInventory.TotalQuantity += cartItem.Quantity;
+                        storeInventory.InOrderQuantity += cartItem.Quantity;
+                        break;
                 }
                 _inventoryRepository.Update(storeInventory);
                 var result = await _unitOfWork.SaveChangeAsync();
