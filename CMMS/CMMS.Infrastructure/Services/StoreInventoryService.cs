@@ -100,7 +100,7 @@ namespace CMMS.Infrastructure.Services
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:
                         storeInventory.TotalQuantity += cartItem.Quantity;
-                        storeInventory.InOrderQuantity += cartItem.Quantity;
+                        //storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                 }
                 _inventoryRepository.Update(storeInventory);

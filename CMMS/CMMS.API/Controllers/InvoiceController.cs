@@ -71,7 +71,7 @@ namespace CMMS.API.Controllers
             (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
             (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
             (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Equals(filterModel.CustomerName)) &&
+            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
             (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
             (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
             (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
@@ -472,7 +472,18 @@ namespace CMMS.API.Controllers
                         var invoice = shippingDetail.Invoice;
                         invoice.InvoiceStatus = (int)InvoiceStatus.NotReceived;
                         _invoiceService.Update(invoice);
+
+                        // hoàn đơn hàng vào kho.
+                        var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                        foreach (var invoiceDetail in invoiceDetails)
+                        {
+                            var item = _mapper.Map<CartItem>(invoiceDetail);
+                            item.StoreId = invoice.StoreId;
+                            // update store quantity
+                            await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Refund);
+                        }
                         var result = await _shippingDetailService.SaveChangeAsync();
+                        await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Cập nhật thông tin đơn hàng thành công" });
                     }
                 }
@@ -480,55 +491,78 @@ namespace CMMS.API.Controllers
                 else
                 {
                     // create refund invoice
-                    string invoiceCode = _invoiceService.GenerateInvoiceCode();
+                    var staffManager = await _currentUserService.GetCurrentUser();
+                    var invoice = await _invoiceService.FindAsync(model.InvoiceId);
+                    string invoiceCode =  _invoiceService.GenerateInvoiceCode();
                     decimal totalRefundAmount = 0;
-                    foreach (var item in model.RefundItems)
+                    var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+
+                    var refundItems = (from refundItem in model.RefundItems
+                                       join invoiceDetail in invoiceDetails
+                                       on new { refundItem.MaterialId, refundItem.VariantId } equals new 
+                                       { MaterialId = invoiceDetail.MaterialId.ToString(), VariantId = invoiceDetail.VariantId?.ToString() }
+                                       select new 
+                                       {
+                                           MaterialId = invoiceDetail.MaterialId,
+                                           VariantId = invoiceDetail.VariantId,
+                                           // quantity of refund item
+                                           RefundQuantity = refundItem.Quantity, 
+                                           PricePerQuantity = invoiceDetail.LineTotal / invoiceDetail.Quantity,
+                                           InvoiceId = invoiceDetail.InvoiceId
+                                       }).ToList();
+
+                    foreach (var item in refundItems)
                     {
-                        var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
-                        var totalItemPrice = material.SalePrice * item.Quantity;
-                        if (item.VariantId != null)
-                        {
-                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                            totalItemPrice = variant.Price * item.Quantity;
-                        }
+                        var lineTotalRefund = item.RefundQuantity * item.PricePerQuantity;
+                        var material = await _materialService.FindAsync(item.MaterialId);
+                     
                         // insert invoice Details
                         var invoiceDetail = new InvoiceDetail
                         {
                             Id = Guid.NewGuid().ToString(),
-                            LineTotal = totalItemPrice,
-                            MaterialId = Guid.Parse(item.MaterialId),
-                            VariantId = item.VariantId != null ? Guid.Parse(item.VariantId) : null,
-                            Quantity = item.Quantity,
+                            LineTotal = lineTotalRefund,
+                            MaterialId = item.MaterialId,
+                            VariantId = item.VariantId != null ? item.VariantId : null,
+                            Quantity = item.RefundQuantity,
                             InvoiceId = invoiceCode,
                         };
-                        totalRefundAmount += totalItemPrice;
+                        totalRefundAmount += lineTotalRefund;
                         // update store quantity
-                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Refund);
+
+                        var refundItem = new CartItem
+                        {
+                            MaterialId = item.MaterialId.ToString(),
+                            Quantity = item.RefundQuantity,
+                            VariantId = item.VariantId != null ? item.VariantId.ToString() : null,
+                            StoreId = invoice.StoreId,
+                        };
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(refundItem, (int)InvoiceStatus.Refund);
                         await _invoiceDetailService.AddAsync(invoiceDetail);
                     }
 
-                    var invoice = new Invoice
+                    var refundInvoice = new Invoice
                     {
                         Id = invoiceCode,
-                        CustomerId = shippingDetail.Invoice.CustomerId,
+                        CustomerId =  invoice.CustomerId,
                         InvoiceDate = DateTime.Now,
                         InvoiceStatus = (int)InvoiceStatus.Refund,
                         InvoiceType = (int)InvoiceType.Normal,
-                        Note = shippingDetail.Note,
-                        StoreId = shippingDetail.Invoice.StoreId,
+                        //Note = shippingDetail.Note,
+                        StoreId =  invoice.StoreId,
                         // get total cart 
+                        StaffId = staffManager.Id,
                         SalePrice = totalRefundAmount,
                         TotalAmount = (decimal)totalRefundAmount,
                         Discount = 0,
                         SellPlace = (int)Core.Enums.SellPlace.InStore,
                     };
-                    await _invoiceService.AddAsync(invoice);
+                    await _invoiceService.AddAsync(refundInvoice);
 
                     var transaction = new Transaction();
                     transaction.Id = "TH" + invoiceCode;
-                    transaction.TransactionType = (int)TransactionType.SaleItem;
+                    transaction.TransactionType = (int)TransactionType.RefundInvoice;
                     transaction.TransactionDate = DateTime.Now;
-                    transaction.CustomerId = shippingDetail.Invoice.CustomerId;
+                    transaction.CustomerId = invoice.CustomerId;
                     transaction.InvoiceId = invoice.Id;
                     transaction.Amount = (decimal)totalRefundAmount;
                     transaction.TransactionPaymentType = 1;
@@ -542,10 +576,9 @@ namespace CMMS.API.Controllers
             }
             catch (Exception)
             {
-                _efTransaction.RollbackAsync();
+                await _efTransaction.RollbackAsync();
                 throw;
             }
-        
 
             return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
         }

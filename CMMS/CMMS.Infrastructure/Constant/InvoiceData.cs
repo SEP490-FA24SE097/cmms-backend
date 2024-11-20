@@ -39,7 +39,7 @@ namespace CMMS.Infrastructure.Constant
 
     public class InvoiceDataUpdateStatus
     {
-        public string Reason { get; set; }
+        public string? Reason { get; set; }
         public string? InvoiceId { get; set; }
         public string? ShippingDetailId { get; set; }
         public DateTime? ShippingDate { get; set; }
