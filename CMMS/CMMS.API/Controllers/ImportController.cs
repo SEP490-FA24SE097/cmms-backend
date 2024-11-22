@@ -38,13 +38,43 @@ namespace CMMS.API.Controllers
 
         // GET: api/imports
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int page, [FromQuery] int itemPerPage)
+        public IActionResult GetAll([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string? status)
         {
             try
             {
+                var list = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
+                {
+                    x.Id,
+                    x.TimeStamp,
+                    supplierName = x.Supplier == null ? null : x.Supplier.Name,
+                    x.Status,
+                    x.Note,
+                    totalQuantity = x.Quantity,
+                    totalProduct = x.ImportDetails.Count,
+                    x.TotalPrice,
+                    x.TotalDiscount,
+                    x.TotalDue,
+                    x.TotalPaid,
+                    importDetails = x.ImportDetails.Select(x => new
+                    {
+                        x.Material.MaterialCode,
+                        x.Material.Name,
+                        x.MaterialId,
+                        x.VariantId,
+                        sku = x.Variant == null ? null : x.Variant.SKU,
+                        x.Quantity,
+                        x.UnitPrice,
+                        x.UnitDiscount,
+                        unitImportPrice = x.UnitPrice - x.UnitDiscount,
+                        x.DiscountPrice,
+                        x.PriceAfterDiscount,
+                        x.Note
+                    }).ToList()
+
+                }).ToList();
                 return Ok(new
                 {
-                    data = Helpers.LinqHelpers.ToPageList(_importService.GetAll().ToList(), page - 1, itemPerPage),
+                    data = Helpers.LinqHelpers.ToPageList(list, page - 1, itemPerPage),
                     pagination = new
                     {
                         total = _importService.GetAll().ToList().Count,
@@ -65,12 +95,41 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = await _importService.FindAsync(id);
+            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id==id).Select(x => new
+            {
+                x.Id,
+                x.TimeStamp,
+                supplierName = x.Supplier == null ? null : x.Supplier.Name,
+                x.Status,
+                x.Note,
+                totalQuantity = x.Quantity,
+                totalProduct = x.ImportDetails.Count,
+                x.TotalPrice,
+                x.TotalDiscount,
+                x.TotalDue,
+                x.TotalPaid,
+                importDetails = x.ImportDetails.Select(x => new
+                {
+                    x.Material.MaterialCode,
+                    x.Material.Name,
+                    x.MaterialId,
+                    x.VariantId,
+                    sku = x.Variant == null ? null : x.Variant.SKU,
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.UnitDiscount,
+                    unitImportPrice = x.UnitPrice - x.UnitDiscount,
+                    x.DiscountPrice,
+                    x.PriceAfterDiscount,
+                    x.Note
+                }).ToList()
+
+            }).ToList();
             if (import == null)
             {
                 return NotFound();
             }
-            return Ok(import);
+            return Ok(new{data=import});
         }
 
         // POST: api/imports
@@ -207,6 +266,24 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
 
+        }
+
+        [HttpPost("cancel-import")]
+        public async Task<IActionResult> CancelImport([FromQuery] Guid importId)
+        {
+            try
+            {
+                var import = await _importService.FindAsync(importId);
+                if (import.Status != "Phiếu tạm")
+                    return BadRequest("Không thể hủy phiếu đã nhập hàng");
+                import.Status = "Đã hủy";
+                await _importDetailService.SaveChangeAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
         [HttpPost("complete-import")]
