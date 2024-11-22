@@ -157,33 +157,6 @@ namespace CMMS.Infrastructure.Services.Payment
                     var storeId = group.Key;
 
                     var invoiceCode = _invoiceService.GenerateInvoiceCode();
-                    foreach (var item in group)
-                    {
-                        var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
-                        var totalItemPrice = material.SalePrice * item.Quantity;
-                        if (item.VariantId != null)
-                        {
-                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                            totalItemPrice = variant.Price * item.Quantity;
-                        }
-                        //totalStoreItemAmout += totalItemPrice;
-
-                        // insert invoice Details
-                        var invoiceDetail = new InvoiceDetail
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            LineTotal = totalItemPrice,
-                            MaterialId = Guid.Parse(item.MaterialId),
-                            VariantId = item.VariantId != null ? Guid.Parse(item.VariantId) : null,
-                            Quantity = item.Quantity,
-                            InvoiceId = invoiceCode,
-                        };
-
-                        // update store quantity
-                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
-                        await _invoiceDetailService.AddAsync(invoiceDetail);
-                    }
-
                     // insert invoice
                     var invoice = new Invoice
                     {
@@ -203,7 +176,32 @@ namespace CMMS.Infrastructure.Services.Payment
                     };
                     await _invoiceService.AddAsync(invoice);
                     var InvoiceResult = await _invoiceService.SaveChangeAsync();
+                    foreach (var item in group)
+                    {
+                        var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+                        var totalItemPrice = material.SalePrice * item.Quantity;
+                        if (item.VariantId != null)
+                        {
+                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+                            totalItemPrice = variant.Price * item.Quantity;
+                        }
+                        //totalStoreItemAmout += totalItemPrice;
 
+                        // insert invoice Details
+                        var invoiceDetail = new InvoiceDetail
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            LineTotal = totalItemPrice,
+                            MaterialId = Guid.Parse(item.MaterialId),
+                            VariantId = item.VariantId != null ? Guid.Parse(item.VariantId) : null,
+                            Quantity = item.Quantity,
+                            InvoiceId = invoice.Id,
+                        };
+                        await _invoiceDetailService.AddAsync(invoiceDetail);
+
+                        // update store quantity
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
+                    }
                     if (InvoiceResult)
                     {
                         // insert transaction

@@ -163,11 +163,13 @@ namespace CMMS.API.Controllers
                         var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Done);
                     }
                     var result = await _transactionService.SaveChangeAsync();
-                    await _efTransaction.CommitAsync();
-                    if (result) return Ok(new { success = true, message = "Cập nhật tình trạng giao hàng thành công" });
-                }
+                    if (result)
+                    {
+                        await _efTransaction.CommitAsync();
+                        return Ok(new { success = true, message = "Cập nhật tình trạng giao hàng thành công" });
+                    }
+                } 
                 return BadRequest("Không tìm thấy shipping detail");
-
             }
             catch (Exception)
             {
@@ -268,8 +270,6 @@ namespace CMMS.API.Controllers
                 }
             });
         }
-
-
         // cap nhat don hang that bai.
     }
 }
