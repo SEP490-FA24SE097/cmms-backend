@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [Route("api/store-material-import-requests")]
     [ApiController]
     public class StoreMaterialImportRequestController : ControllerBase
@@ -259,7 +261,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var list = _requestService.Get(x => (storeId == null || x.StoreId.Equals(storeId, StringComparison.OrdinalIgnoreCase)) && (status == null || x.Status.Equals(status))).Include(x => x.Material).Include(x => x.Variant).Include(x => x.Store).Select(x => new
+                var list = _requestService.Get(x => (storeId == null || x.StoreId.Equals(storeId)) && (status == null || x.Status.ToLower().Equals(status.ToLower()))).Include(x => x.Material).Include(x => x.Variant).Include(x => x.Store).Select(x => new
                 {
                     x.Id,
                     store = x.Store.Name,

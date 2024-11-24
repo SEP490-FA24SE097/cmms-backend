@@ -46,7 +46,7 @@ namespace CMMS.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetFilter([FromQuery] string materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+        public IActionResult GetFilter([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] decimal? lowerPrice,
             [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending,
             [FromQuery] bool? isCreatedDateDescending)
@@ -55,7 +55,7 @@ namespace CMMS.API.Controllers
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
                     .Include(x => x.Unit)
-                    .Where(x => x.Name.Contains(materialName) &&
+                    .Where(x => materialName.IsNullOrEmpty()||x.Name.ToLower().Contains(materialName.ToLower()) &&
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
