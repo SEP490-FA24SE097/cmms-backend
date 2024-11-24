@@ -281,9 +281,10 @@ namespace CMMS.API.Controllers
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
             }
+
+            return Ok();
         }
 
         [HttpPost("complete-import")]
