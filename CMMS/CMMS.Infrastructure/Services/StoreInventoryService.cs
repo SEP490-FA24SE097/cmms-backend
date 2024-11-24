@@ -40,14 +40,47 @@ namespace CMMS.Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IStoreInventoryRepository _inventoryRepository;
         private readonly IMapper _mapper;
-
-        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository inventoryRepository,
+        private readonly IVariantService _variantService;
+        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository inventoryRepository, IVariantService variantService,
             IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _inventoryRepository = inventoryRepository;
             _mapper = mapper;
+            _variantService = variantService;
+        }
+        private async Task<StoreInventory?> GetStoreInventoryItem(Guid materialId, Guid? variantId, string storeId)
+        {
+            if (variantId == null)
+                return await Get(x => x.MaterialId == materialId && x.VariantId == variantId && x.StoreId == storeId).FirstOrDefaultAsync();
+            else
+            {
+                var variant = await _variantService.Get(x => x.Id == variantId).FirstOrDefaultAsync();
 
+                if (variant.ConversionUnitId == null)
+                    return await Get(x => x.MaterialId == materialId && x.VariantId == variantId && x.StoreId == storeId).FirstOrDefaultAsync();
+                else
+                {
+                    return await Get(x => x.VariantId == variant.AttributeVariantId && x.StoreId == storeId).FirstOrDefaultAsync();
+                }
+            }
+        }
+        private async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
+        {
+            if (variantId == null)
+                return null;
+            else
+            {
+                var variant = await _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
+
+                if (variant.ConversionUnitId == null)
+                    return null;
+
+                else
+                {
+                    return variant.ConversionUnit.ConversionRate;
+                }
+            }
         }
         public async Task<StoreInventory> GetItemInStoreAsync(AddItemModel itemModel)
         {
@@ -56,10 +89,11 @@ namespace CMMS.Infrastructure.Services
             {
                 var materialId = Guid.Parse(itemModel.MaterialId);
                 var variantId = Guid.Parse(itemModel.VariantId);
-                storeInventory = await _inventoryRepository.Get(x =>
-              x.StoreId.Equals(itemModel.StoreId)
-              && x.MaterialId.Equals(materialId)
-              && x.VariantId.Equals(variantId)).FirstOrDefaultAsync();
+                //  storeInventory = await _inventoryRepository.Get(x =>
+                //x.StoreId.Equals(itemModel.StoreId)
+                //&& x.MaterialId.Equals(materialId)
+                //&& x.VariantId.Equals(variantId)).FirstOrDefaultAsync();
+                storeInventory = await GetStoreInventoryItem(materialId, variantId, itemModel.StoreId);
             }
             else
             {
@@ -75,10 +109,13 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
+            var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
             if (storeInventory != null)
             {
                 var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
-                if (cartItem.Quantity <= availableQuantity) return true;
+                var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
+                if (orderQuantity <= availableQuantity) return true;
+                //if (cartItem.Quantity <= availableQuantity) return true;
             }
             return false;
         }
@@ -86,20 +123,26 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
+            var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
+            var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
             if (storeInventory != null)
             {
-                switch(invoiceStatus)
+                switch (invoiceStatus)
                 {
                     case (int)InvoiceStatus.Pending:
-                        storeInventory.InOrderQuantity += cartItem.Quantity;
+                        // storeInventory.InOrderQuantity += cartItem.Quantity;
+                        storeInventory.InOrderQuantity += orderQuantity;
                         break;
                     case (int)InvoiceStatus.Done:
-                        storeInventory.TotalQuantity -= cartItem.Quantity;
-                        storeInventory.InOrderQuantity -= cartItem.Quantity;
+                        // storeInventory.TotalQuantity -= cartItem.Quantity;
+                        // storeInventory.InOrderQuantity -= cartItem.Quantity;
+                        storeInventory.TotalQuantity -= (decimal)orderQuantity;
+                        storeInventory.InOrderQuantity -= orderQuantity;
                         break;
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:
-                        storeInventory.TotalQuantity += cartItem.Quantity;
+                        //storeInventory.TotalQuantity += cartItem.Quantity;
+                        storeInventory.TotalQuantity += (decimal)orderQuantity;
                         //storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                 }

@@ -12,13 +12,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using CMMS.API.Helpers;
+using Google.Api.Gax.ResourceNames;
 namespace CMMS.Infrastructure.BackgroundService;
 
 public class LowStockNotificationService : Microsoft.Extensions.Hosting.BackgroundService
 {
-   // private readonly IWarehouseService _warehouseService;
-  //  private readonly IStoreInventoryService _storeInventoryService;
-  //  private readonly IStoreMaterialImportRequestService _storeMaterialImportRequestService;
+    // private readonly IWarehouseService _warehouseService;
+    //  private readonly IStoreInventoryService _storeInventoryService;
+    //  private readonly IStoreMaterialImportRequestService _storeMaterialImportRequestService;
     private readonly IHubContext<StoreNotificationHub> _storeHubContext;
     private readonly IHubContext<WarehouseNotificationHub> _WarehouseHubContext;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -29,9 +30,9 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
 
     public LowStockNotificationService(IHubContext<StoreNotificationHub> storeHubContext, IHubContext<WarehouseNotificationHub> warehouseHubContext, IServiceScopeFactory scopeFactory)
     {
-       // _storeInventoryService = storeInventoryService;
-       // _warehouseService = warehouseService;
-       // _storeMaterialImportRequestService = storeMaterialImportRequestService;
+        // _storeInventoryService = storeInventoryService;
+        // _warehouseService = warehouseService;
+        // _storeMaterialImportRequestService = storeMaterialImportRequestService;
         _storeHubContext = storeHubContext;
         _WarehouseHubContext = warehouseHubContext;
         _scopeFactory = scopeFactory;
@@ -46,7 +47,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             var storeInventoryService = scope.ServiceProvider.GetRequiredService<IStoreInventoryService>();
             var storeMaterialImportRequestService = scope.ServiceProvider.GetRequiredService<IStoreMaterialImportRequestService>();
             var storeIds = await storeInventoryService.GetAll().Select(x => x.StoreId).Distinct().ToListAsync(stoppingToken);
-            var lowStockWarehouseProducts = await warehouseService.GetAll().Include(x => x.Material)
+            var lowStockWarehouseProducts = await warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant)
                 .Where(p => p.TotalQuantity <= p.Material.MinStock)
                 .ToListAsync(stoppingToken);
             foreach (var warehouseProduct in lowStockWarehouseProducts)
@@ -56,11 +57,16 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                 {
                     // Update the last notified time for this product
                     _notifiedProducts[warehouseProduct.Id] = DateTime.UtcNow;
+                    string? name = warehouseProduct.Material.Name;
+                    if (warehouseProduct.VariantId != null)
+                    {
+                        name = warehouseProduct.Variant.SKU;
+                    }
                     // Send notification
                     await _WarehouseHubContext.Clients.All.SendAsync(
-                        "ReceiveLowQuantityAlert",
-                        warehouseProduct.Material.Name,
-                        warehouseProduct.TotalQuantity,
+                    "ReceiveLowQuantityAlert",
+                        $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({warehouseProduct.TotalQuantity} sản phẩm)"
+                        ,
                         stoppingToken
                     );
 
@@ -87,14 +93,14 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                         // Update the last notified time for this product
                         _notifiedProducts[product.Id] = DateTime.UtcNow;
                         // Send notification
+                        string? name = product.Material.Name;
+                        if (product.VariantId != null)
+                        {
+                            name = product.Variant.SKU;
+                        }
                         if (StoreNotificationHub.GetConnectionId(storeId) is { } connectionId)
                         {
-                            await _storeHubContext.Clients.Client(connectionId).SendAsync(
-                                "ReceiveLowQuantityAlert",
-                                product.Material.Name,
-                                product.TotalQuantity,
-                                stoppingToken
-                            );
+                            await _storeHubContext.Clients.Client(connectionId).SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({product.TotalQuantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động",stoppingToken);
                         };
                         var checkRequest = await storeMaterialImportRequestService.CheckExist(x =>
                             x.MaterialId == product.MaterialId && x.VariantId == product.VariantId && x.StoreId == storeId && x.Status == "Processing");
@@ -125,8 +131,8 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                 _notifiedProducts.Remove(productId); // Remove if product has sufficient stock
             }
             await Task.Delay(3600000 * 12, stoppingToken);
-        }       
-        
+        }
+
     }
 }
 

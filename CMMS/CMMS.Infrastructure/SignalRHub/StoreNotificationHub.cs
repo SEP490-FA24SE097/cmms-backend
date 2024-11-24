@@ -33,9 +33,6 @@ namespace CMMS.Infrastructure.SignalRHub
         {
             return UserConnections.TryGetValue(storeId, out var connectionId) ? connectionId : null;
         }
-        public  async Task SendLowQuantityAlert(string productName, int quantity)
-        {
-            await Clients.All.SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {productName} trong kho đang ở mức thấp ({quantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động");
-        }
+       
     }
 }
