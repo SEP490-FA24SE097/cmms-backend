@@ -217,13 +217,13 @@ namespace CMMS.Infrastructure.Services.Payment
                         await _transactionService.AddAsync(transaction);
 
                         //await _invoiceService.SaveChangeAsync();
-                        //var shippingDetail = new ShippingDetail();
-                        //shippingDetail.Id = "GH" + invoiceCode;
-                        //shippingDetail.Invoice = invoice;
-                        //shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                        //shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
-                        //shippingDetail.Address = invoiceInfo.Address;
-                        //await _shippingDetailService.AddAsync(shippingDetail);
+                        var shippingDetail = new ShippingDetail();
+                        shippingDetail.Id = "GH" + invoiceCode;
+                        shippingDetail.Invoice = invoice;
+                        shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
+                        shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                        shippingDetail.Address = invoiceInfo.Address;
+                        await _shippingDetailService.AddAsync(shippingDetail);
                     }
                 }
                 var result = await _unitOfWork.SaveChangeAsync();

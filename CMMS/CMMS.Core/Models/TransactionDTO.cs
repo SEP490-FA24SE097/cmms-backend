@@ -97,10 +97,13 @@ namespace CMMS.Core.Models
         public DateTime InvoiceDate { get; set; }
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
+        //public string InvoiceStatus { get; set; }
+        //public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
         public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
     }
-    
+
+
     public class TransactionFilterModel
     {
         public string? TransactionId { get; set; } 

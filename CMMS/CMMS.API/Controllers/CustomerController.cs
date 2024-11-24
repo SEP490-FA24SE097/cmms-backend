@@ -265,6 +265,12 @@ namespace CMMS.API.Controllers
                 // load data in invoice Detail 
                 foreach (var invoiceDetail in invoice.InvoiceDetails)
                 {
+
+                    var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                    var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
+                    invoice.StaffName = staff != null ? staff.FullName : store.Name;
+                    invoice.StoreName = store != null ? store.Name : "";
+
                     var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
                     itemInStoreModel.StoreId = invoice.StoreId;
                     var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
@@ -310,12 +316,44 @@ namespace CMMS.API.Controllers
 
         #endregion
 
-
         #region Customer Transaction
-        [HttpGet("customer-debt/{id}")]
-        public ActionResult GetDebtCustomer(string id)
+        [HttpGet("customer-debt")]
+        public ActionResult GetDebtCustomer([FromQuery] TransactionFilterModel filterModel)
         {
-            return Ok();
+            var filterList = _transactionService.Get(_ =>
+            (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
+            (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
+            (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
+            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
+            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)));
+
+            var total = filterList.Count();
+            var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
+                .Sort("TransactionDate", false);
+
+            var result = _mapper.Map<List<TransactionVM>>(filterListPaged);
+
+            foreach (var transaction in result)
+            {
+                if (transaction.InvoiceId != null)
+                {
+                    var invoice = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
+                    transaction.InvoiceVM = _mapper.Map<InvoiceTransactionVM>(invoice);
+                }
+                var userVM = _userService.Get(_ => _.Id.Equals(transaction.CustomerId)).FirstOrDefault();
+                transaction.UserVM = _mapper.Map<UserVM>(userVM);
+            }
+
+            return Ok(new
+            {
+                data = result,
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
         }
 
         // tao thanh toan tra no.

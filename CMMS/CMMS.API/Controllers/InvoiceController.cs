@@ -373,15 +373,15 @@ namespace CMMS.API.Controllers
                             await _invoiceDetailService.AddAsync(invoiceDetail);
                         }
                         // generate shipping detail
-                        var shippingDetail = new ShippingDetail();
-                        shippingDetail.Id = "GH" + invoiceCode;
+                        var shippingDetailId = "GH" + invoiceCode;
+                        var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
-                        await _shippingDetailService.AddAsync(shippingDetail);
+                        _shippingDetailService.Update(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
@@ -414,6 +414,7 @@ namespace CMMS.API.Controllers
                         foreach (var invoiceDetail in invoiceDetails)
                         {
                             var item = _mapper.Map<CartItem>(invoiceDetail);
+                            item.StoreId = storeManager.StoreId;
                             var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                         }
                         var needToPay = salePrices - discount;
@@ -438,16 +439,15 @@ namespace CMMS.API.Controllers
                         }
                         await _invoiceService.SaveChangeAsync();
 
-                        // generate shipping detail
-                        var shippingDetail = new ShippingDetail();
-                        shippingDetail.Id = "GH" + invoice.Id;
+                        var shippingDetailId = "GH" + invoiceCode;
+                        var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
-                        await _shippingDetailService.AddAsync(shippingDetail);
+                        _shippingDetailService.Update(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Tạo đơn bán giao hàng thành công" });
