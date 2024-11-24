@@ -46,7 +46,7 @@ namespace CMMS.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetFilter([FromQuery] int? page, [FromQuery] int? itemPerPage,
+        public IActionResult GetFilter([FromQuery] string materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] decimal? lowerPrice,
             [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending,
             [FromQuery] bool? isCreatedDateDescending)
@@ -55,7 +55,7 @@ namespace CMMS.API.Controllers
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
                     .Include(x => x.Unit)
-                    .Where(x =>
+                    .Where(x => x.Name.Contains(materialName) &&
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
@@ -763,7 +763,7 @@ namespace CMMS.API.Controllers
 
                 if (materialUM.StoreId != null)
                 {
-                    var variants = _variantService.Get(x => x.MaterialId == material.Id&&x.ConversionUnitId==null).ToList();
+                    var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).ToList();
                     foreach (var variant in variants)
                     {
                         var storeItem = _storeInventoryService
