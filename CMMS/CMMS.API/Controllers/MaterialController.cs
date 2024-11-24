@@ -55,7 +55,7 @@ namespace CMMS.API.Controllers
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
                     .Include(x => x.Unit)
-                    .Where(x => materialName.IsNullOrEmpty()||x.Name.ToLower().Contains(materialName.ToLower()) &&
+                    .Where(x => (materialName.IsNullOrEmpty()||x.Name.ToLower().Contains(materialName.ToLower())) &&
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
