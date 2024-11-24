@@ -22,3 +22,4 @@ namespace CMMS.Infrastructure.Enums
 		Normal = 1,
 	}
 }
+

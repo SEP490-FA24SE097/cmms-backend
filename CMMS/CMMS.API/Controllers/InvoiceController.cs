@@ -36,6 +36,7 @@ namespace CMMS.API.Controllers
         private readonly ITransactionService _transactionService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly ITransaction _efTransaction;
+        private readonly IStoreService _storeService;
 
         public InvoiceController(IInvoiceService invoiceService,
             IInvoiceDetailService invoiceDetailService, IMapper mapper,
@@ -45,7 +46,7 @@ namespace CMMS.API.Controllers
             IMaterialVariantAttributeService materialVariantAttributeService,
             IUserService userService, ICurrentUserService currentUserService,
             IPaymentService paymentService, ITransactionService transactionService,
-            IStoreInventoryService storeInventoryService, ITransaction transaction)
+            IStoreInventoryService storeInventoryService, ITransaction transaction, IStoreService storeService)
         {
             _invoiceService = invoiceService;
             _invoiceDetailService = invoiceDetailService;
@@ -60,6 +61,7 @@ namespace CMMS.API.Controllers
             _transactionService = transactionService;
             _storeInventoryService = storeInventoryService;
             _efTransaction = transaction;
+            _storeService = storeService;
         }
 
         [HttpGet]
@@ -87,6 +89,11 @@ namespace CMMS.API.Controllers
                 var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
                 var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
                 invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
+
+                var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
+                invoice.StaffName = staff != null ? staff.FullName : store.Name;
+                invoice.StoreName = store != null ? store.Name : "";
 
                 // load data in invoice Detail 
                 foreach (var invoiceDetail in invoice.InvoiceDetails)

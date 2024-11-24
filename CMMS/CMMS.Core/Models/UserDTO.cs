@@ -65,6 +65,11 @@ namespace CMMS.Core.Models
                 return null;
             }
         }
+
+        public decimal? CurrentDebt { get; set; }
+        public decimal? TotalSale { get; set; }
+        public decimal? TotalSaleAfterRefund { get; set; }
+
     }
 
     public class UserCM : UserDTO
@@ -144,6 +149,18 @@ namespace CMMS.Core.Models
         public string? StoreId { get; set; }
         public DefaultSearch defaultSearch { get; set; }
         public CustomerFilterModel()
+        {
+            defaultSearch = new DefaultSearch();
+        }
+    }
+
+    public class InvoiceilterModel
+    {
+        public string? CustomerId { get; set; }
+       // 1 hoac 6
+        public int? InvoiceStatus { get; set; }
+        public DefaultSearch defaultSearch { get; set; }
+        public InvoiceilterModel()
         {
             defaultSearch = new DefaultSearch();
         }

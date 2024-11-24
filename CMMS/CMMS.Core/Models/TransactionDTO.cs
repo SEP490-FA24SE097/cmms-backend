@@ -30,6 +30,34 @@ namespace CMMS.Core.Models
     {
         public string Id { get; set; }
         public int TransactionType { get; set; }
+        public string TransactionTypeDisplay
+        {
+            get
+            {
+                if (TransactionType.Equals((int)TransactionTypeData.DebtPurchase) && InvoiceId != null)
+                {
+                    return $"Thanh toán";
+                };
+                if (TransactionType.Equals((int)TransactionTypeData.DebtPurchase) && InvoiceId == null)
+                {
+                    return $"Thanh toán tiền nợ";
+                };
+                if (TransactionType.Equals((int)TransactionTypeData.DebtInvoice) && InvoiceId != null)
+                {
+                    return $"Bán hàng nợ";
+                };
+                if (TransactionType.Equals((int)TransactionTypeData.Cash))
+                {
+                    return $"Bán hàng";
+                };
+                if (TransactionType.Equals((int)TransactionTypeData.OnlinePayment))
+                {
+                    return $"Thanh toán online";
+                };
+                return "";
+            }
+        }
+
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; }
         public string? InvoiceId { get; set; }
@@ -37,30 +65,26 @@ namespace CMMS.Core.Models
         public string Description { 
             get {
                 if(TransactionType.Equals((int)TransactionTypeData.DebtPurchase) && InvoiceId != null) {
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
-                    return $"Thanh toán tiền nợ cho hóa đơn: {number:D4}";
+                
+                    return $"Thanh toán tiền nợ cho hóa đơn: {Id}";
                 };
                 if (TransactionType.Equals((int)TransactionTypeData.DebtPurchase) && InvoiceId == null)
                 {
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
                     return $"Thanh toán tiền nợ - giá: {Amount}";
                 };
                 if (TransactionType.Equals((int)TransactionTypeData.DebtInvoice) && InvoiceId != null)
                 {
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
-                    return $"Tạo hóa đơn nợ cho hóa đơn: {number:D4} - giá: {Amount} ";
+                    return $"Tạo hóa đơn nợ cho hóa đơn: {Id} - giá: {Amount} ";
                 };
                 if (TransactionType.Equals((int)TransactionTypeData.Cash))
                 {
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
-                    return $"Tạo hóa đơn: {number:D4} - giá: {Amount} ";
+                    return $"Tạo hóa đơn: {Id} - giá: {Amount} ";
                 };
                 if (TransactionType.Equals((int)TransactionTypeData.OnlinePayment))
                 {
-                    var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
-                    return $"Thanh toán online cho hóa đơn: {number:D4} - giá: {Amount} ";
+                    return $"Thanh toán online cho hóa đơn: {Id} - giá: {Amount} ";
                 };
-                return "123";
+                return "";
             } 
         }
         public InvoiceTransactionVM? InvoiceVM{ get; set; }
@@ -70,15 +94,6 @@ namespace CMMS.Core.Models
     public class InvoiceTransactionVM
     {
         public string Id { get; set; }
-        public string InvoiceCode
-        {
-            get
-            {
-                // Chuyển GUID thành một chuỗi định dạng số và thêm tiền tố "ĐH"
-                var number = Math.Abs(BitConverter.ToInt32(Guid.Parse(Id).ToByteArray(), 0));
-                return $"ĐH{number:D4}"; // Ví dụ: ĐH0001, ĐH0002
-            }
-        }
         public DateTime InvoiceDate { get; set; }
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }

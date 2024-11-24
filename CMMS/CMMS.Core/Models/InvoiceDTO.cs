@@ -29,7 +29,9 @@ namespace CMMS.Core.Models
         public decimal? SalePrice { get; set; }
         public decimal? CustomerPaid { get; set; }
         public string? StaffId { get; set; }
+        public string? StaffName { get; set; }
         public string? StoreId { get; set; }
+        public string? StoreName { get; set; }
         public UserVM? UserVM { get; set; }
         public int? SellPlace { get; set; }
         public string? BuyIn  { get

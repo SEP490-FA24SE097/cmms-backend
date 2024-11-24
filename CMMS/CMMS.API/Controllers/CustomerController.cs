@@ -9,6 +9,7 @@ using CMMS.Infrastructure.Services;
 using Firebase.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -31,10 +32,17 @@ namespace CMMS.API.Controllers
         private ICurrentUserService _currentUserService;
         private IMapper _mapper;
         private IStoreService _storeService;
+        private IStoreInventoryService _storeInventoryService;
+        private IMaterialService _materialService;
+        private IVariantService _variantService;
+        private IMaterialVariantAttributeService _materialVariantAttributeService;
+        private IShippingDetailService _shippingDetailService;
 
         public CustomerController(IUserService userService, IInvoiceService invoiceSerivce,
             IInvoiceDetailService invoiceDetailService, ITransactionService transactionService, HttpClient httpClient,
-            ICurrentUserService currentUserService, IMapper mapper, IStoreService storeService)
+            ICurrentUserService currentUserService, IMapper mapper, IStoreService storeService,
+            IStoreInventoryService storeInventoryService, IMaterialService materialService,
+            IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService, IShippingDetailService shippingDetailService)
         {
             _userService = userService;
             _invoiceService = invoiceSerivce;
@@ -44,17 +52,20 @@ namespace CMMS.API.Controllers
             _currentUserService = currentUserService;
             _mapper = mapper;
             _storeService = storeService;
+            _storeInventoryService = storeInventoryService;
+            _materialService = materialService;
+            _variantService = variantService;
+            _materialVariantAttributeService = materialVariantAttributeService;
+            _shippingDetailService = shippingDetailService;
         }
+
 
         #region CRUD Customer
 
         [HttpGet]
         public async Task<ActionResult> GetAllCustomerInStoreAsync([FromQuery] CustomerFilterModel filterModel)
         {
-            decimal? currentDebtTotal = 0;
-            decimal? totalSale = 0;
-
-            var listCustomer =  _userService.Get(_ => _.Id != null, _ => _.Invoices);
+            var listCustomer = _userService.Get(_ => _.Id != null, _ => _.Invoices);
             var filterUserList = new List<string>();
             foreach (var customer in listCustomer)
             {
@@ -63,18 +74,8 @@ namespace CMMS.API.Controllers
                 if (roles.IsNullOrEmpty() || roles.Contains(Role.Customer.ToString()))
                 {
                     filterUserList.Add(customer.Id);
-                    currentDebtTotal += user.CurrentDebt;
-                    var customerInvoices = user.Invoices;
-                    if (customerInvoices != null)
-                    {
-                        foreach (var invoice in customerInvoices)
-                        {
-                            totalSale += invoice.TotalAmount;
-                        }
-                    }
                 }
             }
-
             var fitlerList = _userService
             .Get(_ => filterUserList.Contains(_.Id) &&
             (_.CreatedById != null || _.Invoices != null) &&
@@ -83,9 +84,12 @@ namespace CMMS.API.Controllers
             (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
             (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
             , _ => _.Invoices);
-    
 
-          
+            decimal? currentDebtTotal = _userService.GetAllCustomerCurrentDebt();
+            decimal? totalSale = _userService.GetAllCustomerTotalSale();
+            decimal totalSaleAfterRefund = _userService.GetAllCustomerTotalSaleAfterRefund();
+
+
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
@@ -94,6 +98,10 @@ namespace CMMS.API.Controllers
             {
                 item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
                 item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
+
+                item.CurrentDebt = _userService.GetCustomerCurrentDebt(item.Id);
+                item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
+                item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
             }
             return Ok(new
             {
@@ -101,6 +109,7 @@ namespace CMMS.API.Controllers
                 {
                     currentDebtTotal,
                     totalSale,
+                    totalSaleAfterRefund,
                     result
                 },
                 pagination = new
@@ -117,9 +126,6 @@ namespace CMMS.API.Controllers
             var currentUser = await _currentUserService.GetCurrentUser();
             var storeId = currentUser.StoreId;
 
-            decimal? currentDebtTotal = 0;
-            decimal? totalSale = 0;
-
 
             var listCustomer = _userService.Get(_ => _.Id != null, _ => _.Invoices);
             var filterUserList = new List<string>();
@@ -130,28 +136,22 @@ namespace CMMS.API.Controllers
                 if (roles.IsNullOrEmpty() || roles.Contains(Role.Customer.ToString()))
                 {
                     filterUserList.Add(customer.Id);
-                    currentDebtTotal += user.CurrentDebt;
-                    var customerInvoices = user.Invoices;
-                    if (customerInvoices != null)
-                    {
-                        foreach (var invoice in customerInvoices)
-                        {
-                            totalSale += invoice.TotalAmount;
-                        }
-                    }
                 }
             }
-
             var fitlerList = _userService
-            .Get(_ => filterUserList.Contains(_.Id) &&
-            (_.StoreId.Equals(storeId) && (_.CreatedById != null) || _.Invoices.Any(iv => iv.StoreId.Equals(storeId))) &&
-            (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
-            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
-            (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
-            (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
-            , _ => _.Invoices);
+                 .Get(_ => filterUserList.Contains(_.Id) &&
+                 (_.StoreId.Equals(storeId) && (_.CreatedById != null) || _.Invoices.Any(iv => iv.StoreId.Equals(storeId))) &&
+                 (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
+                 (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+                 (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
+                 (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
+                 , _ => _.Invoices);
 
-           
+
+            decimal? currentDebtTotal = _userService.GetAllCustomerCurrentDebt();
+            decimal? totalSale = _userService.GetAllCustomerTotalSale();
+            decimal totalSaleAfterRefund = _userService.GetAllCustomerTotalSaleAfterRefund();
+
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
@@ -160,6 +160,10 @@ namespace CMMS.API.Controllers
             {
                 item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
                 item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
+
+                item.CurrentDebt = _userService.GetCustomerCurrentDebt(item.Id);
+                item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
+                item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
             }
             return Ok(new
             {
@@ -167,6 +171,7 @@ namespace CMMS.API.Controllers
                 {
                     currentDebtTotal,
                     totalSale,
+                    totalSaleAfterRefund,
                     result
                 },
                 pagination = new
@@ -177,21 +182,11 @@ namespace CMMS.API.Controllers
                 }
             });
         }
-        [HttpGet("{id}")]
-        public ActionResult GetCustomerInfoById(string id)
-        {
-            var user = _userService.Get(_ => _.Id.Equals(id)).FirstOrDefault();
-            var result = _mapper.Map<UserStoreVM>(user);
-            return Ok(new
-            {
-                data = user
-            });
-        }
         [HttpPut("update-customer")]
         public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
             var user = _mapper.Map<ApplicationUser>(model);
-             _userService.Update(user);
+            _userService.Update(user);
             var result = await _userService.SaveChangeAsync();
             return Ok(new
             {
@@ -251,16 +246,59 @@ namespace CMMS.API.Controllers
         #endregion
 
         #region Customer Order History
-        [HttpGet("history-order/{id}")]
-        public ActionResult GetHistoryOrderCustomer(string id)
+        [HttpGet("history-order")]
+        public async Task<ActionResult> GetHistoryOrderCustomerAsync([FromQuery] InvoiceilterModel filterModel)
         {
-            return Ok();
-        }
+            var fitlerList = _invoiceService
+            .Get(_ => _.CustomerId.Equals(filterModel.CustomerId) &&
+            filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus));
+            var total = fitlerList.Count();
+            var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
+                .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
+            var result = _mapper.Map<List<InvoiceVM>>(filterListPaged);
 
-        [HttpGet("invoice-detail")]
-        public ActionResult ViewInvoiceDetail()
-        {
-            return Ok();
+            foreach (var invoice in result)
+            {
+                var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
+                invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
+                // load data in invoice Detail 
+                foreach (var invoiceDetail in invoice.InvoiceDetails)
+                {
+                    var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
+                    itemInStoreModel.StoreId = invoice.StoreId;
+                    var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
+                    if (item != null)
+                    {
+                        var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
+                        invoiceDetail.ItemName = material.Name;
+                        invoiceDetail.SalePrice = material.SalePrice;
+                        invoiceDetail.ImageUrl = material.ImageUrl;
+                        invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
+                        if (invoiceDetail.VariantId != null)
+                        {
+                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
+                            var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                            invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                            invoiceDetail.SalePrice = variant.Price;
+                            invoiceDetail.ImageUrl = variant.VariantImageUrl;
+                            invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                        }
+                    }
+                }
+                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+            }
+
+            return Ok(new
+            {
+                data = result,
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
         }
 
         // query invoice detail nguoi ban, thong tin giao hang.
@@ -269,15 +307,6 @@ namespace CMMS.API.Controllers
         {
             return Ok();
         }
-
-        [HttpGet("generate-invoicePDF")]
-        public ActionResult GenerateInvoicePDF()
-        {
-            return Ok();
-        }
-
-
-
 
         #endregion
 

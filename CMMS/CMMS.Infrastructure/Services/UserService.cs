@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,6 +19,7 @@ namespace CMMS.Infrastructure.Services
 {
     public interface IUserService
     {
+        #region CRUD
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
         Task<IdentityResult> ShipperSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
@@ -33,13 +35,24 @@ namespace CMMS.Infrastructure.Services
         void Update(ApplicationUser user);
         Task<bool> CheckExist(Expression<Func<ApplicationUser, bool>> where);
         Task<bool> SaveChangeAsync();
+        #endregion
         Task<bool> ConfirmAccount(string email);
         Task<ApplicationUser> FindAsync(string customerId);
         Task<bool> IsEmailConfirmedAsync(ApplicationUser user);
         Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
         Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
         string GenerateCustomerCode();
+        Task<decimal> GetCustomerDiscountPercentAsync(decimal amount, string userId);
+        Task<decimal> GetRevenueFromCustomer(string userId);
+        Task<decimal> GetAllRevenueFromCustomer();
+        decimal GetAllCustomerCurrentDebt();
+        decimal GetCustomerCurrentDebt(string userId);
+        decimal GetAllCustomerTotalSale();
+        decimal GetCustomerTotalSale(string userId);
+        decimal GetAllCustomerTotalSaleAfterRefund();
+        decimal GetCustomerTotalSaleAfterRefund(string userId);
     }
+
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
@@ -49,9 +62,17 @@ namespace CMMS.Infrastructure.Services
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IInvoiceService _invoiceService;
+        private readonly IMaterialService _materialService;
+        private readonly IVariantService _variantService;
+        private readonly ITransactionService _transactionService;
+        private readonly IUserService _userService;
+
         public UserService(IUserRepository userRepository, UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager, IConfiguration configuration,
-            RoleManager<IdentityRole> roleManager, IUnitOfWork unitOfWork, IMapper mapper)
+            RoleManager<IdentityRole> roleManager, IUnitOfWork unitOfWork, IMapper mapper,
+             IInvoiceService invoiceService, IMaterialService materialService,
+             IVariantService variantService, ITransactionService transactionService)
         {
             _userRepository = userRepository;
             _userManager = userManager;
@@ -60,8 +81,14 @@ namespace CMMS.Infrastructure.Services
             _roleManager = roleManager;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _invoiceService = invoiceService;
+            _materialService = materialService;
+            _variantService = variantService;
+            _transactionService = transactionService;
         }
 
+
+        #region CRUD
         public async Task<ApplicationUser> SignInAsync(UserSignIn model)
         {
             var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, false, false);
@@ -269,5 +296,152 @@ namespace CMMS.Infrastructure.Services
             string userId = $"KH{(userTotal.Count() + 1):D6}";
             return userId;
         }
+
+        #endregion
+
+        #region customer tracking revenue
+
+        public async Task<decimal> GetCustomerDiscountPercentAsync(decimal amount, string userId)
+        {
+            var user = await _userRepository.FindAsync(userId);
+            if (user.Type.Equals(CustomerType.Agency))
+                return (decimal)((float)amount * 0.25);
+            return (decimal)((float)amount * 0.1);
+        }
+
+        public async Task<decimal> GetRevenueFromCustomer(string userId)
+        {
+            decimal revenueCustomer = 0;
+            var invoices = _invoiceService.Get(_ => _.CustomerId.Equals(userId), _ => _.InvoiceDetails);
+            foreach (var invoice in invoices)
+            {
+                decimal invoiceRevenue = 0;
+                foreach (var invoiceDetail in invoice.InvoiceDetails)
+                {
+                    var lineTotal = invoiceDetail.LineTotal;
+                    var material = await _materialService.FindAsync(invoiceDetail.MaterialId);
+                    var costPrice = material.CostPrice * invoiceDetail.Quantity;
+                    decimal itemRevenue = lineTotal - costPrice;
+                    
+                    if(invoiceDetail.VariantId != null)
+                    {
+                        var variant = await _variantService.FindAsync((Guid)invoiceDetail.VariantId);
+                        costPrice = variant.CostPrice * invoiceDetail.Quantity;
+                        itemRevenue = lineTotal - costPrice;
+                    }
+                    invoiceRevenue += itemRevenue;
+                }
+                revenueCustomer += invoiceRevenue;
+            }
+            return revenueCustomer;
+        }
+
+        public async Task<decimal> GetAllRevenueFromCustomer()
+        {
+            decimal revenueCustomer = 0;
+            var customerInvoices = _invoiceService.Get(_ => _.CustomerId != null, _ => _.InvoiceDetails, _ => _.Customer);
+            foreach (var invoice in customerInvoices)
+            {
+                decimal invoiceRevenue = 0;
+                foreach (var invoiceDetail in invoice.InvoiceDetails)
+                {
+                    var lineTotal = invoiceDetail.LineTotal;
+                    var material = await _materialService.FindAsync(invoiceDetail.MaterialId);
+                    var costPrice = material.CostPrice * invoiceDetail.Quantity;
+                    decimal itemRevenue = lineTotal - costPrice;
+
+                    if (invoiceDetail.VariantId != null)
+                    {
+                        var variant = await _variantService.FindAsync((Guid)invoiceDetail.VariantId);
+                        costPrice = variant.CostPrice * invoiceDetail.Quantity;
+                        itemRevenue = lineTotal - costPrice;
+                    }
+                    invoiceRevenue += itemRevenue;
+                }
+                revenueCustomer += invoiceRevenue;
+            }
+            return revenueCustomer;
+        }
+
+        public decimal GetAllCustomerCurrentDebt()
+        {
+            decimal customerDebt = 0;
+            var customerInvoices = _transactionService.GetAll();
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    customerDebt += transaction.Amount;
+                else if (transaction.TransactionType.Equals((int)TransactionType.PurchaseDebtInvoice))
+                    customerDebt -= transaction.Amount;
+            }
+            return customerDebt;
+        }
+
+        public decimal GetCustomerCurrentDebt(string userId)
+        {
+            decimal customerDebt = 0;
+            var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    customerDebt += transaction.Amount;
+                else if (transaction.TransactionType.Equals((int)TransactionType.PurchaseDebtInvoice))
+                    customerDebt -= transaction.Amount;
+            }
+            return customerDebt;
+        }
+
+        public decimal GetAllCustomerTotalSale()
+        {
+            decimal currentTotalSale = 0;
+            var customerInvoices = _transactionService.GetAll();
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    currentTotalSale += transaction.Amount;
+            }
+            return currentTotalSale;
+        }
+        public decimal GetCustomerTotalSale(string userId)
+        {
+            decimal currentTotalSale = 0;
+            var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    currentTotalSale += transaction.Amount;
+            }
+            return currentTotalSale;
+        }
+
+
+        public decimal GetAllCustomerTotalSaleAfterRefund()
+        {
+            decimal currentTotalSaleAfterRefund = 0;
+            var customerInvoices = _transactionService.GetAll();
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    currentTotalSaleAfterRefund += transaction.Amount;
+                else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
+                    currentTotalSaleAfterRefund -= transaction.Amount;
+            }
+            return currentTotalSaleAfterRefund;
+        }
+        public decimal GetCustomerTotalSaleAfterRefund(string userId)
+        {
+            decimal currentTotalSaleAfterRefund = 0;
+            var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    currentTotalSaleAfterRefund += transaction.Amount;
+                else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
+                    currentTotalSaleAfterRefund -= transaction.Amount;
+            }
+            return currentTotalSaleAfterRefund;
+        }
+
+        #endregion
     }
 }

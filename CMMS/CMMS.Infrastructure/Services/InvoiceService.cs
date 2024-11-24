@@ -27,6 +27,8 @@ namespace CMMS.Infrastructure.Services
         Task<bool> SaveChangeAsync();
         string GenerateInvoiceCode();
         #endregion
+
+
     }
     public class InvoiceService : IInvoiceService
     {

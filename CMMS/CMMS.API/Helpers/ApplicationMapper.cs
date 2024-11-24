@@ -56,6 +56,10 @@ namespace CMMS.API.Helpers
                 .ForMember(dest => dest.InvoiceDetails, opt => opt.MapFrom(src => src.InvoiceDetails))
                 .ReverseMap();
 
+
+            CreateMap<Invoice, InvoiceTransactionVM>()
+            .ReverseMap();
+
             CreateMap<Invoice, InvoiceShippingDetailsVM>()
             .ForMember(dest => dest.UserVM, opt => opt.MapFrom(src => src.Customer))
             .ForMember(dest => dest.InvoiceDetails, opt => opt.MapFrom(src => src.InvoiceDetails))

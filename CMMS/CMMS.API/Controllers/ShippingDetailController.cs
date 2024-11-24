@@ -85,7 +85,7 @@ namespace CMMS.API.Controllers
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
                 item.Invoice.StaffId = staff.Id;
                 item.Invoice.StaffName = staff.FullName;
-                //item.Invoice.NeedToPay = _transactionService.GetAmountDebtLeftFromInvoice(invoice.Id);
+                item.Invoice.NeedToPay = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id)).FirstOrDefault().NeedToPay;
                 item.Invoice.StoreName = store.Name;
                 item.Invoice.StoreId = store.Id;
                 foreach (var invoiceDetails in item.Invoice.InvoiceDetails)

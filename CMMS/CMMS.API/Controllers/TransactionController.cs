@@ -28,7 +28,7 @@ namespace CMMS.API.Controllers
             _userService = userSerivce;
         }
         [HttpGet]
-        public IActionResult GetTransaction([FromQuery] TransactionFilterModel filterModel)
+        public IActionResult GetTransaction([FromQuery] TransactionFilterModel filterModel) 
         {
             var filterList = _transactionService.Get(_ =>
             (!filterModel.FromDate.HasValue || _.TransactionDate >= filterModel.FromDate) &&
