@@ -391,7 +391,7 @@ namespace CMMS.API.Controllers
                     {
                         var invoice = await _invoiceService.FindAsync(invoiceInfo.InvoiceId);
                         string invoiceCode = invoice.Id;
-                        invoice.StoreId = storeManager.StoreId;
+                        invoice.StoreId = invoice.StoreId;
                         invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
                         invoice.InvoiceType = (int)InvoiceType.Normal;
                         invoice.Note = note;
@@ -414,7 +414,7 @@ namespace CMMS.API.Controllers
                         foreach (var invoiceDetail in invoiceDetails)
                         {
                             var item = _mapper.Map<CartItem>(invoiceDetail);
-                            item.StoreId = storeManager.StoreId;
+                            item.StoreId = invoice.StoreId;
                             var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                         }
                         var needToPay = salePrices - discount;
