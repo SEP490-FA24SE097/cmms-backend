@@ -36,17 +36,16 @@ namespace CMMS.API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add CORS services
-            //builder.Services.AddCors(options =>
-            //{
-            //    options.AddPolicy("AllowAll",
-            //        builder =>
-            //        {
-            //            builder.WithOrigins("https://localhost:7095")  
-            //            .AllowAnyMethod()
-            //            .AllowAnyHeader()
-            //            .AllowCredentials();  // Cho phép gửi cookie
-            //        });
-            //});
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin() // Cho phép tất cả các origin
+                               .AllowAnyMethod() // Cho phép tất cả các phương thức (GET, POST, PUT, DELETE, ...)
+                               .AllowAnyHeader(); // Cho phép tất cả các header
+                    });
+            });
             // background worker 
             //builder.Services.AddHostedService<PaymentBackgroundService>();
 
@@ -161,7 +160,7 @@ namespace CMMS.API
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            //app.UseCors("AllowAll");
+            app.UseCors("AllowAllOrigins");
             app.MapHub<StoreNotificationHub>("/store-notification-hub");
             app.MapHub<WarehouseNotificationHub>("/warehouse-notification-hub");
             app.UseSwagger();

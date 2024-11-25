@@ -59,7 +59,6 @@ namespace CMMS.API.Controllers
             _shippingDetailService = shippingDetailService;
         }
 
-
         #region CRUD Customer
 
         [HttpGet]

@@ -38,13 +38,9 @@ namespace CMMS.Core.Models
                 {
                     return $"Thanh toán";
                 };
-                if (TransactionType.Equals((int)TransactionTypeData.DebtPurchase) && InvoiceId == null)
-                {
-                    return $"Thanh toán tiền nợ";
-                };
                 if (TransactionType.Equals((int)TransactionTypeData.DebtInvoice) && InvoiceId != null)
                 {
-                    return $"Bán hàng nợ";
+                    return $"Bán hàng";
                 };
                 if (TransactionType.Equals((int)TransactionTypeData.Cash))
                 {
@@ -97,8 +93,6 @@ namespace CMMS.Core.Models
         public DateTime InvoiceDate { get; set; }
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
-        //public string InvoiceStatus { get; set; }
-        //public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
         public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
     }
