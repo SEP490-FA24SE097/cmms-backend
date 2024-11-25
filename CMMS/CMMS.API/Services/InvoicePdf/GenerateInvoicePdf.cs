@@ -126,15 +126,90 @@ namespace CMMS.Infrastructure.InvoicePdf
     <body>
         <div class='header'>
             <h1>HÓA ĐƠN</h1>
-            <p>HÓA ĐƠN SỐ {invoiceData.Invoice.Id}</p>
-            <p>NGÀY: {invoiceData.Invoice.InvoiceDate.ToString("dd/MM/yyyy")}</p>
+            <p><b>HÓA ĐƠN SỐ:</b> {invoiceData.Invoice.Id}</p>
+            <p><b>NGÀY:</b>{invoiceData.Invoice.InvoiceDate.ToString("dd/MM/yyyy")}</p>       
+            <p><b>ĐỊA CHỈ MUA:</b> {invoiceData.Invoice.BuyIn}</p>
+
         </div>
-        <div class='company-info'>
-            <p>{invoiceData.Invoice.StoreName}</p>
-            <p>{invoiceData.Invoice.StoreId}</p>
+
+        <div class='shipping-info'>
+            <div style='float: left; width: 45%;'>
+                <p><b>ĐẾN:</b> {invoiceData.Invoice.UserVM.FullName}</p>
+                <p><b>ĐỊA CHỈ:</b> {invoiceData.Address}</p>        
+                <p><b>DỰ KIẾN GIAO:</b> {invoiceData.EstimatedArrival.ToString("dd/MM/yyyy")}</p>        
+                <p><b>GIAO HÀNG VÀO:</b> {(invoiceData.ShippingDate != null ? invoiceData.EstimatedArrival.ToString("dd/MM/yyyy") : "")}</p>
+                <p><b>SỐ ĐIỆN THOẠI NHẬN HÀNG:</b> {invoiceData.PhoneReceive}</p>
+            </div>
+            <div style='float: right; width: 45%;'>
+                <p><b>CỬA HÀNG:</b> {store.Name}</p>
+                <p><b>ĐỊA CHỈ:</b> {store.Address}</p>        
+            </div>
+            <div style='clear: both;'></div>
         </div>
-    </body>
-            </html>";
+        <div class='special-instructions'>
+            <p>CHÚ THÍCH HOẶC HƯỚNG DẪN ĐẶC BIỆT:</p>
+            <p>{invoiceData.Note}</p>
+        </div>
+        <table class='table'>
+            <tr>
+                <th>NGƯỜI BÁN</th>
+                <th>SỐ ĐƠN HÀNG</th>
+                <th>NGƯỜI YÊU CẦU</th>
+                <th>ĐÃ VẬN</th>
+                <th>ĐIỂM F.O.B</th>
+                <th>ĐIỀU</th>
+            </tr>
+            <tr>
+                <td>{(invoiceData.Invoice.StaffName != null ? invoiceData.Invoice.StaffName : invoiceData.Invoice.BuyIn)}</td>
+                <td>{invoiceData.Invoice.Id}</td>
+                <td>{invoiceData.Invoice.UserVM.FullName}</td>
+                <td>X</td>
+                <td>-</td>
+                <td>[Thanh toán khi nhận]</td>
+            </tr>
+        </table>
+        <table class='table'>
+            <tr>
+                <th>SỐ LƯỢNG</th>
+                <th>MÔ TẢ</th>
+                <th>ĐƠN GIÁ</th>
+                <th>TỔNG</th>
+            </tr>";
+
+            // Thêm các sản phẩm vào bảng
+            foreach (var item in invoiceData.Invoice.InvoiceDetails)
+            {
+                html += $@"
+            <tr>
+                <td>{item.Quantity}</td>
+                <td>{item.ItemName}</td>
+                <td>{item.SalePrice:C}</td>
+                <td>{item.ItemTotalPrice:C}</td>
+            </tr>";
+            }
+
+            html += $@"
+            </table>
+            <div class='footer'>
+                <p><b>TỔNG THU:</b> {invoiceData.Invoice.TotalAmount:C}</p>
+                <p><b>GIẢM GIÁ:</b> {invoiceData.Invoice.Discount:C}</p>
+                <p><b>VẬN CHUYỂN & ĐÓNG GÓI TRONG VẬN CHUYỂN:</b> 0</p>
+                <p><b>KHÁCH TRẢ TRƯỚC:</b> {invoiceData.Invoice.CustomerPaid:C}</p>         
+                <p><b>TỔNG SỐ TIỀN PHẢI THANH TOÁN:</b> {invoice.SalePrice:C}</p>
+
+                <p>Nếu bạn có bất kỳ câu hỏi nào về hóa đơn này, hãy liên hệ [Tên, số điện thoại, email]</p>
+            </div>
+            <div class='thank-you'>
+                <p><b>CẢM ƠN BẠN ĐÃ GIAO DỊCH VỚI CHÚNG TÔI!</b></p>
+            </div>
+        </body>
+    </html>";
+
+            return html;
+
+
+
+
             return html;
         }
 
