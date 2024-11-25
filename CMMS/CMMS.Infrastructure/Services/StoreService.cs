@@ -155,11 +155,11 @@ namespace CMMS.Infrastructure.Services
                 message.Content = "Store not found";
                 return message;
             }
-            var WasManagedStore = await StoreWasManaged(storeId);
-            if (WasManagedStore) {
-                message.Content = store.Name + " was managed by another users";
-                return message;
-            }
+            //var WasManagedStore = await StoreWasManaged(storeId);
+            //if (WasManagedStore) {
+            //    message.Content = store.Name + " was managed by another users";
+            //    return message;
+            //}
 
             user.StoreId = storeId;
             _userRepository.Update(user);
