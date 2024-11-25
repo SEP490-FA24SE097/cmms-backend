@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using CMMS.API.Helpers;
-using CMMS.API.OptionsSetup;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Enums;
@@ -8,13 +7,11 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.InvoicePdf;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
-using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
-using Google.Apis.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 namespace CMMS.API.Controllers
 {
@@ -37,6 +34,7 @@ namespace CMMS.API.Controllers
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly ITransaction _efTransaction;
         private readonly IStoreService _storeService;
+        private readonly IGenerateInvoicePdf _generateInvoicePdf;
 
         public InvoiceController(IInvoiceService invoiceService,
             IInvoiceDetailService invoiceDetailService, IMapper mapper,
@@ -46,7 +44,8 @@ namespace CMMS.API.Controllers
             IMaterialVariantAttributeService materialVariantAttributeService,
             IUserService userService, ICurrentUserService currentUserService,
             IPaymentService paymentService, ITransactionService transactionService,
-            IStoreInventoryService storeInventoryService, ITransaction transaction, IStoreService storeService)
+            IStoreInventoryService storeInventoryService, ITransaction transaction, IStoreService storeService,
+            IGenerateInvoicePdf generateInvoicePdf)
         {
             _invoiceService = invoiceService;
             _invoiceDetailService = invoiceDetailService;
@@ -62,6 +61,7 @@ namespace CMMS.API.Controllers
             _storeInventoryService = storeInventoryService;
             _efTransaction = transaction;
             _storeService = storeService;
+            _generateInvoicePdf = generateInvoicePdf;
         }
 
         [HttpGet]
@@ -500,20 +500,20 @@ namespace CMMS.API.Controllers
                     // create refund invoice
                     var staffManager = await _currentUserService.GetCurrentUser();
                     var invoice = await _invoiceService.FindAsync(model.InvoiceId);
-                    string invoiceCode =  _invoiceService.GenerateInvoiceCode();
+                    string invoiceCode = _invoiceService.GenerateInvoiceCode();
                     decimal totalRefundAmount = 0;
                     var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
 
                     var refundItems = (from refundItem in model.RefundItems
                                        join invoiceDetail in invoiceDetails
-                                       on new { refundItem.MaterialId, refundItem.VariantId } equals new 
+                                       on new { refundItem.MaterialId, refundItem.VariantId } equals new
                                        { MaterialId = invoiceDetail.MaterialId.ToString(), VariantId = invoiceDetail.VariantId?.ToString() }
-                                       select new 
+                                       select new
                                        {
                                            MaterialId = invoiceDetail.MaterialId,
                                            VariantId = invoiceDetail.VariantId,
                                            // quantity of refund item
-                                           RefundQuantity = refundItem.Quantity, 
+                                           RefundQuantity = refundItem.Quantity,
                                            PricePerQuantity = invoiceDetail.LineTotal / invoiceDetail.Quantity,
                                            InvoiceId = invoiceDetail.InvoiceId
                                        }).ToList();
@@ -522,7 +522,7 @@ namespace CMMS.API.Controllers
                     {
                         var lineTotalRefund = item.RefundQuantity * item.PricePerQuantity;
                         var material = await _materialService.FindAsync(item.MaterialId);
-                     
+
                         // insert invoice Details
                         var invoiceDetail = new InvoiceDetail
                         {
@@ -550,12 +550,12 @@ namespace CMMS.API.Controllers
                     var refundInvoice = new Invoice
                     {
                         Id = invoiceCode,
-                        CustomerId =  invoice.CustomerId,
+                        CustomerId = invoice.CustomerId,
                         InvoiceDate = DateTime.Now,
                         InvoiceStatus = (int)InvoiceStatus.Refund,
                         InvoiceType = (int)InvoiceType.Normal,
                         //Note = shippingDetail.Note,
-                        StoreId =  invoice.StoreId,
+                        StoreId = invoice.StoreId,
                         // get total cart 
                         StaffId = staffManager.Id,
                         SalePrice = totalRefundAmount,
@@ -588,6 +588,14 @@ namespace CMMS.API.Controllers
             }
 
             return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
+        }
+
+        [HttpGet("{invoiceId}")]
+        public async Task<IActionResult> GetInvoicePdf(string invoiceId)
+        {
+            var htmlContent = await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
+            var pdfBytes = _generateInvoicePdf.GeneratePdf(htmlContent);
+            return File(pdfBytes, "application/pdf", "Invoice.pdf");
         }
     }
 }

@@ -51,6 +51,7 @@ namespace CMMS.Infrastructure.Services
         decimal GetCustomerTotalSale(string userId);
         decimal GetAllCustomerTotalSaleAfterRefund();
         decimal GetCustomerTotalSaleAfterRefund(string userId);
+        decimal GetCustomerCurrentDeftAtTheLastTransaction(string transactionId, string userId);
     }
 
     public class UserService : IUserService
@@ -440,6 +441,21 @@ namespace CMMS.Infrastructure.Services
                     currentTotalSaleAfterRefund -= transaction.Amount;
             }
             return currentTotalSaleAfterRefund;
+        }
+
+        public decimal GetCustomerCurrentDeftAtTheLastTransaction(string transactionId, string userId)
+        {
+            decimal customerDebt = 0;
+            var currentTransaction = _transactionService.Get(_ => _.Id.Equals(transactionId)).FirstOrDefault();
+            var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId) && _.TransactionDate <= currentTransaction.TransactionDate);
+            foreach (var transaction in customerInvoices)
+            {
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                    customerDebt += transaction.Amount;
+                else if (transaction.TransactionType.Equals((int)TransactionType.PurchaseDebtInvoice))
+                    customerDebt -= transaction.Amount;
+            }
+            return customerDebt;
         }
 
         #endregion

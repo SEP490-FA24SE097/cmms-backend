@@ -26,6 +26,9 @@ using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 using CMMS.Infrastructure.BackgroundService;
 using CMMS.Infrastructure.SignalRHub;
+using DinkToPdf.Contracts;
+using DinkToPdf;
+using CMMS.Infrastructure.InvoicePdf;
 
 namespace CMMS.API
 {
@@ -130,12 +133,15 @@ namespace CMMS.API
 			// DI 
 			builder.Services.AddInfrastructureServices(builder.Configuration);
 
+            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
             builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
             builder.Services.AddSingleton<IMailService, MailService>();
             builder.Services.AddScoped<ITransaction, EfTransaction>();
+            builder.Services.AddScoped<IGenerateInvoicePdf, GenerateInvoicePdf>();
+
 
             // Configure JSON options globally
             builder.Services.AddControllers().AddJsonOptions(options =>

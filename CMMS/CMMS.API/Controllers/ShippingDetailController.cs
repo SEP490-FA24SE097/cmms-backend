@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net.Http;
+using System.Security.Policy;
 
 namespace CMMS.API.Controllers
 {
@@ -28,6 +29,7 @@ namespace CMMS.API.Controllers
         private IUserService _userService;
         private IStoreService _storeService;
         private ITransaction _efTransaction;
+        private IMailService _mailService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IVariantService _variantService;
@@ -44,7 +46,8 @@ namespace CMMS.API.Controllers
             IMaterialVariantAttributeService materialVariantAttributeService,
             ITransactionService transactionService, 
             IInvoiceDetailService invoiceDetailService, 
-            ITransaction efTransaction)
+            ITransaction efTransaction,
+            IMailService mailService)
         {
             _mapper = mapper;
             _shippingDetailService = shippingDetailService;
@@ -58,6 +61,7 @@ namespace CMMS.API.Controllers
             _transactionService = transactionService;
             _invoiceDetailService = invoiceDetailService;
             _efTransaction = efTransaction;
+            _mailService = mailService;
 
         }
         [HttpGet("getShippingDetails")]
@@ -83,8 +87,8 @@ namespace CMMS.API.Controllers
                 var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
                 var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
-                item.Invoice.StaffId = staff.Id;
-                item.Invoice.StaffName = staff.FullName;
+                item.Invoice.StaffId = staff != null ? staff.Id : null ;
+                item.Invoice.StaffName = staff != null ? staff.FullName : null;
                 item.Invoice.NeedToPay = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id)).FirstOrDefault().NeedToPay;
                 item.Invoice.StoreName = store.Name;
                 item.Invoice.StoreId = store.Id;
@@ -211,6 +215,9 @@ namespace CMMS.API.Controllers
                 return BadRequest("User đã được sử dụng");
             }
             var result = await _userService.ShipperSignUpAsync(model);
+
+            if(result.Succeeded)
+                await _mailService.SendEmailAsync(model.Email, "Tài khoản shipper cho hệ thống CMMS", null);
             return Ok(new
             {
                 data = result.Succeeded,
@@ -270,6 +277,5 @@ namespace CMMS.API.Controllers
                 }
             });
         }
-        // cap nhat don hang that bai.
     }
 }

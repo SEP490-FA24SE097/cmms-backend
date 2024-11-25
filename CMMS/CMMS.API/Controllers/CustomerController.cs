@@ -317,19 +317,19 @@ namespace CMMS.API.Controllers
 
         #region Customer Transaction
         [HttpGet("customer-debt")]
-        public ActionResult GetDebtCustomer([FromQuery] TransactionFilterModel filterModel)
+        public async Task<ActionResult> GetDebtCustomerAsync([FromQuery] TransactionFilterModel filterModel)
         {
             var filterList = _transactionService.Get(_ =>
             (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
             (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
             (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
             (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)));
+            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)),
+            _ => _.Invoice);
 
             var total = filterList.Count();
             var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort("TransactionDate", false);
-
             var result = _mapper.Map<List<TransactionVM>>(filterListPaged);
 
             foreach (var transaction in result)
@@ -337,11 +337,44 @@ namespace CMMS.API.Controllers
                 if (transaction.InvoiceId != null)
                 {
                     var invoice = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
+                    var invoiceDetailVM = _mapper.Map<List<InvoiceDetailVM>>(invoice.InvoiceDetails.ToList());
                     transaction.InvoiceVM = _mapper.Map<InvoiceTransactionVM>(invoice);
+                    var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                    var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
+                    transaction.InvoiceVM.StaffName = staff != null ? staff.FullName : store.Name;
+                    transaction.InvoiceVM.StoreName = store != null ? store.Name : "";
+
+                    transaction.CustomerCurrentDebt = _userService.GetCustomerCurrentDeftAtTheLastTransaction(transaction.Id, transaction.CustomerId);
+                    var userVM = _userService.Get(_ => _.Id.Equals(transaction.CustomerId)).FirstOrDefault();
+                    transaction.InvoiceVM.UserVM = _mapper.Map<UserVM>(userVM);
+
+                    foreach (var invoiceDetail in invoiceDetailVM)
+                    {
+                        var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
+                        itemInStoreModel.StoreId = invoice.StoreId;
+                        var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
+                        if (item != null)
+                        {
+                            var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
+                            invoiceDetail.ItemName = material.Name;
+                            invoiceDetail.SalePrice = material.SalePrice;
+                            invoiceDetail.ImageUrl = material.ImageUrl;
+                            invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
+                            if (invoiceDetail.VariantId != null)
+                            {
+                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
+                                var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                                invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                                invoiceDetail.SalePrice = variant.Price;
+                                invoiceDetail.ImageUrl = variant.VariantImageUrl;
+                                invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                            }
+                        }
+                    }
+                    transaction.InvoiceVM.InvoiceDetails = invoiceDetailVM;
                 }
-                var userVM = _userService.Get(_ => _.Id.Equals(transaction.CustomerId)).FirstOrDefault();
-                transaction.UserVM = _mapper.Map<UserVM>(userVM);
             }
+
 
             return Ok(new
             {

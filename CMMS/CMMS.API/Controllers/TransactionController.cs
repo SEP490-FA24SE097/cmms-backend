@@ -54,7 +54,7 @@ namespace CMMS.API.Controllers
                     transaction.InvoiceVM = _mapper.Map<InvoiceTransactionVM>(invoice);
                 }
                 var userVM = _userService.Get(_ => _.Id.Equals(transaction.CustomerId)).FirstOrDefault();
-                transaction.UserVM = _mapper.Map<UserVM>(userVM);
+                //transaction.UserVM = _mapper.Map<UserVM>(userVM);
             }
 
             return Ok(new

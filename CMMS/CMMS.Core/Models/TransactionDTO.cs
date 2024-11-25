@@ -55,6 +55,7 @@ namespace CMMS.Core.Models
         }
 
         public decimal Amount { get; set; }
+        public decimal? CustomerCurrentDebt { get; set; }
         public DateTime TransactionDate { get; set; }
         public string? InvoiceId { get; set; }
         public string? CustomerId { get; set; }
@@ -84,7 +85,6 @@ namespace CMMS.Core.Models
             } 
         }
         public InvoiceTransactionVM? InvoiceVM{ get; set; }
-        public UserVM? UserVM{ get; set; }
     }
 
     public class InvoiceTransactionVM
@@ -94,6 +94,26 @@ namespace CMMS.Core.Models
         public double TotalAmount { get; set; }
         public int InvoiceStatus { get; set; }
         public string? Note { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? CustomerPaid { get; set; }
+        public string? StaffId { get; set; }
+        public string? StaffName { get; set; }
+        public string? StoreId { get; set; }
+        public string? StoreName { get; set; }
+        public UserVM? UserVM { get; set; }
+        public int? SellPlace { get; set; }
+        public string? BuyIn
+        {
+            get
+            {
+                if (SellPlace == (int)Enums.SellPlace.Website)
+                {
+                    return "Website";
+                }
+                return "Tại cửa hàng";
+            }
+        }
         public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
     }
 
