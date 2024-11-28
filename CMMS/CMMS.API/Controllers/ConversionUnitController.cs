@@ -1,6 +1,7 @@
 ﻿using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
+using DinkToPdf;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +35,7 @@ namespace CMMS.API.Controllers
                 var list = conversionUnitName.Select(x => new ConversionUnit()
                 {
                     Id = new Guid(),
-                  //  Name = x.Name,
+                    //  Name = x.Name,
                     ConversionRate = x.ConversionRate,
                     Price = x.Price,
                     MaterialId = materialId
@@ -50,7 +51,8 @@ namespace CMMS.API.Controllers
                     {
                         return BadRequest();
                     }
-                    await _variantService.AddAsync(new Variant()
+
+                    var newVariant = new Variant()
                     {
                         Id = new Guid(),
                         VariantImageUrl = material.ImageUrl,
@@ -59,52 +61,93 @@ namespace CMMS.API.Controllers
                         ConversionUnitId = null,
                         SKU = material.Name + " (" + material.Unit.Name + ")",
                         MaterialId = materialId
-                    });
-                    await _variantService.AddRange(list.Select(x => new Variant()
+                    };
+                    await _variantService.AddAsync(newVariant);
+
+                    //await _variantService.AddRange(list.Select(x => new Variant()
+                    //{
+                    //    Id = new Guid(),
+                    //    VariantImageUrl = material.ImageUrl,
+                    //    Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
+                    //    CostPrice = material.CostPrice * x.ConversionRate,
+                    //    ConversionUnitId = x.Id,
+                    //    // SKU = material.Name + " (" + x.Name + ")",
+                    //    SKU = material.Name + " (" + newVariant.Unit.Name + ")",
+                    //    AttributeVariantId = newVariant.Id,
+                    //    MaterialId = materialId
+                    //}));
+
+                    foreach (var item in list)
                     {
-                        Id = new Guid(),
-                        VariantImageUrl = material.ImageUrl,
-                        Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
-                        CostPrice = material.CostPrice * x.ConversionRate,
-                        ConversionUnitId = x.Id,
-                       // SKU = material.Name + " (" + x.Name + ")",
-                        MaterialId = materialId
-                    }));
+                        var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
+                        await _variantService.AddAsync(new Variant()
+                        {
+                            Id = new Guid(),
+                            VariantImageUrl = material.ImageUrl,
+                            Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
+                            CostPrice = material.CostPrice * item.ConversionRate,
+                            ConversionUnitId = item.Id,
+                            AttributeVariantId = newVariant.Id,
+                            SKU = material.Name + " (" + unitName.Unit.Name + ")",
+                            MaterialId = material.Id
+                        });
+                    }
+
                     await _variantService.SaveChangeAsync();
                 }
                 else
                 {
                     var attributeVariants = _variantService.Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count > 0 && x.ConversionUnitId == null).ToList();
                     var unitVariants = _variantService
-                        .Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count <= 0).AsQueryable().Include(x=>x.MaterialVariantAttributes).ToList();
+                        .Get(x => x.MaterialId == materialId && x.MaterialVariantAttributes.Count <= 0).AsQueryable().Include(x => x.MaterialVariantAttributes).ToList();
                     if (unitVariants.Count > 0)
                     {
                         var material = await _materialService.FindAsync(materialId);
-                        await _variantService.AddRange(list.Select(x => new Variant()
+                        //await _variantService.AddRange(list.Select(x => new Variant()
+                        //{
+                        //    Id = new Guid(),
+                        //    VariantImageUrl = material.ImageUrl,
+                        //    Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
+                        //    CostPrice = material.CostPrice * x.ConversionRate,
+                        //    ConversionUnitId = x.Id,
+                        //  //  SKU = material.Name + " (" + x.Name + ")",
+                        //    MaterialId = materialId
+                        //}));
+                        foreach (var item in list)
                         {
-                            Id = new Guid(),
-                            VariantImageUrl = material.ImageUrl,
-                            Price = x.Price == 0 ? material.SalePrice * x.ConversionRate : x.Price,
-                            CostPrice = material.CostPrice * x.ConversionRate,
-                            ConversionUnitId = x.Id,
-                          //  SKU = material.Name + " (" + x.Name + ")",
-                            MaterialId = materialId
-                        }));
+                            var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
+                            var rootUnitVariant = await _variantService
+                                .Get(x => x.MaterialId == materialId && x.ConversionUnitId == null)
+                                .FirstOrDefaultAsync();
+                            await _variantService.AddAsync(new Variant()
+                            {
+                                Id = new Guid(),
+                                VariantImageUrl = material.ImageUrl,
+                                Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
+                                CostPrice = material.CostPrice * item.ConversionRate,
+                                ConversionUnitId = item.Id,
+                                AttributeVariantId = rootUnitVariant.Id,
+                                SKU = material.Name + " (" + unitName.Unit.Name + ")",
+                                MaterialId = material.Id
+                            });
+                        }
                         await _variantService.SaveChangeAsync();
                     }
 
                     if (attributeVariants.Count > 0)
                     {
-                        foreach (var unit in list)
+                        foreach (var item in list)
                         {
+                            var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
                             await _variantService.AddRange(attributeVariants.Select(x => new Variant()
                             {
                                 Id = new Guid(),
                                 VariantImageUrl = x.VariantImageUrl,
-                                Price = x.Price * unit.ConversionRate,
-                                CostPrice = x.CostPrice * unit.ConversionRate,
-                                ConversionUnitId = unit.Id,
-                              //  SKU = x.SKU + " (" + unit.Name + ")",
+                                Price = x.Price * item.ConversionRate,
+                                CostPrice = x.CostPrice * item.ConversionRate,
+                                ConversionUnitId = item.Id,
+                                //  SKU = x.SKU + " (" + unit.Name + ")",
+                                SKU = x.SKU + " (" + unitName.Unit.Name + ")",
                                 AttributeVariantId = x.Id,
                                 MaterialId = materialId
                             }));

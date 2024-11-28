@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography.X509Certificates;
 
 namespace CMMS.API.Controllers
 {
@@ -18,13 +20,19 @@ namespace CMMS.API.Controllers
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IWarehouseService _warehouseService;
         private readonly IVariantService _variantService;
+        private readonly IGoodsDeliveryNoteService _goodsDeliveryNoteService;
+        private readonly IGoodsDeliveryNoteDetailService _goodsDeliveryNoteDetailService;
+        private readonly IStoreService _storeService;
 
-        public StoreMaterialImportRequestController(IWarehouseService warehouseService, IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService, IVariantService variantService)
+        public StoreMaterialImportRequestController(IStoreService storeService, IGoodsDeliveryNoteService goodsDeliveryNoteService, IGoodsDeliveryNoteDetailService goodsDeliveryNoteDetailService, IWarehouseService warehouseService, IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService, IVariantService variantService)
         {
             _storeInventoryService = storeInventoryService;
             _requestService = requestService;
             _variantService = variantService;
             _warehouseService = warehouseService;
+            _goodsDeliveryNoteService = goodsDeliveryNoteService;
+            _goodsDeliveryNoteDetailService = goodsDeliveryNoteDetailService;
+            _storeService = storeService;
         }
 
         [HttpPost("create-store-material-import-request")]
@@ -80,7 +88,7 @@ namespace CMMS.API.Controllers
 
 
         [HttpPost("approve-or-cancel-store-material-import-request")]
-        public async Task<IActionResult> Create([FromQuery] Guid requestId, [FromQuery] bool isApproved)
+        public async Task<IActionResult> Create([FromQuery] string? fromStoreId, [FromQuery] Guid requestId, [FromQuery] bool isApproved)
         {
             try
             {
@@ -94,10 +102,22 @@ namespace CMMS.API.Controllers
                     {
                         return BadRequest("The request status must be 'Processing'");
                     }
+                    if (!fromStoreId.IsNullOrEmpty())
+                    {
+                        var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, fromStoreId);
+                        if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - storeInventoryItem.InOrderQuantity < importQuantity)
+                            return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
+                        storeInventoryItem.InOrderQuantity = importQuantity;
+                        request.FromStoreId = fromStoreId;
+                        request.Status = "Approved";
+                        request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                        await _requestService.SaveChangeAsync();
+                        return Ok();
+                    }
                     if (item == null || item.TotalQuantity - item.InRequestQuantity < importQuantity)
                         return BadRequest("Không đủ sản phẩm trong kho");
-                    request.Status = "Approved";
                     item.InRequestQuantity = importQuantity;
+                    request.Status = "Approved";
                 }
                 else
                 {
@@ -130,7 +150,6 @@ namespace CMMS.API.Controllers
                         return BadRequest("The request status must be 'Approved'");
                     }
                     request.Status = "Confirmed";
-
                     if (request.VariantId == null)
                     {
                         var storeInventory = _storeInventoryService
@@ -152,13 +171,79 @@ namespace CMMS.API.Controllers
                             });
                         }
 
-                        var warehouse = _warehouseService
-                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
-                        if (warehouse != null)
+                        if (request.FromStoreId != null)
                         {
-                            warehouse.TotalQuantity -= request.Quantity;
-                            warehouse.InRequestQuantity -= request.Quantity;
-                            warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                            var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                .FirstOrDefaultAsync();
+                            var storeInventoryItem = _storeInventoryService
+                                .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
+                            if (storeInventoryItem != null)
+                            {
+                                storeInventoryItem.TotalQuantity -= request.Quantity;
+                                storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                var goodsNote = new GoodsDeliveryNote()
+                                {
+                                    Id = new Guid(),
+                                    StoreId = request.FromStoreId,
+                                    ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                    Total = 0,
+                                    TotalByText = "Không đồng",
+                                    TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                };
+                                await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                {
+                                    Id = new Guid(),
+                                    GoodsDeliveryNoteId = goodsNote.Id,
+                                    MaterialId = request.MaterialId,
+                                    VariantId = request.VariantId,
+                                    Quantity = request.Quantity,
+                                    UnitPrice = 0,
+                                    Total = 0
+                                };
+                                await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                return Ok();
+                            }
+
+                        }
+                        else
+                        {
+                            var warehouse = _warehouseService
+                                .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                            var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                .FirstOrDefaultAsync();
+                            if (warehouse != null)
+                            {
+                                warehouse.TotalQuantity -= request.Quantity;
+                                warehouse.InRequestQuantity -= request.Quantity;
+                                warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                var goodsNote = new GoodsDeliveryNote()
+                                {
+                                    Id = new Guid(),
+                                    StoreId = null,
+                                    ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                    Total = 0,
+                                    TotalByText = "Không đồng",
+                                    TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                };
+                                await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                {
+                                    Id = new Guid(),
+                                    GoodsDeliveryNoteId = goodsNote.Id,
+                                    MaterialId = request.MaterialId,
+                                    VariantId = request.VariantId,
+                                    Quantity = request.Quantity,
+                                    UnitPrice = 0,
+                                    Total = 0
+                                };
+                                await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                            }
                         }
                         await _storeInventoryService.SaveChangeAsync();
 
@@ -188,13 +273,87 @@ namespace CMMS.API.Controllers
                                         LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                                     });
                                 }
-                                var warehouse = _warehouseService
-                                    .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
-                                if (warehouse != null)
+                                //var warehouse = _warehouseService
+                                //    .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                                //if (warehouse != null)
+                                //{
+                                //    warehouse.TotalQuantity -= request.Quantity;
+                                //    warehouse.InRequestQuantity -= request.Quantity;
+                                //    warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                //}
+                                if (request.FromStoreId != null)
                                 {
-                                    warehouse.TotalQuantity -= request.Quantity;
-                                    warehouse.InRequestQuantity -= request.Quantity;
-                                    warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                    var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                        .FirstOrDefaultAsync();
+                                    var storeInventoryItem = _storeInventoryService
+                                        .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
+                                    if (storeInventoryItem != null)
+                                    {
+                                        storeInventoryItem.TotalQuantity -= request.Quantity;
+                                        storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                        storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                        var goodsNote = new GoodsDeliveryNote()
+                                        {
+                                            Id = new Guid(),
+                                            StoreId = request.FromStoreId,
+                                            ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                            Total = 0,
+                                            TotalByText = "Không đồng",
+                                            TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                        };
+                                        await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                        var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                        {
+                                            Id = new Guid(),
+                                            GoodsDeliveryNoteId = goodsNote.Id,
+                                            MaterialId = request.MaterialId,
+                                            VariantId = request.VariantId,
+                                            Quantity = request.Quantity,
+                                            UnitPrice = 0,
+                                            Total = 0
+                                        };
+                                        await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                        await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                        return Ok();
+                                    }
+
+                                }
+                                else
+                                {
+                                    var warehouse = _warehouseService
+                                        .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                                    var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                        .FirstOrDefaultAsync();
+                                    if (warehouse != null)
+                                    {
+                                        warehouse.TotalQuantity -= request.Quantity;
+                                        warehouse.InRequestQuantity -= request.Quantity;
+                                        warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                        var goodsNote = new GoodsDeliveryNote()
+                                        {
+                                            Id = new Guid(),
+                                            StoreId = null,
+                                            ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                            Total = 0,
+                                            TotalByText = "Không đồng",
+                                            TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                        };
+                                        await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                        var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                        {
+                                            Id = new Guid(),
+                                            GoodsDeliveryNoteId = goodsNote.Id,
+                                            MaterialId = request.MaterialId,
+                                            VariantId = request.VariantId,
+                                            Quantity = request.Quantity,
+                                            UnitPrice = 0,
+                                            Total = 0
+                                        };
+                                        await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                        await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                    }
                                 }
                                 await _storeInventoryService.SaveChangeAsync();
                             }
@@ -222,13 +381,87 @@ namespace CMMS.API.Controllers
                                             LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                                         });
                                     }
-                                    var warehouse = _warehouseService
-                                        .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
-                                    if (warehouse != null)
+                                    //var warehouse = _warehouseService
+                                    //    .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                                    //if (warehouse != null)
+                                    //{
+                                    //    warehouse.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
+                                    //    warehouse.InRequestQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
+                                    //    warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                    //}
+                                    if (request.FromStoreId != null)
                                     {
-                                        warehouse.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
-                                        warehouse.InRequestQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
-                                        warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                        var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                            .FirstOrDefaultAsync();
+                                        var storeInventoryItem = _storeInventoryService
+                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
+                                        if (storeInventoryItem != null)
+                                        {
+                                            storeInventoryItem.TotalQuantity -= request.Quantity;
+                                            storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                            storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                            var goodsNote = new GoodsDeliveryNote()
+                                            {
+                                                Id = new Guid(),
+                                                StoreId = request.FromStoreId,
+                                                ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                                Total = 0,
+                                                TotalByText = "Không đồng",
+                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                            };
+                                            await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                            var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                            {
+                                                Id = new Guid(),
+                                                GoodsDeliveryNoteId = goodsNote.Id,
+                                                MaterialId = request.MaterialId,
+                                                VariantId = request.VariantId,
+                                                Quantity = request.Quantity,
+                                                UnitPrice = 0,
+                                                Total = 0
+                                            };
+                                            await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                            await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                            return Ok();
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        var warehouse = _warehouseService
+                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                                        var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
+                                            .FirstOrDefaultAsync();
+                                        if (warehouse != null)
+                                        {
+                                            warehouse.TotalQuantity -= request.Quantity;
+                                            warehouse.InRequestQuantity -= request.Quantity;
+                                            warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                            var goodsNote = new GoodsDeliveryNote()
+                                            {
+                                                Id = new Guid(),
+                                                StoreId = null,
+                                                ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
+                                                Total = 0,
+                                                TotalByText = "Không đồng",
+                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+
+                                            };
+                                            await _goodsDeliveryNoteService.AddAsync(goodsNote);
+                                            var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                            {
+                                                Id = new Guid(),
+                                                GoodsDeliveryNoteId = goodsNote.Id,
+                                                MaterialId = request.MaterialId,
+                                                VariantId = request.VariantId,
+                                                Quantity = request.Quantity,
+                                                UnitPrice = 0,
+                                                Total = 0
+                                            };
+                                            await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                            await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                        }
                                     }
                                     await _storeInventoryService.SaveChangeAsync();
                                 }
@@ -297,6 +530,22 @@ namespace CMMS.API.Controllers
                 else
                 {
                     return await _warehouseService.Get(x => x.VariantId == variant.AttributeVariantId).FirstOrDefaultAsync();
+                }
+            }
+        }
+        private async Task<StoreInventory?> GetStoreInventoryItem(Guid materialId, Guid? variantId, string fromStoreId)
+        {
+            if (variantId == null)
+                return await _storeInventoryService.Get(x => x.MaterialId == materialId && x.VariantId == variantId && x.StoreId == fromStoreId).FirstOrDefaultAsync();
+            else
+            {
+                var variant = await _variantService.Get(x => x.Id == variantId).FirstOrDefaultAsync();
+
+                if (variant.ConversionUnitId == null)
+                    return await _storeInventoryService.Get(x => x.MaterialId == materialId && x.VariantId == variantId && x.StoreId == fromStoreId).FirstOrDefaultAsync();
+                else
+                {
+                    return await _storeInventoryService.Get(x => x.VariantId == variant.AttributeVariantId && x.StoreId == fromStoreId).FirstOrDefaultAsync();
                 }
             }
         }
