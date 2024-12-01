@@ -59,7 +59,7 @@ namespace CMMS.API.Controllers
                 {
                     CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
                     var canPurchase = await _storeInventoryService.CanPurchase(cartItem);
-                    if(!canPurchase) cartItemVM.IsChangeQuantity = true;
+                    if (!canPurchase) cartItemVM.IsChangeQuantity = true;
 
                     var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
                     cartItemVM.ItemName = material.Name;
@@ -143,7 +143,7 @@ namespace CMMS.API.Controllers
 
                                     storeId = x.StoreId,
                                     storeName = x.Store.Name,
-                                    quantity = x.TotalQuantity-x.InOrderQuantity / variant.ConversionUnit.ConversionRate
+                                    quantity = x.TotalQuantity - x.InOrderQuantity / variant.ConversionUnit.ConversionRate
                                 }));
                             }
                         }
@@ -155,7 +155,7 @@ namespace CMMS.API.Controllers
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,
-                        quantity = x.TotalQuantity-x.InOrderQuantity
+                        quantity = x.TotalQuantity - x.InOrderQuantity
                     }).ToListAsync();
 
                 return Ok(new
@@ -178,10 +178,13 @@ namespace CMMS.API.Controllers
                     MaterialCode = x.Material.MaterialCode,
                     MaterialName = x.Material.Name,
                     MaterialImage = x.Material.ImageUrl,
+                    MaterialPrice = x.Material.SalePrice,
                     VariantId = x.VariantId,
                     VariantName = x.Variant == null ? null : x.Variant.SKU,
                     VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                    Quantity = x.TotalQuantity,
+                    Quantity = x.TotalQuantity-(decimal)x.InOrderQuantity,
+                    InOrderQuantity = x.InOrderQuantity,
+                    VariantPrice = x.Variant == null ? null : x.Variant.Price,
                     LastUpdateTime = x.LastUpdateTime
                 }).ToListAsync();
                 List<WarehouseDTO> list = [];
@@ -201,10 +204,12 @@ namespace CMMS.API.Controllers
                                 MaterialName = x.Material.Name,
                                 MaterialCode = x.Material.MaterialCode,
                                 MaterialImage = x.Material.ImageUrl,
+                                MaterialPrice = x.Material.SalePrice,
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,
-                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate,
+                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate-(decimal)item.InOrderQuantity/x.ConversionUnit.ConversionRate,
+                                VariantPrice = x.Price,
                                 LastUpdateTime = item.LastUpdateTime
                             }));
                         }

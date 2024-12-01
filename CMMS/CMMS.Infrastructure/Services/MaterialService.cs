@@ -9,6 +9,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using CMMS.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.Infrastructure.Services
 {
@@ -37,6 +38,7 @@ namespace CMMS.Infrastructure.Services
             _materialRepository = materialRepository;
         }
 
+        #region CRUD
         public async Task AddAsync(Material material)
         {
             await _materialRepository.AddAsync(material);
@@ -59,7 +61,7 @@ namespace CMMS.Infrastructure.Services
             return await _materialRepository.FindAsync(id);
         }
 
-        public IQueryable<Material> Get(Expression<Func<Material, bool  >> where)
+        public IQueryable<Material> Get(Expression<Func<Material, bool>> where)
         {
             return _materialRepository.Get(where);
         }
@@ -92,6 +94,16 @@ namespace CMMS.Infrastructure.Services
         public void Update(Material material)
         {
             _materialRepository.Update(material);
+        }
+        #endregion
+
+        public async Task<WeightDTO?> GetWeight(Guid materialId)
+        {
+            return await Get(x => x.Id == materialId).Select(x => new WeightDTO()
+            {
+                WeightUnit = x.WeightUnit,
+                WeightValue = x.WeightValue
+            }).FirstOrDefaultAsync();
         }
     }
 }
