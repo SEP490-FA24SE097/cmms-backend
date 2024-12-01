@@ -4,6 +4,7 @@ using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using NuGet.Packaging;
 
 namespace CMMS.API.Controllers
@@ -26,25 +27,39 @@ namespace CMMS.API.Controllers
             _materialVariantAttributeService = materialVariantAttributeService;
         }
         [HttpGet("get-warehouse-products")]
-        public async Task<IActionResult> Get([FromQuery] int page, [FromQuery] int itemPerPage)
+        public async Task<IActionResult> Get([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+            [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId)
         {
             try
             {
                 // await BalanceQuantity();
 
-                var items = await _warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
-                {
-                    Id = x.Id,
-                    MaterialId = x.MaterialId,
-                    MaterialCode = x.Material.MaterialCode,
-                    MaterialName = x.Material.Name,
-                    MaterialImage = x.Material.ImageUrl,
-                    VariantId = x.VariantId,
-                    VariantName = x.Variant == null ? null : x.Variant.SKU,
-                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                    Quantity = x.TotalQuantity,
-                    LastUpdateTime = x.LastUpdateTime
-                }).ToListAsync();
+                var items = await _warehouseService
+                     .Get(x =>  (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
+                     Include(x => x.Material).
+                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                     Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
+                     {
+                         Id = x.Id,
+                         MaterialId = x.MaterialId,
+                         MaterialCode = x.Material.MaterialCode,
+                         MaterialName = x.Material.Name,
+                         MaterialImage = x.Material.ImageUrl,
+                         MaterialPrice = x.Material.SalePrice,
+                         VariantId = x.VariantId,
+                         VariantName = x.Variant == null ? null : x.Variant.SKU,
+                         VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
+                         Quantity = x.TotalQuantity - (decimal)x.InRequestQuantity,
+                         InOrderQuantity = x.InRequestQuantity,
+                         VariantPrice = x.Variant == null ? null : x.Variant.Price,
+                         Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                         {
+                             Name = x.Attribute.Name,
+                             Value = x.Value
+                         }).ToList(),
+                         LastUpdateTime = x.LastUpdateTime
+                     }).ToListAsync();
                 List<WarehouseDTO> list = [];
                 foreach (var item in items)
                 {
@@ -54,7 +69,9 @@ namespace CMMS.API.Controllers
                             .FirstOrDefault();
                         if (variant != null)
                         {
-                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).Include(x=>x.Material).Include(x => x.ConversionUnit).ToList();
+                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
+                                Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                                Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
                             list.AddRange(subVariants.Select(x => new WarehouseDTO()
                             {
                                 Id = item.Id,
@@ -62,10 +79,17 @@ namespace CMMS.API.Controllers
                                 MaterialName = x.Material.Name,
                                 MaterialCode = x.Material.MaterialCode,
                                 MaterialImage = x.Material.ImageUrl,
+                                MaterialPrice = x.Material.SalePrice,
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,
-                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate,
+                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate - (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
+                                VariantPrice = x.Price,
+                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                {
+                                    Name = x.Attribute.Name,
+                                    Value = x.Value
+                                }).ToList(),
                                 LastUpdateTime = item.LastUpdateTime
                             }));
                         }
@@ -73,16 +97,16 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
-                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
-
+                var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
+                    itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
                     data = result,
                     pagination = new
                     {
                         total = items.Count,
-                        perPage = itemPerPage,
-                        currentPage = page
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
                     }
 
 
@@ -93,47 +117,47 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpPost("search-and-filter")]
-        public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] int page, [FromQuery] int itemPerPage)
-        {
-            try
-            {
-                var items = await _warehouseService.Get(x =>
-                    x.Material.Name.Contains(safProductsDto.NameKeyWord)
-                    && (safProductsDto.BrandId == null || x.Material.BrandId == safProductsDto.BrandId)
-                    && (safProductsDto.CategoryId == null || x.Material.CategoryId == safProductsDto.CategoryId)
-                ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
-                {
-                    x.Id,
-                    x.MaterialId,
-                    MaterialName = x.Material.Name,
-                    MaterialImage = x.Material.ImageUrl,
-                    x.VariantId,
-                    VariantName = x.Variant == null ? null : x.Variant.SKU,
-                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                    Quantity = x.TotalQuantity,
-                    x.LastUpdateTime
-                }).ToListAsync();
-                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
+        //[HttpPost("search-and-filter")]
+        //public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] int page, [FromQuery] int itemPerPage)
+        //{
+        //    try
+        //    {
+        //        var items = await _warehouseService.Get(x =>
+        //            x.Material.Name.Contains(safProductsDto.NameKeyWord)
+        //            && (safProductsDto.BrandId == null || x.Material.BrandId == safProductsDto.BrandId)
+        //            && (safProductsDto.CategoryId == null || x.Material.CategoryId == safProductsDto.CategoryId)
+        //        ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
+        //        {
+        //            x.Id,
+        //            x.MaterialId,
+        //            MaterialName = x.Material.Name,
+        //            MaterialImage = x.Material.ImageUrl,
+        //            x.VariantId,
+        //            VariantName = x.Variant == null ? null : x.Variant.SKU,
+        //            VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
+        //            Quantity = x.TotalQuantity,
+        //            x.LastUpdateTime
+        //        }).ToListAsync();
+        //        var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
 
-                return Ok(new
-                {
-                    data = result,
-                    pagination = new
-                    {
-                        total = items.Count,
-                        perPage = itemPerPage,
-                        currentPage = page
-                    }
+        //        return Ok(new
+        //        {
+        //            data = result,
+        //            pagination = new
+        //            {
+        //                total = items.Count,
+        //                perPage = itemPerPage,
+        //                currentPage = page
+        //            }
 
 
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        //    }
+        //}
 
         //private async Task BalanceQuantity()
         //{

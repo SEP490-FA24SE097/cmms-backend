@@ -14,6 +14,8 @@ using AutoMapper;
 using CMMS.API.Services;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using CMMS.API.Helpers;
+using Microsoft.CodeAnalysis.Elfie.Model;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
@@ -167,12 +169,15 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("get-products-by-store-id")]
-        public async Task<IActionResult> Get([FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
+        public async Task<IActionResult> Get([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+            [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] string storeId)
         {
             try
             {
                 var items = await _storeInventoryService
-                    .Get(x => x.StoreId == storeId).Include(x => x.Material).
+                    .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                              (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
+                    Include(x => x.Material).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                     Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
                     {
@@ -232,15 +237,16 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
-                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
+                var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
+                    itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
                     data = result,
                     pagination = new
                     {
                         total = items.Count,
-                        perPage = itemPerPage,
-                        currentPage = page
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
                     }
                 });
             }
@@ -296,47 +302,47 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpPost("search-and-filter")]
-        public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
-        {
-            try
-            {
-                var items = await _storeInventoryService.Get(x => x.StoreId == storeId &&
-                    x.Material.Name.Contains(safProductsDto.NameKeyWord)
-                    && (safProductsDto.BrandId == null || x.Material.BrandId == safProductsDto.BrandId)
-                    && (safProductsDto.CategoryId == null || x.Material.CategoryId == safProductsDto.CategoryId)
-                ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
-                {
-                    x.Id,
-                    x.MaterialId,
-                    MaterialName = x.Material.Name,
-                    x.VariantId,
-                    VariantName = x.Variant == null ? null : x.Variant.SKU,
-                    Quantity = x.TotalQuantity,
-                    x.MinStock,
-                    x.MaxStock,
-                    x.LastUpdateTime
-                }).ToListAsync();
-                var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
+        //[HttpPost("search-and-filter")]
+        //public async Task<IActionResult> Get(SAFProductsDTO safProductsDto, [FromQuery] string storeId, [FromQuery] int page, [FromQuery] int itemPerPage)
+        //{
+        //    try
+        //    {
+        //        var items = await _storeInventoryService.Get(x => x.StoreId == storeId &&
+        //            x.Material.Name.Contains(safProductsDto.NameKeyWord)
+        //            && (safProductsDto.BrandId == null || x.Material.BrandId == safProductsDto.BrandId)
+        //            && (safProductsDto.CategoryId == null || x.Material.CategoryId == safProductsDto.CategoryId)
+        //        ).Include(x => x.Material).Include(x => x.Variant).Select(x => new
+        //        {
+        //            x.Id,
+        //            x.MaterialId,
+        //            MaterialName = x.Material.Name,
+        //            x.VariantId,
+        //            VariantName = x.Variant == null ? null : x.Variant.SKU,
+        //            Quantity = x.TotalQuantity,
+        //            x.MinStock,
+        //            x.MaxStock,
+        //            x.LastUpdateTime
+        //        }).ToListAsync();
+        //        var result = Helpers.LinqHelpers.ToPageList(items, page - 1, itemPerPage);
 
-                return Ok(new
-                {
-                    data = result,
-                    pagination = new
-                    {
-                        total = items.Count,
-                        perPage = itemPerPage,
-                        currentPage = page
-                    }
+        //        return Ok(new
+        //        {
+        //            data = result,
+        //            pagination = new
+        //            {
+        //                total = items.Count,
+        //                perPage = itemPerPage,
+        //                currentPage = page
+        //            }
 
 
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
-
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        //    }
     }
+
 }
+
