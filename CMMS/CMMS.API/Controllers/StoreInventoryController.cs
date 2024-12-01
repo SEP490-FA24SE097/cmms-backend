@@ -171,22 +171,30 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var items = await _storeInventoryService.Get(x => x.StoreId == storeId).Include(x => x.Material).Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
-                {
-                    Id = x.Id,
-                    MaterialId = x.MaterialId,
-                    MaterialCode = x.Material.MaterialCode,
-                    MaterialName = x.Material.Name,
-                    MaterialImage = x.Material.ImageUrl,
-                    MaterialPrice = x.Material.SalePrice,
-                    VariantId = x.VariantId,
-                    VariantName = x.Variant == null ? null : x.Variant.SKU,
-                    VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                    Quantity = x.TotalQuantity-(decimal)x.InOrderQuantity,
-                    InOrderQuantity = x.InOrderQuantity,
-                    VariantPrice = x.Variant == null ? null : x.Variant.Price,
-                    LastUpdateTime = x.LastUpdateTime
-                }).ToListAsync();
+                var items = await _storeInventoryService
+                    .Get(x => x.StoreId == storeId).Include(x => x.Material).
+                    Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                    Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
+                    {
+                        Id = x.Id,
+                        MaterialId = x.MaterialId,
+                        MaterialCode = x.Material.MaterialCode,
+                        MaterialName = x.Material.Name,
+                        MaterialImage = x.Material.ImageUrl,
+                        MaterialPrice = x.Material.SalePrice,
+                        VariantId = x.VariantId,
+                        VariantName = x.Variant == null ? null : x.Variant.SKU,
+                        VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
+                        Quantity = x.TotalQuantity - (decimal)x.InOrderQuantity,
+                        InOrderQuantity = x.InOrderQuantity,
+                        VariantPrice = x.Variant == null ? null : x.Variant.Price,
+                        Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                        {
+                            Name = x.Attribute.Name,
+                            Value = x.Value
+                        }).ToList(),
+                        LastUpdateTime = x.LastUpdateTime
+                    }).ToListAsync();
                 List<WarehouseDTO> list = [];
                 foreach (var item in items)
                 {
@@ -196,7 +204,9 @@ namespace CMMS.API.Controllers
                             .FirstOrDefault();
                         if (variant != null)
                         {
-                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
+                            var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
+                                Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                                Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
                             list.AddRange(subVariants.Select(x => new WarehouseDTO()
                             {
                                 Id = item.Id,
@@ -208,8 +218,13 @@ namespace CMMS.API.Controllers
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,
-                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate-(decimal)item.InOrderQuantity/x.ConversionUnit.ConversionRate,
+                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate - (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
                                 VariantPrice = x.Price,
+                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                {
+                                    Name = x.Attribute.Name,
+                                    Value = x.Value
+                                }).ToList(),
                                 LastUpdateTime = item.LastUpdateTime
                             }));
                         }
