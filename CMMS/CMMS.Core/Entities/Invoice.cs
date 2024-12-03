@@ -19,7 +19,6 @@ namespace CMMS.Core.Entities
         public decimal? SalePrice { get; set; }
         // khach hang da~ tra bao nhieu tien cua hoa don do'
         public decimal? CustomerPaid { get; set; }
-
         public int InvoiceType { get; set; }
         public int InvoiceStatus { get; set; }
         // website or in store
@@ -30,6 +29,7 @@ namespace CMMS.Core.Entities
         // query nguoi ban. tai store.
         public string? StaffId { get; set; } 
         public string? StoreId { get;set; }    
+        public string? GroupId { get; set; }
         public ApplicationUser Customer { get; set; }
         public virtual ICollection<InvoiceDetail> InvoiceDetails { get; set; }
     }

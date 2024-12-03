@@ -18,6 +18,8 @@ using CMMS.Infrastructure.Data;
 using NuGet.Common;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Controller;
 using CMMS.Infrastructure.Enums;
+using System.Configuration;
+using CMMS.Infrastructure.Services.Shipping;
 
 namespace CMMS.API.Controllers
 {
@@ -30,6 +32,9 @@ namespace CMMS.API.Controllers
         private readonly HttpClient _httpClient;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMailService _mailService;
+        private readonly IConfiguration _configuration;
+        private readonly IShippingService _shippingService;
+        private readonly IStoreService _storeService;
         private readonly IMapper _mapper;
         private readonly IJwtTokenService _jwtTokenService;
 
@@ -38,7 +43,8 @@ namespace CMMS.API.Controllers
             ICurrentUserService currentUserService,
             IMapper mapper, HttpClient httpClient,
              IUnitOfWork unitOfWork,
-            IMailService mailService)
+            IMailService mailService, IConfiguration configuration, IShippingService shippingService
+            , IStoreService storeService)
         {
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
@@ -47,7 +53,41 @@ namespace CMMS.API.Controllers
             _httpClient = httpClient;
             _unitOfWork = unitOfWork;
             _mailService = mailService;
+            _configuration = configuration;
+            _shippingService = shippingService;
+            _storeService = storeService;
 
+        }
+
+        [AllowAnonymous]
+        [HttpGet("GetLo-Lag")]
+        public async Task<IActionResult> GetLongtitute()
+        {
+            var address = "Hẻm 218 Đ. Số 11, P, Thủ Đức, Hồ Chí Minh, Vietnam";
+            var baseUrl = _configuration["GeoCodingAPI:BaseUrlGet"]; 
+            var apiKey = _configuration["GeoCodingAPI:APIKey"];
+            var apiUrl = $"{baseUrl}?q={address}&apiKey={apiKey}";
+            var response = await _httpClient.GetAsync(apiUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                return BadRequest("Failed to fetch taxCode api checking");
+            }
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jsonDocument = JsonDocument.Parse(responseContent);
+            var position = jsonDocument.RootElement.GetProperty("items")[0].GetProperty("position");
+            double lat = position.GetProperty("lat").GetDouble();
+            double lng = position.GetProperty("lng").GetDouble();
+            return Ok(new { lat, lng });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("GetNearestStore")]
+        public async Task<IActionResult> Nearestores()
+        {
+            var address = "Hẻm 218 Đ. Số 11, P, Thủ Đức, Hồ Chí Minh, Vietnam";
+            var stores = _storeService.GetAll().ToList();
+            var result = await _shippingService.GetListStoreOrderbyDeliveryDistance(address, stores);
+            return Ok(result);
         }
 
         [AllowAnonymous]

@@ -12,6 +12,7 @@ namespace CMMS.API.Services
         string GetUserId();
         string getUserEmail();
         Task<ApplicationUser> GetCurrentUser();
+        Task<String> GetUserAddress();
     }
 
     public class CurrentUserService : ICurrentUserService
@@ -43,6 +44,13 @@ namespace CMMS.API.Services
         {
             var userId = GetUserId();
             return await _userManager.FindByIdAsync(userId.ToString());
+        }
+
+        public async Task<string> GetUserAddress()
+        {
+            var userId = GetUserId();
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            return $"{user.Address}, {user.Ward}, {user.District}, {user.Province}";
         }
     }
 }

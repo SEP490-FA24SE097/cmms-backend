@@ -155,10 +155,18 @@ namespace CMMS.Core.Models
         }
     }
 
+
+    public class CustomerAddressModel
+    {
+        public string Province { get; set; }
+        public string District { get; set; }
+        public string Ward { get; set; }
+        public string Address { get; set; }
+    }
     public class InvoiceilterModel
     {
         public string? CustomerId { get; set; }
-       // 1 hoac 6
+        // 1 hoac 6
         public int? InvoiceStatus { get; set; }
         public DefaultSearch defaultSearch { get; set; }
         public InvoiceilterModel()

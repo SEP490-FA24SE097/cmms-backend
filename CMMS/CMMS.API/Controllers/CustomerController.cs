@@ -403,6 +403,24 @@ namespace CMMS.API.Controllers
             return Ok();
         }
 
+
+        // dieu chinh cong no neu co sai sot thu
+        [HttpPost("delivery-address")]
+        public async Task<ActionResult> CustomerDeliveryAddressAsync(CustomerAddressModel model)
+        {
+            var currrentUser = await _currentUserService.GetCurrentUser();
+            if (currrentUser != null) {
+                currrentUser.Address = model.Address;
+                currrentUser.Ward = model.Ward;
+                currrentUser.District = model.District;
+                currrentUser.Province = model.Province;
+
+                _userService.Update(currrentUser);
+               await _userService.SaveChangeAsync();
+            }
+            return BadRequest("Không tìm thấy user");
+        }
+
         #endregion
     }
 }

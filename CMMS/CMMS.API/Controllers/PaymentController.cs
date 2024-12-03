@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CMMS.API.Constant;
+using CMMS.API.Helpers;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
@@ -10,6 +11,7 @@ using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Response;
+using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
@@ -30,6 +32,7 @@ namespace CMMS.API.Controllers
         private IStoreService _storeService;
         private IMaterialVariantAttributeService _materialVariantAttributeService;
         private IStoreInventoryService _storeInventoryService;
+        private IShippingService _shippingService;
         private readonly ITransaction _efTransaction;
 
         public PaymentController(IPaymentService paymentService,
@@ -38,7 +41,7 @@ namespace CMMS.API.Controllers
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
             IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService,
-            IStoreInventoryService storeInventoryService)
+            IStoreInventoryService storeInventoryService, IShippingService shippingService)
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
@@ -49,6 +52,7 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
             _materialVariantAttributeService = materialVariantAttributeService;
             _storeInventoryService = storeInventoryService;
+            _shippingService = shippingService;
 
         }
         [HttpPost]
@@ -103,13 +107,13 @@ namespace CMMS.API.Controllers
                     //customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
                     //if (customerBalance != null)
                     //{
-                        result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
-                        if (result)
-                            return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-                        //else
-                        //{
-                        //    return Ok(new { success = false, message = "Số hóa tiền trong điều kiện hóa đơn trả sau của bạn không đủ" });
-                        //}
+                    result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
+                    if (result)
+                        return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                    //else
+                    //{
+                    //    return Ok(new { success = false, message = "Số hóa tiền trong điều kiện hóa đơn trả sau của bạn không đủ" });
+                    //}
                     //}
                     return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
 
@@ -141,58 +145,179 @@ namespace CMMS.API.Controllers
         [HttpPost("pre-checkout")]
         public async Task<IActionResult> CheckoutResponseData([FromBody] CartItemRequest cartItems)
         {
-            var groupCartItems = cartItems.CartItems.GroupBy(_ => _.StoreId);
-            PreCheckOutModel preCheckOutModel = new PreCheckOutModel();
-            decimal totalAmount = 0;
-            List<PreCheckOutItemCartModel> ListStoreVM = new List<PreCheckOutItemCartModel>();
-            foreach (var group in groupCartItems)
+            var user = await _currentUserService.GetCurrentUser();
+            if (user.Address == null)
+                return BadRequest("Cần cung cấp địa chỉ nhận hàng của user");
+
+            var deliveryAddress = await _currentUserService.GetUserAddress();
+            var stores = _storeService.GetAll().ToList();
+            var listStoreByDistance = await _shippingService.GetListStoreOrderbyDeliveryDistance(deliveryAddress, stores);
+
+            var preCheckOutModels = await _storeInventoryService.DistributeItemsToStores(cartItems, listStoreByDistance);
+
+            var totalAmount = preCheckOutModels.Sum(x => x.TotalStoreAmount);
+            var preCheckOutModel = new PreCheckOutModel
             {
-                var storeId = group.Key;
-                var store = await _storeService.FindAsync(storeId);
-                decimal totalStoreItemAmout = 0;
+                Items = preCheckOutModels,
+                TotalAmount = totalAmount,
+                Discount = 0,
+                SalePrice = totalAmount
+            };
 
-                PreCheckOutItemCartModel preCheckOutItemCartModel = new PreCheckOutItemCartModel();
-                List<CartItemVM> listStoresItemVM = new List<CartItemVM>();
-                foreach (var item in group)
-                {
-                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(item);
-                    var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
-                    var canPurchase = await _storeInventoryService.CanPurchase(item);
-                    if (!canPurchase) cartItemVM.IsChangeQuantity = true;
+            return Ok(new { data = preCheckOutModel });
 
-                    cartItemVM.ItemName = material.Name;
-                    cartItemVM.SalePrice = material.SalePrice;
-                    cartItemVM.ImageUrl = material.ImageUrl;
-                    cartItemVM.ItemTotalPrice = material.SalePrice * item.Quantity;
-                    if (item.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                        cartItemVM.SalePrice = variant.Price;
-                        cartItemVM.ImageUrl = variant.VariantImageUrl;
-                        cartItemVM.ItemTotalPrice = variant.Price * item.Quantity;
-                    }
-                    totalStoreItemAmout += cartItemVM.ItemTotalPrice;
-                    listStoresItemVM.Add(cartItemVM);
-                }
-                totalAmount += totalStoreItemAmout;
-                preCheckOutItemCartModel.StoreItems = listStoresItemVM;
-                preCheckOutItemCartModel.StoreId = store.Id;
-                preCheckOutItemCartModel.StoreName = store.Name;
-                preCheckOutItemCartModel.TotalStoreAmount = totalAmount;
-                ListStoreVM.Add(preCheckOutItemCartModel);
-
-            }
-            preCheckOutModel.Items = ListStoreVM;
-            preCheckOutModel.TotalAmount = totalAmount;
-            // handle discount value
-            preCheckOutModel.Discount = 0;
-            preCheckOutModel.SalePrice = totalAmount - preCheckOutModel.Discount;
-            return Ok(new
-            {
-                data = preCheckOutModel
-            });
         }
+        //public async Task<IActionResult> CheckoutResponseData([FromBody] CartItemRequest cartItems)
+        //{
+        //    var user = await _currentUserService.GetCurrentUser();
+        //    if (user.Address == null)
+        //        return BadRequest("Cần cung cấp địa chỉ nhận hàng của user");
+        //    var deliveryAddress = await _currentUserService.GetUserAddress();
+
+        //    // khong group theo theo store id nữa.
+        //    PreCheckOutModel preCheckOutModel = new PreCheckOutModel();
+        //    decimal totalAmount = 0;
+
+
+        //    var stores = _storeService.GetAll().ToList();
+        //    var listStoreByDistance = await _shippingService.GetListStoreOrderbyDeliveryDistance(deliveryAddress, stores);
+        //    List<PreCheckOutItemCartModel> ListStoreVM = new List<PreCheckOutItemCartModel>();
+
+        //    var isContainItem = false;
+        //    foreach (var store in listStoreByDistance)
+        //    {
+        //        decimal totalStoreItemAmout = 0;
+        //        PreCheckOutItemCartModel preCheckOutItemCartModel = new PreCheckOutItemCartModel();
+        //        List<CartItemVM> listStoresItemVM = new List<CartItemVM>();
+
+        //        if (isContainItem) continue;
+
+        //        foreach (var item in cartItems.CartItems)
+        //        {
+        //            isContainItem = false;
+        //            CartItemVM cartItemVM = _mapper.Map<CartItemVM>(item);
+        //            cartItemVM.StoreId = store.Store.Id;
+        //            var cartItem = _mapper.Map<CartItem>(cartItemVM);
+        //            var storeQuantity = await _storeInventoryService.GetAvailableQuantityInStore(cartItem);
+        //            // neu cua hang khong co san pham thi bo qua cua hang do
+        //            if (storeQuantity == 0)
+        //            {
+        //                isContainItem = true;
+        //                continue;
+        //            }
+
+        //            var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+
+        //            if (cartItemVM.Quantity <= storeQuantity)
+        //            {
+
+        //                cartItemVM.ItemName = material.Name;
+        //                cartItemVM.SalePrice = material.SalePrice;
+        //                cartItemVM.ImageUrl = material.ImageUrl;
+        //                cartItemVM.Quantity = cartItemVM.Quantity;
+        //                cartItemVM.ItemTotalPrice = material.SalePrice * cartItemVM.Quantity;
+        //                if (item.VariantId != null)
+        //                {
+        //                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+        //                    var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+        //                    cartItemVM.ItemName += $" | {variantAttribute.Value}";
+        //                    cartItemVM.SalePrice = variant.Price;
+        //                    cartItemVM.ImageUrl = variant.VariantImageUrl;
+        //                    cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
+        //                }
+        //                totalStoreItemAmout += cartItemVM.ItemTotalPrice;
+        //                listStoresItemVM.Add(cartItemVM);
+
+        //                preCheckOutItemCartModel.StoreItems = listStoresItemVM;
+
+        //            }
+        //            else
+        //            {
+
+        //                cartItemVM.ItemName = material.Name;
+        //                cartItemVM.SalePrice = material.SalePrice;
+        //                cartItemVM.ImageUrl = material.ImageUrl;
+        //                cartItemVM.ItemTotalPrice = material.SalePrice * storeQuantity;
+
+        //                if (item.VariantId != null)
+        //                {
+        //                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+        //                    var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+        //                    cartItemVM.ItemName += $" | {variantAttribute.Value}";
+        //                    cartItemVM.SalePrice = variant.Price;
+        //                    cartItemVM.ImageUrl = variant.VariantImageUrl;
+        //                    cartItemVM.ItemTotalPrice = variant.Price * storeQuantity;
+        //                }
+
+        //                totalStoreItemAmout += cartItemVM.ItemTotalPrice;
+
+        //                CartItemVM cartItemStore = cartItemVM.Clone();
+        //                cartItemStore.Quantity = storeQuantity;
+        //                listStoresItemVM.Add(cartItemStore);
+
+        //                cartItemVM.Quantity = cartItem.Quantity - storeQuantity;
+
+        //                // loop again 
+        //                var currentTrackingStore = store;
+        //                int currentTrackingStoreIndex = listStoreByDistance.IndexOf(currentTrackingStore);
+        //                // doan skip nay bi sai 
+        //                var listTrackingStoreRemains = listStoreByDistance.Skip(currentTrackingStoreIndex).ToList();
+
+        //                // debug chay k lap vo tan ma respose thi k tra ra cai gi
+        //                foreach (var trackingStoreRemain in listTrackingStoreRemains)
+        //                {
+        //                    var storeReMainsQuantity = await _storeInventoryService.GetAvailableQuantityInStore(cartItem);
+        //                    if (storeReMainsQuantity == 0) break;
+        //                    while(cartItemVM.Quantity > storeReMainsQuantity)
+        //                    {
+        //                        cartItemVM.ItemName = material.Name;
+        //                        cartItemVM.SalePrice = material.SalePrice;
+        //                        cartItemVM.ImageUrl = material.ImageUrl;
+        //                        cartItemVM.ItemTotalPrice = material.SalePrice * storeQuantity;
+
+        //                        if (item.VariantId != null)
+        //                        {
+        //                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+        //                            var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+        //                            cartItemVM.ItemName += $" | {variantAttribute.Value}";
+        //                            cartItemVM.SalePrice = variant.Price;
+        //                            cartItemVM.ImageUrl = variant.VariantImageUrl;
+        //                            cartItemVM.ItemTotalPrice = variant.Price * storeQuantity;
+        //                        }
+
+        //                        totalStoreItemAmout += cartItemVM.ItemTotalPrice;
+
+        //                        cartItemStore = cartItemVM.Clone();
+        //                        cartItemStore.Quantity = storeQuantity;
+        //                        listStoresItemVM.Add(cartItemStore);
+
+        //                        cartItemVM.Quantity = cartItem.Quantity - storeQuantity;
+        //                    }
+        //                }
+
+        //                preCheckOutItemCartModel.StoreItems = listStoresItemVM;
+
+        //            }
+        //        }
+
+        //        totalAmount += totalStoreItemAmout;
+        //        preCheckOutItemCartModel.StoreId = store.Store.Id;
+        //        preCheckOutItemCartModel.StoreName = store.Store.Name;
+        //        preCheckOutItemCartModel.TotalStoreAmount = totalStoreItemAmout;
+        //        preCheckOutItemCartModel.ShippngFree = 999;
+        //        preCheckOutItemCartModel.FinalPrice = 999;
+        //        ListStoreVM.Add(preCheckOutItemCartModel);
+
+        //    }
+        //    preCheckOutModel.Items = ListStoreVM;
+        //    preCheckOutModel.TotalAmount = totalAmount;
+        //    // handle discount value
+        //    preCheckOutModel.Discount = 0;
+        //    preCheckOutModel.SalePrice = totalAmount - preCheckOutModel.Discount;
+        //    return Ok(new
+        //    {
+        //        data = preCheckOutModel
+        //    });
+        //}
     }
 }

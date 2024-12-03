@@ -69,6 +69,8 @@ namespace CMMS.Core.Models
         public string StoreId { get; set; }
         public string StoreName { get; set; }
         public decimal TotalStoreAmount { get; set; }
+        public decimal? ShippngFree { get; set; }
+        public decimal? FinalPrice { get; set; }
         public List<CartItemVM> StoreItems { get; set; }    
     }
 
