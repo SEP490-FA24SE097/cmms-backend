@@ -813,6 +813,9 @@ namespace CMMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("FromStoreId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("LastUpdateTime")
                         .HasColumnType("datetime2");
 
@@ -834,6 +837,8 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FromStoreId");
 
                     b.HasIndex("MaterialId");
 
@@ -1445,6 +1450,10 @@ namespace CMMS.Infrastructure.Migrations
 
             modelBuilder.Entity("CMMS.Core.Entities.StoreMaterialImportRequest", b =>
                 {
+                    b.HasOne("CMMS.Core.Entities.Store", "FromStore")
+                        .WithMany()
+                        .HasForeignKey("FromStoreId");
+
                     b.HasOne("CMMS.Core.Entities.Material", "Material")
                         .WithMany()
                         .HasForeignKey("MaterialId")
@@ -1460,6 +1469,8 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasOne("CMMS.Core.Entities.Variant", "Variant")
                         .WithMany()
                         .HasForeignKey("VariantId");
+
+                    b.Navigation("FromStore");
 
                     b.Navigation("Material");
 

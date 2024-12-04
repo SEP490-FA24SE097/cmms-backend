@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using CMMS.Core.Entities;
 
 namespace CMMS.Core.Models
 {
@@ -17,6 +19,12 @@ namespace CMMS.Core.Models
         public string VariantName { get; set; }
         public string VariantImage { get; set; }
         public decimal Quantity { get; set; }
+        [JsonIgnore]
+        public decimal? InOrderQuantity { get; set; }
+        public decimal? MaterialPrice { get; set; }
+        public decimal? VariantPrice { get; set; }
+        public List<AttributeDTO>? Attributes { get; set; }
         public DateTime LastUpdateTime { get; set; }
     }
+    
 }
