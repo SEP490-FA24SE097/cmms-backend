@@ -304,10 +304,12 @@ namespace CMMS.Infrastructure.Services
 
         public async Task<decimal> GetCustomerDiscountPercentAsync(decimal amount, string userId)
         {
+            var customerDiscountPercent = float.Parse(_configuration["User:DiscountPercent:Customer"]);
+            var agencyDiscountPercnet = float.Parse(_configuration["User:DiscountPercent:Agency"]);
             var user = await _userRepository.FindAsync(userId);
             if (user.Type.Equals(CustomerType.Agency))
-                return (decimal)((float)amount * 0.25);
-            return (decimal)((float)amount * 0.1);
+                return (decimal)((float)amount * agencyDiscountPercnet);
+            return (decimal)((float)amount * customerDiscountPercent);
         }
 
         public async Task<decimal> GetRevenueFromCustomer(string userId)

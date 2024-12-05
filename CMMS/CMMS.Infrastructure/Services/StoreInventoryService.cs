@@ -45,16 +45,18 @@ namespace CMMS.Infrastructure.Services
         private readonly IMapper _mapper;
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
+        private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
 
         public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository 
             inventoryRepository, IVariantService variantService,
-            IMapper mapper, IMaterialService materialService)
+            IMapper mapper, IMaterialService materialService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _unitOfWork = unitOfWork;
             _inventoryRepository = inventoryRepository;
             _mapper = mapper;
             _variantService = variantService;
             _materialService = materialService;
+            _materialVariantAttributeService = materialVariantAttributeService;
         }
         private async Task<StoreInventory?> GetStoreInventoryItem(Guid materialId, Guid? variantId, string storeId)
         {
@@ -215,10 +217,11 @@ namespace CMMS.Infrastructure.Services
                         var variant = await _variantService.FindAsync(Guid.Parse(cartItem.VariantId));
                         if (variant != null)
                         {
+                            var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                            cartItemVM.ItemName += $" | {variantAttribute.Value}";
                             cartItemVM.SalePrice = variant.Price;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;
-                            cartItemVM.ItemTotalPrice = variant.Price * allocatedQuantity;
-                            cartItemVM.ItemName += $" | test";
+                            cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
                         }
                     }
 
@@ -231,7 +234,9 @@ namespace CMMS.Infrastructure.Services
                             StoreId = store.Store.Id,
                             StoreName = store.Store.Name,
                             StoreItems = new List<CartItemVM>(),
-                            TotalStoreAmount = 0
+                            TotalStoreAmount = 0,
+                            ShippingDistance = store.Distance
+
                         };
                         result.Add(storeResult);
                     }

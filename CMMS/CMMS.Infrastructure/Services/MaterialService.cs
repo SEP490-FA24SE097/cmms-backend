@@ -16,6 +16,7 @@ namespace CMMS.Infrastructure.Services
     public interface IMaterialService
     {
         Task<Material> FindAsync(Guid id);
+        Task<WeightDTO?> GetWeight(Guid materialId);
         IQueryable<Material> GetAll();
         IQueryable<Material> Get(Expression<Func<Material, bool>> where);
         IQueryable<Material> Get(Expression<Func<Material, bool>> where, params Expression<Func<Material, object>>[] includes);

@@ -12,9 +12,9 @@ namespace CMMS.Infrastructure.Constant
         public string? Note { get; set; }
         public string? Address { get; set; }
         public PaymentType PaymentType { get; set; }
-        public List<CartItem>? CartItems { get; set; }
-        public string? PhoneReceive { get;set; }
-        public decimal? Amount { get; set; }
+        public List<PreCheckOutItemCartModel>? PreCheckOutItemCartModel { get; set; }
+        public string? PhoneReceive { get; set; }
+        public decimal? TotalAmount { get; set; }
         public decimal? Discount { get; set; }
         public decimal? SalePrice { get; set; }
         public string? InvoiceId { get; set; }
@@ -49,7 +49,7 @@ namespace CMMS.Infrastructure.Constant
 
 
 
-        public enum PaymentType
+    public enum PaymentType
     {
         DebtInvoice = 0,
         DebtPurchase = 1,

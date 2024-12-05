@@ -16,6 +16,7 @@ namespace CMMS.Infrastructure.Services.Shipping
     {
         Task<List<StoreDistance>> GetListStoreOrderbyDeliveryDistance(string deliveryAddress, List<Store> stores);
         Task<string> ResponseLatitueLongtitueValue(string deliveryAddress);
+        decimal CalculateShippingFee(decimal distance, decimal weight);
     }
     public class ShippingService : IShippingService
     {
@@ -27,6 +28,27 @@ namespace CMMS.Infrastructure.Services.Shipping
         {
             _httpClient = httpClient;
             _configuration = configuration;
+        }
+
+        public decimal CalculateShippingFee(decimal distance, decimal weight)
+        {
+            // Config
+            decimal baseFee = decimal.Parse(_configuration["ShippingFee:BaseFee"]); // Cước cơ bản
+            decimal first5KmFee = decimal.Parse(_configuration["ShippingFee:First5KmFree"]);// Phí cho 5km đầu
+            decimal additionalKmFee = decimal.Parse(_configuration["ShippingFee:AdditionalKmFee"]); // Phí cho mỗi km vượt quá
+            decimal first10KgFee = decimal.Parse(_configuration["ShippingFee:First10KgFee"]); // Phí cho 3kg đầu
+            decimal additionalKgFee = decimal.Parse(_configuration["ShippingFee:AdditionalKgFee"]); // Phí cho mỗi kg vượt quá
+
+            // Tính phí quãng đường
+            decimal distanceFee = distance <= 5 ? first5KmFee :
+                first5KmFee + (distance - 5) * additionalKmFee;
+
+            // Tính phí cân nặng
+            decimal weightFee = weight <= 3 ? first10KgFee :
+                first10KgFee + (weight - 3) * additionalKgFee;
+
+            // Tổng phí
+            return baseFee + distanceFee + weightFee;
         }
 
         public async Task<List<StoreDistance>> GetListStoreOrderbyDeliveryDistance(string deliveryAddress, List<Store> stores)
