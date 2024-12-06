@@ -35,6 +35,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CanPurchase(CartItem cartItem);
         Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus);
         Task<decimal> GetAvailableQuantityInStore(CartItem cartItem);
+        decimal GetAvailableQuantityInAllStore(CartItemWithoutStoreId cartItem);
         Task<List<PreCheckOutItemCartModel>> DistributeItemsToStores(CartItemRequest cartItems, List<StoreDistance> listStoreByDistance);
         Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId);
     }
@@ -267,6 +268,45 @@ namespace CMMS.Infrastructure.Services
             return result;
         }
 
+        public decimal GetAvailableQuantityInAllStore(CartItemWithoutStoreId cartItem)
+        {
+            var materialId = Guid.Parse(cartItem.MaterialId);
+
+            var availableQuantity = _inventoryRepository.Get(x =>
+           x.MaterialId == materialId &&
+           x.VariantId == null && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
+           {
+               storeId = x.StoreId,
+               storeName = x.Store.Name,
+               quantity = x.TotalQuantity - x.InOrderQuantity
+           }).Sum(_ => _.quantity);
+          
+            if (cartItem.VariantId != null)
+            {
+                var variantId = Guid.Parse(cartItem.VariantId);
+                var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
+                if (variant != null)
+                {
+                    if (variant.ConversionUnitId != null)
+                    {
+                        var rootVariantItems = _inventoryRepository
+                            .Get(x => x.VariantId == variant.AttributeVariantId).Include(x => x.Store).ToList();
+                        if (rootVariantItems.Count > 0)
+                        {
+                            var result = rootVariantItems.Select(x => new
+                            {
+                                storeId = x.StoreId,
+                                storeName = x.Store.Name,
+                                quantity = x.TotalQuantity - x.InOrderQuantity / variant.ConversionUnit.ConversionRate
+                            }).Sum(x => x.quantity);
+                            return (decimal)result;
+                        }
+                    }
+                }
+            }
+
+            return (decimal)availableQuantity;
+        }
 
         #region CRUD
         public async Task AddAsync(StoreInventory inventory)
@@ -323,6 +363,8 @@ namespace CMMS.Infrastructure.Services
         {
             _inventoryRepository.Update(inventory);
         }
+
+      
 
         #endregion
 

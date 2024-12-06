@@ -11,6 +11,9 @@ namespace CMMS.Infrastructure.Constant
     {
         public string? Note { get; set; }
         public string? Address { get; set; }
+        public string? Ward { get; set; }
+        public string? District { get; set; }
+        public string? Province { get; set; }
         public PaymentType PaymentType { get; set; }
         public List<PreCheckOutItemCartModel>? PreCheckOutItemCartModel { get; set; }
         public string? PhoneReceive { get; set; }

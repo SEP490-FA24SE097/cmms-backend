@@ -64,22 +64,6 @@ namespace CMMS.API.Controllers
             decimal totalCartAmount = 0;
             invoiceInfo.CustomerId = customerId;
 
-            //if (invoiceInfo.Amount == null)
-            //{
-            //    foreach (var cartItem in invoiceInfo.CartItems)
-            //    {
-            //        var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-            //        var totalItemPrice = material.SalePrice * cartItem.Quantity;
-            //        if (cartItem.VariantId != null)
-            //        {
-            //            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-            //            totalItemPrice = variant.Price * cartItem.Quantity;
-            //        }
-            //        totalCartAmount += totalItemPrice;
-            //    }
-            //    invoiceInfo.Amount = totalCartAmount;
-            //}
-
             bool result = false;
             CustomerBalanceVM customerBalance = null;
             CustomerBalance customerBalanceEntity = null;
