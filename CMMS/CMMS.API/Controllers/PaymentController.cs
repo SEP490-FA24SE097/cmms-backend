@@ -89,16 +89,16 @@ namespace CMMS.API.Controllers
             {
 
                 case PaymentType.OnlinePayment:
-                    //var paymentRequestData = new PaymentRequestData
-                    //{
-                    //    CustomerId = customerId,
-                    //    Note = invoiceInfo.Note,
-                    //    OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
-                    //    Address = invoiceInfo.Address,
-                    //    CartItems = invoiceInfo.CartItems,
-                    //};
-                    //var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
-                    //return Ok(paymentUrl);
+                //var paymentRequestData = new PaymentRequestData
+                //{
+                //    CustomerId = customerId,
+                //    Note = invoiceInfo.Note,
+                //    OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
+                //    Address = invoiceInfo.Address,
+                //    CartItems = invoiceInfo.CartItems,
+                //};
+                //var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
+                //return Ok(paymentUrl);
 
                 #region payment debt invoice finxing
                 case PaymentType.DebtInvoice:
@@ -148,9 +148,10 @@ namespace CMMS.API.Controllers
             {
                 var listStoreItem = result.StoreItems;
                 float totalWeight = 0;
-                foreach (var item in listStoreItem) {
-                  var weightItem =  await  _materialService.GetWeight(Guid.Parse(item.MaterialId));
-                    totalWeight += (float)weightItem.WeightValue;
+                foreach (var item in listStoreItem)
+                {
+                    var weight = await _materialService.GetWeight(Guid.Parse(item.MaterialId), Guid.Parse(item.VariantId));
+                    totalWeight += (float)weight;
                 }
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;

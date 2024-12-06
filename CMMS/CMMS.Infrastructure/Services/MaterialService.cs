@@ -16,7 +16,7 @@ namespace CMMS.Infrastructure.Services
     public interface IMaterialService
     {
         Task<Material> FindAsync(Guid id);
-        Task<WeightDTO?> GetWeight(Guid materialId);
+        Task<float?> GetWeight(Guid materialId, Guid? variantId);
         IQueryable<Material> GetAll();
         IQueryable<Material> Get(Expression<Func<Material, bool>> where);
         IQueryable<Material> Get(Expression<Func<Material, bool>> where, params Expression<Func<Material, object>>[] includes);
@@ -33,10 +33,12 @@ namespace CMMS.Infrastructure.Services
     {
         private IUnitOfWork _unitOfWork;
         private IMaterialRepository _materialRepository;
-        public MaterialService(IUnitOfWork unitOfWork, IMaterialRepository materialRepository)
+        private IVariantService _variantService;
+        public MaterialService(IUnitOfWork unitOfWork, IMaterialRepository materialRepository, IVariantService variantService)
         {
             _unitOfWork = unitOfWork;
             _materialRepository = materialRepository;
+            _variantService = variantService;
         }
 
         #region CRUD
@@ -97,14 +99,42 @@ namespace CMMS.Infrastructure.Services
             _materialRepository.Update(material);
         }
         #endregion
-
-        public async Task<WeightDTO?> GetWeight(Guid materialId)
+        public async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
         {
-            return await Get(x => x.Id == materialId).Select(x => new WeightDTO()
+            if (variantId == null)
+                return null;
+            else
             {
-                WeightUnit = x.WeightUnit,
-                WeightValue = x.WeightValue
-            }).FirstOrDefaultAsync();
+                var variant = await _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
+
+                if (variant.ConversionUnitId == null)
+                    return null;
+
+                else
+                {
+                    return variant.ConversionUnit.ConversionRate;
+                }
+            }
+        }
+        public async Task<float?> GetWeight(Guid materialId, Guid? variantId)
+        {
+            if (variantId == null)
+            {
+                return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault();
+            }
+            else
+            {
+                var conversionRate = await GetConversionRate(materialId, variantId);
+                if (conversionRate != null)
+                {
+                    return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault() / (float)conversionRate;
+                }
+                else
+                {
+                    return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault();
+                }
+            }
+
         }
     }
 }

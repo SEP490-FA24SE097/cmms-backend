@@ -72,8 +72,11 @@ namespace CMMS.API.Controllers
                     if (cartItem.VariantId != null)
                     {
                         var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                        // var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                        var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                        var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name}:{x.Value}"));
+                        //cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                        cartItemVM.ItemName += $" | {attributesString}";
                         cartItemVM.SalePrice = variant.Price;
                         cartItemVM.ImageUrl = variant.VariantImageUrl;
                         cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;

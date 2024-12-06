@@ -18,7 +18,7 @@ namespace CMMS.Core.Models
             public decimal SalePrice { get; set; }
             public List<string> ImagesFile { get; set; }
             public float WeightValue { get; set; }
-            public string WeightUnit { get; set; }
+            
             public string? Description { get; set; }
             public decimal MinStock { get; set; }
             public decimal MaxStock { get; set; }

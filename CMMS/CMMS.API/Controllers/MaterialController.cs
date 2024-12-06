@@ -653,7 +653,7 @@ namespace CMMS.API.Controllers
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
-                    WeightUnit = materialCm.WeightUnit,
+                    
                     WeightValue = materialCm.WeightValue,
                     ImageUrl = images.First(),
                     SalePrice = materialCm.SalePrice,
@@ -746,7 +746,7 @@ namespace CMMS.API.Controllers
                     ? material.IsRewardEligible
                     : (bool)materialUM.isPoint;
                 material.MaxStock = materialUM.MaxStock == 0 ? material.MaxStock : materialUM.MaxStock;
-                material.WeightUnit = materialUM.WeightUnit.IsNullOrEmpty() ? material.WeightUnit : materialUM.WeightUnit;
+              
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
                 await _materialService.SaveChangeAsync();
                 if (!materialUM.ImageFiles.IsNullOrEmpty())

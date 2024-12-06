@@ -36,6 +36,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> UpdateStoreInventoryAsync(CartItem cartItem, int invoiceStatus);
         Task<decimal> GetAvailableQuantityInStore(CartItem cartItem);
         Task<List<PreCheckOutItemCartModel>> DistributeItemsToStores(CartItemRequest cartItems, List<StoreDistance> listStoreByDistance);
+        Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId);
     }
 
     public class StoreInventoryService : IStoreInventoryService
@@ -47,7 +48,7 @@ namespace CMMS.Infrastructure.Services
         private readonly IMaterialService _materialService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
 
-        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository 
+        public StoreInventoryService(IUnitOfWork unitOfWork, IStoreInventoryRepository
             inventoryRepository, IVariantService variantService,
             IMapper mapper, IMaterialService materialService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
@@ -74,7 +75,7 @@ namespace CMMS.Infrastructure.Services
                 }
             }
         }
-        private async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
+        public async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
         {
             if (variantId == null)
                 return null;
@@ -118,7 +119,7 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
+            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
             if (storeInventory != null)
             {
                 var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
@@ -132,7 +133,7 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
+            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
             var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
             if (storeInventory != null)
             {
@@ -165,11 +166,14 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            if (storeInventory != null) {
-                var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
+            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
+            if (storeInventory != null)
+            {
+                //var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
                 if (storeInventory != null)
                 {
-                    var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
+                    // var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
+                    var availableQuantity = conversionRate == null ? storeInventory.TotalQuantity - storeInventory.InOrderQuantity : (storeInventory.TotalQuantity - storeInventory.InOrderQuantity) / conversionRate;
                     return (decimal)availableQuantity;
                 }
             }
@@ -217,8 +221,11 @@ namespace CMMS.Infrastructure.Services
                         var variant = await _variantService.FindAsync(Guid.Parse(cartItem.VariantId));
                         if (variant != null)
                         {
-                            var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                            cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                            //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                            // cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                            var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                            var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name}:{x.Value}"));
+                            cartItemVM.ItemName += $" | {attributesString}";
                             cartItemVM.SalePrice = variant.Price;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;
                             cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;

@@ -22,7 +22,6 @@ namespace CMMS.Core.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal SalePrice { get; set; }  
         public float? WeightValue { get; set; }  
-        public string? WeightUnit { get; set; }  
         public string? Description { get; set; }  
         public decimal? MinStock { get; set; }  
         public decimal? MaxStock { get; set; }  
