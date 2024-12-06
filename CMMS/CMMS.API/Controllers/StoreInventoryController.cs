@@ -145,7 +145,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                var item = await _storeInventoryService.Get(x =>
+                var items = await _storeInventoryService.Get(x =>
                     x.MaterialId == materialId &&
                     x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
                     {
@@ -154,8 +154,7 @@ namespace CMMS.API.Controllers
                         quantity = x.TotalQuantity - x.InOrderQuantity
                     }).ToListAsync();
 
-                return Ok(new
-                { data = item });
+                return Ok(new { data = new { totalQuantityInAllStore = items.Sum(x => x.quantity), items } });
             }
             catch (Exception ex)
             {
