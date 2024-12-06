@@ -64,20 +64,21 @@ namespace CMMS.API.Controllers
             _generateInvoicePdf = generateInvoicePdf;
         }
 
+
         [HttpGet]
         public async Task<IActionResult> GetInvoicesAsync([FromQuery] InvoiceFitlerModel filterModel)
         {
             var fitlerList = _invoiceService
-            .Get(_ =>
-            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
-            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
-            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
-            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
-            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
-            (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
-            , _ => _.Customer);
+              .Get(_ =>
+              (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
+              (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
+              (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
+              (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
+              (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
+              (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
+              (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
+              (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+              , _ => _.Customer);
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
@@ -123,6 +124,91 @@ namespace CMMS.API.Controllers
                 invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
             }
 
+            return Ok(new
+            {
+                data = result,
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
+        }
+
+        [HttpGet("customer")]
+        public async Task<IActionResult> GetCustomerInvoicesAsync([FromQuery] InvoiceFitlerModel filterModel)
+        {
+            var userId = _currentUserService.GetUserId();
+            var fitlerList = _invoiceService
+            .Get(_ =>
+            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
+            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
+            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
+            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
+            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
+            (_.Customer.Id.Equals(userId)) &&
+            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
+            (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+            , _ => _.Customer);
+
+            var groupInvoices = fitlerList.GroupBy(_ => _.GroupId);
+
+            var result = new List<GroupInvoiceVM>();
+            var groupInvoiceVM = new GroupInvoiceVM();
+            foreach (var groupInvoice in groupInvoices)
+            {
+                
+                var groupId = groupInvoice.Key;
+                var listInvoices = _mapper.Map<List<InvoiceVM>>(groupInvoice.ToList());
+                foreach (var invoice in listInvoices)
+                {
+                    var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                    var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
+                    invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
+
+                    var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                    var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
+                    invoice.StaffName = staff != null ? staff.FullName : store.Name;
+                    invoice.StoreName = store != null ? store.Name : "";
+
+                    // load data in invoice Detail 
+                    foreach (var invoiceDetail in invoice.InvoiceDetails)
+                    {
+                        var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
+                        itemInStoreModel.StoreId = invoice.StoreId;
+                        var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
+                        if (item != null)
+                        {
+                            var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
+                            invoiceDetail.ItemName = material.Name;
+                            invoiceDetail.SalePrice = material.SalePrice;
+                            invoiceDetail.ImageUrl = material.ImageUrl;
+                            invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
+                            if (invoiceDetail.VariantId != null)
+                            {
+                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
+                                var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                                invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                                invoiceDetail.SalePrice = variant.Price;
+                                invoiceDetail.ImageUrl = variant.VariantImageUrl;
+                                invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                            }
+                        }
+                    }
+
+                    invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+                }
+
+                groupInvoiceVM.TotalAmount = (double)listInvoices.Sum(_ => _.SalePrice);
+                groupInvoiceVM.InvoiceDate = listInvoices.Last().InvoiceDate;
+                groupInvoiceVM.Invoices = listInvoices;
+                result.Add(groupInvoiceVM);
+            }
+
+            var filterListPaged = result.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
+             .OrderByDescending(_ => _.InvoiceDate);
+            var total = groupInvoices.Count();
             return Ok(new
             {
                 data = result,
@@ -219,6 +305,7 @@ namespace CMMS.API.Controllers
                     invoice.SalePrice = salePrices;
                     invoice.Discount = discount;
                     invoice.CustomerId = customerId;
+                    invoice.GroupId = Guid.NewGuid().ToString();
                     await _invoiceService.AddAsync(invoice);
 
                     // create invoiceDetail
@@ -270,7 +357,7 @@ namespace CMMS.API.Controllers
                     {
                         var responseMessage = "Không đủ số lượng tồn kho cho sản phẩm ";
                         var isValidQuantity = true;
-
+                        var groupInvoiceId = Guid.NewGuid().ToString();
                         // validate quantity in stock again
                         foreach (var item in invoiceInfo.StoreItems)
                         {
@@ -311,6 +398,7 @@ namespace CMMS.API.Controllers
                             SalePrice = invoiceInfo.SalePrice,
                             SellPlace = (int)Infrastructure.Enums.SellPlace.InStore,
                             Discount = discount,
+                            GroupId = groupInvoiceId,
                         };
 
                         var needToPay = salePrices;
@@ -518,6 +606,7 @@ namespace CMMS.API.Controllers
                                            InvoiceId = invoiceDetail.InvoiceId
                                        }).ToList();
 
+                    var groupInvoiceId = Guid.NewGuid().ToString(); 
                     foreach (var item in refundItems)
                     {
                         var lineTotalRefund = item.RefundQuantity * item.PricePerQuantity;
@@ -562,6 +651,7 @@ namespace CMMS.API.Controllers
                         TotalAmount = (decimal)totalRefundAmount,
                         Discount = 0,
                         SellPlace = (int)Core.Enums.SellPlace.InStore,
+                        GroupId = groupInvoiceId,
                     };
                     await _invoiceService.AddAsync(refundInvoice);
 

@@ -56,31 +56,27 @@ namespace CMMS.API.Controllers
             decimal totalAmount = 0;
             foreach (var cartItem in listCartRequest)
             {
-                var addItemModel = _mapper.Map<AddItemModel>(cartItem);
-                var item = await _storeInventoryService.GetItemInStoreAsync(addItemModel);
-                if (item != null)
-                {
-                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
+                var avaibleQuantity = _storeInventoryService.GetAvailableQuantityInAllStore(cartItem);
+                CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
+                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                cartItemVM.ItemName = material.Name;
+                cartItemVM.SalePrice = material.SalePrice;
+                cartItemVM.ImageUrl = material.ImageUrl;
+                cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
 
-                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                    cartItemVM.ItemName = material.Name;
-                    cartItemVM.SalePrice = material.SalePrice;
-                    cartItemVM.ImageUrl = material.ImageUrl;
-                    cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
-                    cartItemVM.InStock = item.TotalQuantity;
-                    cartItemVM.InOrder = item.InOrderQuantity;
-                    if (cartItem.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                        cartItemVM.SalePrice = variant.Price;
-                        cartItemVM.ImageUrl = variant.VariantImageUrl;
-                        cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
-                    }
-                    totalAmount += cartItemVM.ItemTotalPrice;
-                    listCartItemVM.Add(cartItemVM);
+                if (avaibleQuantity < cartItem.Quantity)
+                    cartItemVM.IsChangeQuantity = true;
+                if (cartItem.VariantId != null)
+                {
+                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                    var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                    cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                    cartItemVM.SalePrice = variant.Price;
+                    cartItemVM.ImageUrl = variant.VariantImageUrl;
+                    cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
                 }
+                totalAmount += cartItemVM.ItemTotalPrice;
+                listCartItemVM.Add(cartItemVM);
             }
 
             return Ok(new

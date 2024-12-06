@@ -18,6 +18,13 @@ namespace CMMS.Core.Models
         public int? SellPlace { get; set; }
     }
 
+    public class GroupInvoiceVM
+    {
+        public double TotalAmount { get; set; }
+        public DateTime InvoiceDate { get; set; }
+        public List<InvoiceVM> Invoices { get; set; }
+
+    }
     public class InvoiceVM
     {
         public string Id { get; set; }

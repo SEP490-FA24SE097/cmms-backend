@@ -8,10 +8,12 @@ using CMMS.Infrastructure.Helpers;
 using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Response;
+using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 
 
 namespace CMMS.Infrastructure.Services.Payment
@@ -43,6 +45,7 @@ namespace CMMS.Infrastructure.Services.Payment
         private readonly IUserService _userService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IMapper _mapper;
+        private readonly IShippingService _shippingService;
 
         public PaymentService(IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor, IPaymentRepository paymentRepository,
@@ -57,7 +60,7 @@ namespace CMMS.Infrastructure.Services.Payment
             IShippingDetailService shippingDetailService,
             ITransaction transaction, IUserService userService,
             IStoreInventoryService storeInventoryService,
-             IMapper mapper)
+             IMapper mapper, IShippingService shippingService)
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
@@ -76,6 +79,7 @@ namespace CMMS.Infrastructure.Services.Payment
             _userService = userService;
             _storeInventoryService = storeInventoryService;
             _mapper = mapper;
+            _shippingService = shippingService;
         }
 
         public async Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance)
@@ -127,7 +131,29 @@ namespace CMMS.Infrastructure.Services.Payment
         {
             try
             {
-                // lặp trên danh sách từng cửa hàng 
+         
+                var customer = _userService.Get(_ => _.Id.Equals(invoiceInfo.CustomerId)).FirstOrDefault();
+                if(customer == null) return false;
+                var customerAddress = $"{customer.Address}, {customer.Ward}, {customer.District}, {customer.Province}";
+
+
+         
+                //  chỗ này đem qua bên phần xử lý hóa đơn.
+                
+                //if (invoiceInfo.Address != null)
+                //{
+                //    var customerDeliveryPostition = (await _shippingService.ResponseLatitueLongtitueValue(customerAddress)).Split(",");
+                //    var newAddress = $"{invoiceInfo.Address}, {invoiceInfo.Ward}, {invoiceInfo.District}, {invoiceInfo.Province}";
+                //    var newDeliveryPostition = (await _shippingService.ResponseLatitueLongtitueValue(newAddress)).Split(",");
+
+                //    var distanceBetween = _shippingService.CalculateDistanceBetweenPostionLatLon(double.Parse(customerDeliveryPostition[0]), double.Parse(customerDeliveryPostition[1]),
+                //        double.Parse(newDeliveryPostition[0]), double.Parse(newDeliveryPostition[1]));
+                //    // nếu khoảng cách lớn hơn 1 thì tính thêm tiền ship
+                //    if (distanceBetween > 1)
+                //    {
+
+                //    }
+                //}
                 var storeInvoices = invoiceInfo.PreCheckOutItemCartModel;
                 var groupInvoiceId = Guid.NewGuid().ToString();
                 foreach (var storeInvoice in storeInvoices)
@@ -136,6 +162,8 @@ namespace CMMS.Infrastructure.Services.Payment
                     var invoiceCode = _invoiceService.GenerateInvoiceCode();
 
                     // insert invoice
+
+                    // sua cho invoice nay lai lay sai data.
                     var invoice = new Invoice
                     {
                         Id = invoiceCode,
@@ -146,9 +174,9 @@ namespace CMMS.Infrastructure.Services.Payment
                         Note = invoiceInfo.Note,
                         StoreId = storeId,
                         // get total cart 
-                        SalePrice = invoiceInfo.SalePrice,
-                        TotalAmount = (decimal)invoiceInfo.TotalAmount,
-                        Discount = invoiceInfo.Discount,
+                        SalePrice = (decimal)storeInvoice.TotalStoreAmount,
+                        TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
+                        Discount = invoiceInfo.Discount !=  null ? invoiceInfo.Discount : 0,
                         SellPlace = (int)SellPlace.Website,
                         // create group invoice
                         GroupId = groupInvoiceId
@@ -174,7 +202,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         var cartItem = new CartItem
                         {
                             MaterialId = storeItem.MaterialId,
-                            VariantId = storeItem.MaterialId,
+                            VariantId = storeItem.VariantId != null ? storeItem.VariantId : null,
                             StoreId = storeId,
                             Quantity = storeItem.Quantity
                         };
@@ -191,7 +219,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         transaction.TransactionDate = DateTime.Now;
                         transaction.CustomerId = invoiceInfo.CustomerId;
                         transaction.InvoiceId = invoice.Id;
-                        transaction.Amount = (decimal)invoiceInfo.SalePrice;
+                        transaction.Amount = (decimal)storeInvoice.FinalPrice;
                         transaction.TransactionPaymentType = 1;
                         await _transactionService.AddAsync(transaction);
 
@@ -201,7 +229,8 @@ namespace CMMS.Infrastructure.Services.Payment
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
-                        shippingDetail.Address = invoiceInfo.Address;
+                        shippingDetail.Address = customerAddress;
+                        shippingDetail.ShippingFee = storeInvoice.ShippngFree;
                         await _shippingDetailService.AddAsync(shippingDetail);
                     }
                 }
