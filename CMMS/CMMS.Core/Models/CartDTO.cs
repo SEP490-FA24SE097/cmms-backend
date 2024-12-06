@@ -28,7 +28,7 @@ namespace CMMS.Core.Models
     {
         public string MaterialId { get; set; }
         public string? VariantId { get; set; }
-        public string StoreId { get; set; }
+        public string? StoreId { get; set; }
     }
 
     public class CartItemModel : AddItemModel
@@ -66,9 +66,12 @@ namespace CMMS.Core.Models
 
     public class PreCheckOutItemCartModel
     {
-        public string StoreId { get; set; }
-        public string StoreName { get; set; }
-        public decimal TotalStoreAmount { get; set; }
+        public string? StoreId { get; set; }
+        public string? StoreName { get; set; }
+        public decimal? TotalStoreAmount { get; set; }
+        public decimal? ShippngFree { get; set; }
+        public decimal? FinalPrice { get; set; }
+        public decimal? ShippingDistance { get; set; }
         public List<CartItemVM> StoreItems { get; set; }    
     }
 

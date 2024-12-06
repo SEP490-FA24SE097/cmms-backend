@@ -13,4 +13,11 @@ namespace CMMS.Core.Models
         public string StoreId { get; set; }
         public decimal Quantity { get; set; }
     }
+
+
+    public class CartItemWithoutStoreId {
+        public string MaterialId { get; set; }
+        public string? VariantId { get; set; }
+        public decimal Quantity { get; set; }
+    }
 }

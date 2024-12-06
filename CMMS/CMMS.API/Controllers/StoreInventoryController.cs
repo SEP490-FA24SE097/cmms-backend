@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using CMMS.API.Helpers;
 using Microsoft.CodeAnalysis.Elfie.Model;
 using Microsoft.IdentityModel.Tokens;
+using CMMS.Infrastructure.Constant;
 
 namespace CMMS.API.Controllers
 {
@@ -60,8 +61,6 @@ namespace CMMS.API.Controllers
                 if (item != null)
                 {
                     CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
-                    var canPurchase = await _storeInventoryService.CanPurchase(cartItem);
-                    if (!canPurchase) cartItemVM.IsChangeQuantity = true;
 
                     var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
                     cartItemVM.ItemName = material.Name;
@@ -79,7 +78,6 @@ namespace CMMS.API.Controllers
                         cartItemVM.ImageUrl = variant.VariantImageUrl;
                         cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
                     }
-
                     totalAmount += cartItemVM.ItemTotalPrice;
                     listCartItemVM.Add(cartItemVM);
                 }

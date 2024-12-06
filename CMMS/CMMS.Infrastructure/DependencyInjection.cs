@@ -2,6 +2,7 @@
 using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
+using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -108,6 +109,8 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<ISubImageRepository, SubImageRepository>();
             services.AddScoped<ISubImageService, SubImageService>();
+
+            services.AddScoped<IShippingService, ShippingService>();
 
             return services;
         }

@@ -31,7 +31,6 @@ namespace CMMS.Infrastructure.Services
         Task<Message> ManageStoreRotation(string userId, string storeId);
         Task<bool> StoreWasManaged(string storeId);
 
-
         #region CRUD 
         Task<Store> FindAsync(string id);
         IQueryable<Store> GetAll();

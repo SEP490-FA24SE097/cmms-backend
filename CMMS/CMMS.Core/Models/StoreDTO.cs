@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CMMS.Core.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,6 +29,13 @@ namespace CMMS.Core.Models
         public string District { get; set; }
         public string Ward { get; set; }
         public int Status { get; set; }
+    }
+
+
+    public class StoreDistance 
+    {
+        public Store Store { get; set; }
+        public decimal Distance { get; set; }
     }
 
 

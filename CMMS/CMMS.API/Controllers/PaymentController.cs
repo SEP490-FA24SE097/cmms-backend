@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CMMS.API.Constant;
+using CMMS.API.Helpers;
 using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
@@ -10,6 +11,7 @@ using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Response;
+using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
@@ -30,6 +32,8 @@ namespace CMMS.API.Controllers
         private IStoreService _storeService;
         private IMaterialVariantAttributeService _materialVariantAttributeService;
         private IStoreInventoryService _storeInventoryService;
+        private IShippingService _shippingService;
+        private IUserService _userService;
         private readonly ITransaction _efTransaction;
 
         public PaymentController(IPaymentService paymentService,
@@ -38,7 +42,7 @@ namespace CMMS.API.Controllers
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
             IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService,
-            IStoreInventoryService storeInventoryService)
+            IStoreInventoryService storeInventoryService, IShippingService shippingService, IUserService userService)
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
@@ -49,7 +53,8 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
             _materialVariantAttributeService = materialVariantAttributeService;
             _storeInventoryService = storeInventoryService;
-
+            _shippingService = shippingService;
+            _userService = userService;
         }
         [HttpPost]
         public async Task<IActionResult> CreatePayment([FromBody] InvoiceData invoiceInfo)
@@ -59,21 +64,21 @@ namespace CMMS.API.Controllers
             decimal totalCartAmount = 0;
             invoiceInfo.CustomerId = customerId;
 
-            if (invoiceInfo.Amount == null)
-            {
-                foreach (var cartItem in invoiceInfo.CartItems)
-                {
-                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                    var totalItemPrice = material.SalePrice * cartItem.Quantity;
-                    if (cartItem.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                        totalItemPrice = variant.Price * cartItem.Quantity;
-                    }
-                    totalCartAmount += totalItemPrice;
-                }
-                invoiceInfo.Amount = totalCartAmount;
-            }
+            //if (invoiceInfo.Amount == null)
+            //{
+            //    foreach (var cartItem in invoiceInfo.CartItems)
+            //    {
+            //        var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+            //        var totalItemPrice = material.SalePrice * cartItem.Quantity;
+            //        if (cartItem.VariantId != null)
+            //        {
+            //            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+            //            totalItemPrice = variant.Price * cartItem.Quantity;
+            //        }
+            //        totalCartAmount += totalItemPrice;
+            //    }
+            //    invoiceInfo.Amount = totalCartAmount;
+            //}
 
             bool result = false;
             CustomerBalanceVM customerBalance = null;
@@ -83,37 +88,24 @@ namespace CMMS.API.Controllers
             switch (invoiceInfo.PaymentType)
             {
 
-                // FIXXXXXXXXXXX
                 case PaymentType.OnlinePayment:
-                    var paymentRequestData = new PaymentRequestData
-                    {
-                        CustomerId = customerId,
-                        Note = invoiceInfo.Note,
-                        OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
-                        Address = invoiceInfo.Address,
-                        CartItems = invoiceInfo.CartItems,
-                    };
-
-                    // vnpay process 
-                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
-                    return Ok(paymentUrl);
-
-                // FIXXXXXX
-                case PaymentType.DebtInvoice:
-                    //customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
-                    //if (customerBalance != null)
+                    //var paymentRequestData = new PaymentRequestData
                     //{
-                        result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
-                        if (result)
-                            return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
-                        //else
-                        //{
-                        //    return Ok(new { success = false, message = "Số hóa tiền trong điều kiện hóa đơn trả sau của bạn không đủ" });
-                        //}
-                    //}
-                    return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
+                    //    CustomerId = customerId,
+                    //    Note = invoiceInfo.Note,
+                    //    OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
+                    //    Address = invoiceInfo.Address,
+                    //    CartItems = invoiceInfo.CartItems,
+                    //};
+                    //var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
+                    //return Ok(paymentUrl);
 
-                // FIXXXXXX
+                #region payment debt invoice finxing
+                case PaymentType.DebtInvoice:
+                    result = await _paymentService.PaymentDebtInvoiceAsync(invoiceInfo, customerBalanceEntity);
+                    if (result)
+                        return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
+                    return Ok(new { success = false, message = "Bạn đăng kí tài khoản có thể sử dụng hóa đơn trả sau" });
                 case PaymentType.DebtPurchase:
                     customerBalance = _customerBalanceService.GetCustomerBalanceById(customerId);
                     customerBalanceEntity = _mapper.Map<CustomerBalance>(customerBalance);
@@ -121,6 +113,7 @@ namespace CMMS.API.Controllers
                     if (result)
                         return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
                     break;
+                #endregion
                 case PaymentType.PurchaseFirst:
                 case PaymentType.PurchaseAfter:
                     var paymentResult = await _paymentService.PaymentInvoiceAsync(invoiceInfo);
@@ -141,58 +134,45 @@ namespace CMMS.API.Controllers
         [HttpPost("pre-checkout")]
         public async Task<IActionResult> CheckoutResponseData([FromBody] CartItemRequest cartItems)
         {
-            var groupCartItems = cartItems.CartItems.GroupBy(_ => _.StoreId);
-            PreCheckOutModel preCheckOutModel = new PreCheckOutModel();
-            decimal totalAmount = 0;
-            List<PreCheckOutItemCartModel> ListStoreVM = new List<PreCheckOutItemCartModel>();
-            foreach (var group in groupCartItems)
+            var user = await _currentUserService.GetCurrentUser();
+            if (user.Address == null)
+                return BadRequest("Cần cung cấp địa chỉ nhận hàng của user");
+
+            var deliveryAddress = await _currentUserService.GetUserAddress();
+            var stores = _storeService.GetAll().ToList();
+            var listStoreByDistance = await _shippingService.GetListStoreOrderbyDeliveryDistance(deliveryAddress, stores);
+
+            var preCheckOutModels = await _storeInventoryService.DistributeItemsToStores(cartItems, listStoreByDistance);
+
+            foreach (var result in preCheckOutModels)
             {
-                var storeId = group.Key;
-                var store = await _storeService.FindAsync(storeId);
-                decimal totalStoreItemAmout = 0;
-
-                PreCheckOutItemCartModel preCheckOutItemCartModel = new PreCheckOutItemCartModel();
-                List<CartItemVM> listStoresItemVM = new List<CartItemVM>();
-                foreach (var item in group)
-                {
-                    CartItemVM cartItemVM = _mapper.Map<CartItemVM>(item);
-                    var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
-                    var canPurchase = await _storeInventoryService.CanPurchase(item);
-                    if (!canPurchase) cartItemVM.IsChangeQuantity = true;
-
-                    cartItemVM.ItemName = material.Name;
-                    cartItemVM.SalePrice = material.SalePrice;
-                    cartItemVM.ImageUrl = material.ImageUrl;
-                    cartItemVM.ItemTotalPrice = material.SalePrice * item.Quantity;
-                    if (item.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                        cartItemVM.SalePrice = variant.Price;
-                        cartItemVM.ImageUrl = variant.VariantImageUrl;
-                        cartItemVM.ItemTotalPrice = variant.Price * item.Quantity;
-                    }
-                    totalStoreItemAmout += cartItemVM.ItemTotalPrice;
-                    listStoresItemVM.Add(cartItemVM);
+                var listStoreItem = result.StoreItems;
+                float totalWeight = 0;
+                foreach (var item in listStoreItem) {
+                  var weightItem =  await  _materialService.GetWeight(Guid.Parse(item.MaterialId));
+                    totalWeight += (float)weightItem.WeightValue;
                 }
-                totalAmount += totalStoreItemAmout;
-                preCheckOutItemCartModel.StoreItems = listStoresItemVM;
-                preCheckOutItemCartModel.StoreId = store.Id;
-                preCheckOutItemCartModel.StoreName = store.Name;
-                preCheckOutItemCartModel.TotalStoreAmount = totalAmount;
-                ListStoreVM.Add(preCheckOutItemCartModel);
-
+                // change m to km
+                var storeDistance = result.ShippingDistance / 1000;
+                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                result.ShippngFree = shippingFee;
+                result.FinalPrice = shippingFee + result.TotalStoreAmount;
             }
-            preCheckOutModel.Items = ListStoreVM;
-            preCheckOutModel.TotalAmount = totalAmount;
-            // handle discount value
-            preCheckOutModel.Discount = 0;
-            preCheckOutModel.SalePrice = totalAmount - preCheckOutModel.Discount;
-            return Ok(new
+
+            // handle final price
+
+            var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
+            var discountPrice = await _userService.GetCustomerDiscountPercentAsync((decimal)totalAmount, user.Id);
+            var preCheckOutModel = new PreCheckOutModel
             {
-                data = preCheckOutModel
-            });
+                Items = preCheckOutModels,
+                TotalAmount = totalAmount,
+                Discount = discountPrice,
+                SalePrice = totalAmount - discountPrice,
+            };
+
+            return Ok(new { data = preCheckOutModel });
+
         }
     }
 }

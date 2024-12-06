@@ -91,7 +91,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     InvoiceStatus = (int)InvoiceStatus.Pending,
                     InvoiceType = (int)InvoiceType.Debt,
                     Note = invoiceInfo.Note,
-                    TotalAmount = (decimal)invoiceInfo.Amount,
+                    TotalAmount = (decimal)invoiceInfo.TotalAmount,
                 };
                 await _invoiceService.AddAsync(invoice);
                 await _invoiceService.SaveChangeAsync();
@@ -106,35 +106,11 @@ namespace CMMS.Infrastructure.Services.Payment
                 transaction.CustomerId = invoice.CustomerId;
                 transaction.InvoiceId = invoice.Id;
                 transaction.TransactionPaymentType = 1;
-                transaction.Amount = (decimal)invoiceInfo.Amount;
+                transaction.Amount = (decimal)invoiceInfo.TotalAmount;
                 await _transactionService.AddAsync(transaction);
 
                 // insert invoice detail
-                foreach (var cartItem in invoiceInfo.CartItems)
-                {
-                    var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                    var lineTotal = material.SalePrice * cartItem.Quantity;
-                    if (cartItem.VariantId != null)
-                    {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                        lineTotal = variant.Price * cartItem.Quantity;
-                    }
-                    var invoiceDetail = new InvoiceDetail
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        LineTotal = lineTotal,
-                        MaterialId = Guid.Parse(cartItem.MaterialId),
-                        VariantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null,
-                        Quantity = cartItem.Quantity,
-                        InvoiceId = invoice.Id,
-                    };
-
-                    var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
-                    if (updateQuantityStatus)
-                        return false;
-
-                    await _invoiceDetailService.AddAsync(invoiceDetail);
-                }
+        
                 var result = await _unitOfWork.SaveChangeAsync();
                 await _efTransaction.CommitAsync();
                 if (result) return true;
@@ -151,12 +127,14 @@ namespace CMMS.Infrastructure.Services.Payment
         {
             try
             {
-                var groupCartItems = invoiceInfo.CartItems.GroupBy(_ => _.StoreId);
-                foreach (var group in groupCartItems)
+                // lặp trên danh sách từng cửa hàng 
+                var storeInvoices = invoiceInfo.PreCheckOutItemCartModel;
+                var groupInvoiceId = Guid.NewGuid().ToString();
+                foreach (var storeInvoice in storeInvoices)
                 {
-                    var storeId = group.Key;
-
+                    var storeId = storeInvoice.StoreId;
                     var invoiceCode = _invoiceService.GenerateInvoiceCode();
+
                     // insert invoice
                     var invoice = new Invoice
                     {
@@ -169,38 +147,39 @@ namespace CMMS.Infrastructure.Services.Payment
                         StoreId = storeId,
                         // get total cart 
                         SalePrice = invoiceInfo.SalePrice,
-                        TotalAmount = (decimal)invoiceInfo.Amount,
-                        Discount = invoiceInfo.Discount != null ? invoiceInfo.Discount : 0,
+                        TotalAmount = (decimal)invoiceInfo.TotalAmount,
+                        Discount = invoiceInfo.Discount,
                         SellPlace = (int)SellPlace.Website,
+                        // create group invoice
+                        GroupId = groupInvoiceId
 
                     };
                     await _invoiceService.AddAsync(invoice);
                     var InvoiceResult = await _invoiceService.SaveChangeAsync();
-                    foreach (var item in group)
-                    {
-                        var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
-                        var totalItemPrice = material.SalePrice * item.Quantity;
-                        if (item.VariantId != null)
-                        {
-                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                            totalItemPrice = variant.Price * item.Quantity;
-                        }
-                        //totalStoreItemAmout += totalItemPrice;
 
+                    foreach (var storeItem in storeInvoice.StoreItems)
+                    {
                         // insert invoice Details
                         var invoiceDetail = new InvoiceDetail
                         {
                             Id = Guid.NewGuid().ToString(),
-                            LineTotal = totalItemPrice,
-                            MaterialId = Guid.Parse(item.MaterialId),
-                            VariantId = item.VariantId != null ? Guid.Parse(item.VariantId) : null,
-                            Quantity = item.Quantity,
+                            LineTotal = storeItem.ItemTotalPrice,
+                            MaterialId = Guid.Parse(storeItem.MaterialId),
+                            VariantId = storeItem.VariantId != null ? Guid.Parse(storeItem.VariantId) : null,
+                            Quantity = storeItem.Quantity,
                             InvoiceId = invoice.Id,
                         };
                         await _invoiceDetailService.AddAsync(invoiceDetail);
 
+                        var cartItem = new CartItem
+                        {
+                            MaterialId = storeItem.MaterialId,
+                            VariantId = storeItem.MaterialId,
+                            StoreId = storeId,
+                            Quantity = storeItem.Quantity
+                        };
                         // update store quantity
-                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
+                        var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
                     }
                     if (InvoiceResult)
                     {
@@ -245,14 +224,14 @@ namespace CMMS.Infrastructure.Services.Payment
                 decimal? totalPaided = 0;
                 // update customerBalance
                 customerBalance.CustomerId = customerBalance.Customer.Id;
-                totalPaided = invoiceInfo.Amount;
+                totalPaided = invoiceInfo.TotalAmount;
                 // insert transaction
                 var transaction = new Transaction();
                 transaction.Id = Guid.NewGuid().ToString();
                 transaction.TransactionType = (int)TransactionType.PurchaseCustomerDebt;
                 transaction.TransactionDate = DateTime.Now;
                 transaction.CustomerId = customerBalance.Customer.Id;
-                transaction.Amount = (decimal)invoiceInfo.Amount;
+                transaction.Amount = (decimal)invoiceInfo.TotalAmount;
 
                 if (invoiceInfo.InvoiceId != null)
                 {

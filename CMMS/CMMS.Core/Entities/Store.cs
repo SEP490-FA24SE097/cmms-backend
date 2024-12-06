@@ -14,6 +14,8 @@ namespace CMMS.Core.Entities
         public string Phone { get; set; }
         public string Province { get; set; }
         public string District { get; set; }
+        public string? Latitude { get; set; }
+        public string? Longitude { get; set; }
         public string Ward { get; set; }
         [DefaultValue(1)]
         public int Status { get; set; }

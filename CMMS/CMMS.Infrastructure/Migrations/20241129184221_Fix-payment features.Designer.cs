@@ -4,6 +4,7 @@ using CMMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241129184221_Fix-payment features")]
+    partial class Fixpaymentfeatures
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -813,9 +816,6 @@ namespace CMMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("FromStoreId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTime>("LastUpdateTime")
                         .HasColumnType("datetime2");
 
@@ -837,8 +837,6 @@ namespace CMMS.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FromStoreId");
 
                     b.HasIndex("MaterialId");
 
@@ -1450,10 +1448,6 @@ namespace CMMS.Infrastructure.Migrations
 
             modelBuilder.Entity("CMMS.Core.Entities.StoreMaterialImportRequest", b =>
                 {
-                    b.HasOne("CMMS.Core.Entities.Store", "FromStore")
-                        .WithMany()
-                        .HasForeignKey("FromStoreId");
-
                     b.HasOne("CMMS.Core.Entities.Material", "Material")
                         .WithMany()
                         .HasForeignKey("MaterialId")
@@ -1469,8 +1463,6 @@ namespace CMMS.Infrastructure.Migrations
                     b.HasOne("CMMS.Core.Entities.Variant", "Variant")
                         .WithMany()
                         .HasForeignKey("VariantId");
-
-                    b.Navigation("FromStore");
 
                     b.Navigation("Material");
 
