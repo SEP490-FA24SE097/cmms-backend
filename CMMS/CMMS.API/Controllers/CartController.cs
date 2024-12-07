@@ -45,7 +45,13 @@ namespace CMMS.API.Controllers
         {
             var addItemModel = _mapper.Map<AddItemModel>(model);
             var item =  await _storeInventoryService.GetItemInStoreAsync(addItemModel);
-            if (model.Quantity <= item.TotalQuantity)
+            var conversionRate = await _storeInventoryService.GetConversionRate(addItemModel.MaterialId, addItemModel.VariantId);
+            var addToCartQuantity = conversionRate == null ? model.Quantity : model.Quantity * conversionRate;
+            //if (model.Quantity <= item.TotalQuantity)
+            //{
+            //    return Ok(new { success = true, message = "Thêm sản phẩm vào giỏ hàng thành công" });
+            //}
+            if (addToCartQuantity <= item.TotalQuantity)
             {
                 return Ok(new { success = true, message = "Thêm sản phẩm vào giỏ hàng thành công" });
             }
