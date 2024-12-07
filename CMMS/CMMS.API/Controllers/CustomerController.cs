@@ -416,7 +416,8 @@ namespace CMMS.API.Controllers
                 currrentUser.Province = model.Province;
 
                 _userService.Update(currrentUser);
-               await _userService.SaveChangeAsync();
+                var result =  await _userService.SaveChangeAsync();
+                if (result) return Ok("Cập nhật địa chỉ giao hàng thành công");
             }
             return BadRequest("Không tìm thấy user");
         }
