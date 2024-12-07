@@ -37,7 +37,7 @@ namespace CMMS.Infrastructure.Services
         Task<decimal> GetAvailableQuantityInStore(CartItem cartItem);
         decimal GetAvailableQuantityInAllStore(CartItemWithoutStoreId cartItem);
         Task<List<PreCheckOutItemCartModel>> DistributeItemsToStores(CartItemRequest cartItems, List<StoreDistance> listStoreByDistance);
-        Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId);
+        Task<decimal?> GetConversionRate(string materialId, string? variantId);
     }
 
     public class StoreInventoryService : IStoreInventoryService
@@ -76,13 +76,13 @@ namespace CMMS.Infrastructure.Services
                 }
             }
         }
-        public async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
+        public async Task<decimal?> GetConversionRate(string materialId, string? variantId)
         {
             if (variantId == null)
                 return null;
             else
             {
-                var variant = await _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
+                var variant = await _variantService.Get(x => x.Id == Guid.Parse(variantId)).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
 
                 if (variant.ConversionUnitId == null)
                     return null;
@@ -120,7 +120,7 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
+            var conversionRate = await GetConversionRate(cartItem.MaterialId, cartItem.VariantId);
             if (storeInventory != null)
             {
                 var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
@@ -134,7 +134,7 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
+            var conversionRate = await GetConversionRate(cartItem.MaterialId, cartItem.VariantId);
             var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
             if (storeInventory != null)
             {
@@ -167,7 +167,7 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
-            var conversionRate = await GetConversionRate(Guid.Parse(cartItem.MaterialId), Guid.Parse(cartItem.VariantId));
+            var conversionRate = await GetConversionRate(cartItem.MaterialId, cartItem.VariantId);
             if (storeInventory != null)
             {
                 //var conversionRate = await GetConversionRate(storeInventory.MaterialId, storeInventory.VariantId);
@@ -280,7 +280,7 @@ namespace CMMS.Infrastructure.Services
                storeName = x.Store.Name,
                quantity = x.TotalQuantity - x.InOrderQuantity
            }).Sum(_ => _.quantity);
-          
+
             if (cartItem.VariantId != null)
             {
                 var variantId = Guid.Parse(cartItem.VariantId);
@@ -297,7 +297,7 @@ namespace CMMS.Infrastructure.Services
                             {
                                 storeId = x.StoreId,
                                 storeName = x.Store.Name,
-                                quantity = x.TotalQuantity - x.InOrderQuantity / variant.ConversionUnit.ConversionRate
+                                quantity = (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
                             }).Sum(x => x.quantity);
                             return (decimal)result;
                         }
@@ -364,7 +364,7 @@ namespace CMMS.Infrastructure.Services
             _inventoryRepository.Update(inventory);
         }
 
-      
+
 
         #endregion
 

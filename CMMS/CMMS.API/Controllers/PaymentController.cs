@@ -134,7 +134,7 @@ namespace CMMS.API.Controllers
                 float totalWeight = 0;
                 foreach (var item in listStoreItem)
                 {
-                    var weight = await _materialService.GetWeight(Guid.Parse(item.MaterialId), Guid.Parse(item.VariantId));
+                    var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
                     totalWeight += (float)weight;
                 }
                 // change m to km

@@ -16,7 +16,7 @@ namespace CMMS.Infrastructure.Services
     public interface IMaterialService
     {
         Task<Material> FindAsync(Guid id);
-        Task<float?> GetWeight(Guid materialId, Guid? variantId);
+        Task<float?> GetWeight(string materialId, string? variantId);
         IQueryable<Material> GetAll();
         IQueryable<Material> Get(Expression<Func<Material, bool>> where);
         IQueryable<Material> Get(Expression<Func<Material, bool>> where, params Expression<Func<Material, object>>[] includes);
@@ -99,13 +99,13 @@ namespace CMMS.Infrastructure.Services
             _materialRepository.Update(material);
         }
         #endregion
-        public async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
+        public async Task<decimal?> GetConversionRate(string materialId, string? variantId)
         {
             if (variantId == null)
                 return null;
             else
             {
-                var variant = await _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
+                var variant = await _variantService.Get(x => x.Id == Guid.Parse(variantId)).Include(x => x.ConversionUnit).FirstOrDefaultAsync();
 
                 if (variant.ConversionUnitId == null)
                     return null;
@@ -116,22 +116,22 @@ namespace CMMS.Infrastructure.Services
                 }
             }
         }
-        public async Task<float?> GetWeight(Guid materialId, Guid? variantId)
+        public async Task<float?> GetWeight(string materialId, string? variantId)
         {
             if (variantId == null)
             {
-                return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault();
+                return Get(x => x.Id == Guid.Parse(materialId)).Select(x => x.WeightValue).FirstOrDefault();
             }
             else
             {
                 var conversionRate = await GetConversionRate(materialId, variantId);
                 if (conversionRate != null)
                 {
-                    return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault() / (float)conversionRate;
+                    return Get(x => x.Id == Guid.Parse(materialId)).Select(x => x.WeightValue).FirstOrDefault() / (float)conversionRate;
                 }
                 else
                 {
-                    return Get(x => x.Id == materialId).Select(x => x.WeightValue).FirstOrDefault();
+                    return Get(x => x.Id == Guid.Parse(materialId)).Select(x => x.WeightValue).FirstOrDefault();
                 }
             }
 
