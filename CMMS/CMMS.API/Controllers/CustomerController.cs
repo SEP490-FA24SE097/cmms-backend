@@ -403,7 +403,6 @@ namespace CMMS.API.Controllers
             return Ok();
         }
 
-
         // dieu chinh cong no neu co sai sot thu
         [HttpPost("delivery-address")]
         public async Task<ActionResult> CustomerDeliveryAddressAsync(CustomerAddressModel model)
@@ -420,6 +419,20 @@ namespace CMMS.API.Controllers
                 if (result) return Ok("Cập nhật địa chỉ giao hàng thành công");
             }
             return BadRequest("Không tìm thấy user");
+        }
+
+
+
+        // dieu chinh cong no neu co sai sot thu
+        [HttpPost("current-user")]
+        public async Task<ActionResult> GetCurrentUser()
+        {
+            var currrentUser = await _currentUserService.GetCurrentUser();
+            var result = _mapper.Map<UserVM>(currrentUser);
+            return Ok(new
+            {
+                data = result
+            });
         }
 
         #endregion

@@ -278,7 +278,7 @@ namespace CMMS.API.Controllers
         {
 
             var totalAmount = invoiceInfo.TotalAmount;
-            var discount = invoiceInfo.Discount;
+            var discount = invoiceInfo.Discount != null ? invoiceInfo.Discount : 0;
             var salePrices = invoiceInfo.SalePrice;
             var customerPaid = invoiceInfo.CustomerPaid != null ? invoiceInfo.CustomerPaid : 0;
             var customerId = invoiceInfo.CustomerId;
