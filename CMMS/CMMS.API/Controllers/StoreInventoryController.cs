@@ -63,17 +63,23 @@ namespace CMMS.API.Controllers
                 cartItemVM.SalePrice = material.SalePrice;
                 cartItemVM.ImageUrl = material.ImageUrl;
                 cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
-
                 if (avaibleQuantity < cartItem.Quantity)
                     cartItemVM.IsChangeQuantity = true;
                 if (cartItem.VariantId != null)
                 {
-                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
+                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x=>x.MaterialVariantAttributes).FirstOrDefault();
                     //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                     //cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                    var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
-                    var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                    cartItemVM.ItemName += $" | {attributesString}";
+                    if (variant.MaterialVariantAttributes.Count > 0)
+                    {
+                        var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                        var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                        cartItemVM.ItemName += $" | {variant.SKU} {attributesString}";
+                    }
+                    else
+                    {
+                        cartItemVM.ItemName += $" | {variant.SKU}";
+                    }
                     cartItemVM.SalePrice = variant.Price;
                     cartItemVM.ImageUrl = variant.VariantImageUrl;
                     cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
@@ -142,7 +148,7 @@ namespace CMMS.API.Controllers
 
                                     storeId = x.StoreId,
                                     storeName = x.Store.Name,
-                                    quantity = x.TotalQuantity - x.InOrderQuantity / variant.ConversionUnit.ConversionRate
+                                    quantity = (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
                                 }));
                             }
                         }
