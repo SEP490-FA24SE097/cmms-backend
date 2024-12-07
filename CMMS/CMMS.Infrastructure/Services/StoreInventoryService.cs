@@ -271,19 +271,9 @@ namespace CMMS.Infrastructure.Services
         public decimal GetAvailableQuantityInAllStore(CartItemWithoutStoreId cartItem)
         {
             var materialId = Guid.Parse(cartItem.MaterialId);
-
-            var availableQuantity = _inventoryRepository.Get(x =>
-           x.MaterialId == materialId &&
-           x.VariantId == null && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
-           {
-               storeId = x.StoreId,
-               storeName = x.Store.Name,
-               quantity = x.TotalQuantity - x.InOrderQuantity
-           }).Sum(_ => _.quantity);
-
-            if (cartItem.VariantId != null)
+            Guid? variantId = cartItem.VariantId != null ? Guid.Parse(cartItem.VariantId) : null;
+            if (variantId != null)
             {
-                var variantId = Guid.Parse(cartItem.VariantId);
                 var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
                 if (variant != null)
                 {
@@ -304,6 +294,17 @@ namespace CMMS.Infrastructure.Services
                     }
                 }
             }
+
+            var availableQuantity = _inventoryRepository.Get(x =>
+           x.MaterialId == materialId &&
+           x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
+           {
+               storeId = x.StoreId,
+               storeName = x.Store.Name,
+               quantity = x.TotalQuantity - x.InOrderQuantity
+           }).Sum(_ => _.quantity);
+
+           
 
             return (decimal)availableQuantity;
         }

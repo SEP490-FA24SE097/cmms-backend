@@ -114,7 +114,6 @@ namespace CMMS.API
                 var clientSecert = builder.Configuration["Authentication:Google:ClientSecret"];
                 options.ClientId = clientId;
                 options.ClientSecret = clientSecert;
-
                 options.SignInScheme = "Identity.External";
 
             });
