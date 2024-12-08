@@ -225,7 +225,7 @@ namespace CMMS.API.Controllers
             if (result.Succeeded)
                 await _mailService.SendEmailAsync(model.Email, "Tài khoản shipper cho hệ thống CMMS", null);
 
-            await _userService.SaveChangeAsync();
+       
             return Ok(new
             {
                 data = result.Succeeded,

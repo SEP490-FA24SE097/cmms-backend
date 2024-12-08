@@ -225,7 +225,7 @@ namespace CMMS.Infrastructure.Services
                         {
                             //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             // cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                            if (variant.MaterialVariantAttributes.Count > 0)
+                            if (variant.MaterialVariantAttributes != null && variant.MaterialVariantAttributes.Count > 0)
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));

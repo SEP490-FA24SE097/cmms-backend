@@ -123,7 +123,7 @@ namespace CMMS.Infrastructure.Services
             {
                 await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
             }
-
+            await _userService.SaveChangeAsync();
             return result;
         }
 

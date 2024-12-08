@@ -166,10 +166,9 @@ namespace CMMS.API.Controllers
             var groupInvoices = fitlerList.GroupBy(_ => _.GroupId);
 
             var result = new List<GroupInvoiceVM>();
-            var groupInvoiceVM = new GroupInvoiceVM();
             foreach (var groupInvoice in groupInvoices)
             {
-                
+                var groupInvoiceVM = new GroupInvoiceVM();
                 var groupId = groupInvoice.Key;
                 var listInvoices = _mapper.Map<List<InvoiceVM>>(groupInvoice.ToList());
                 foreach (var invoice in listInvoices)
