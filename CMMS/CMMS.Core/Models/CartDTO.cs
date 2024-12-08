@@ -61,6 +61,7 @@ namespace CMMS.Core.Models
         public decimal? TotalAmount { get; set; }
         public decimal? Discount { get; set; }
         public decimal? SalePrice { get; set; }
+        public decimal? ShippingFee { get; set; }
         public List<PreCheckOutItemCartModel> Items { get; set; }
     }
 

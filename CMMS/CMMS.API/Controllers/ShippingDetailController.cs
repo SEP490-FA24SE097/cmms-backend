@@ -7,9 +7,11 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Services;
+using CMMS.Infrastructure.Services.Shipping;
 using Firebase.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -30,6 +32,8 @@ namespace CMMS.API.Controllers
         private IStoreService _storeService;
         private ITransaction _efTransaction;
         private IMailService _mailService;
+        private IShippingService _shippingService;
+        private ICurrentUserService _currentUserService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IVariantService _variantService;
@@ -44,10 +48,10 @@ namespace CMMS.API.Controllers
             IVariantService variantService,
             IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService,
-            ITransactionService transactionService, 
-            IInvoiceDetailService invoiceDetailService, 
+            ITransactionService transactionService,
+            IInvoiceDetailService invoiceDetailService,
             ITransaction efTransaction,
-            IMailService mailService)
+            IMailService mailService, IShippingService shippingService)
         {
             _mapper = mapper;
             _shippingDetailService = shippingDetailService;
@@ -62,6 +66,8 @@ namespace CMMS.API.Controllers
             _invoiceDetailService = invoiceDetailService;
             _efTransaction = efTransaction;
             _mailService = mailService;
+            _shippingService = shippingService;
+            _currentUserService = currentUserService;
 
         }
         [HttpGet("getShippingDetails")]
@@ -73,7 +79,7 @@ namespace CMMS.API.Controllers
                 (!filterModel.ToDate.HasValue || _.ShippingDate <= filterModel.ToDate) &&
                 (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
                 (string.IsNullOrEmpty(filterModel.ShippingDetailCode) || _.Id.Equals(filterModel.ShippingDetailCode)) &&
-                (filterModel.InvoiceStatus ==  null || _.Invoice.InvoiceStatus.Equals(filterModel.InvoiceStatus)) &&
+                (filterModel.InvoiceStatus == null || _.Invoice.InvoiceStatus.Equals(filterModel.InvoiceStatus)) &&
                 (string.IsNullOrEmpty(filterModel.ShipperId) || _.ShipperId.Equals(filterModel.ShipperId))
                 , _ => _.Invoice, _ => _.Invoice.InvoiceDetails, _ => _.Shipper, _ => _.Shipper.Store);
             var total = fitlerList.Count();
@@ -83,11 +89,11 @@ namespace CMMS.API.Controllers
 
             foreach (var item in result)
             {
-                var invoice =  _invoiceService.Get(_ => _.Id.Equals(item.Invoice.Id), _ => _.Customer).FirstOrDefault();
+                var invoice = _invoiceService.Get(_ => _.Id.Equals(item.Invoice.Id), _ => _.Customer).FirstOrDefault();
                 var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
                 var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
                 item.Invoice.UserVM = _mapper.Map<UserVM>(invoice.Customer);
-                item.Invoice.StaffId = staff != null ? staff.Id : null ;
+                item.Invoice.StaffId = staff != null ? staff.Id : null;
                 item.Invoice.StaffName = staff != null ? staff.FullName : null;
                 item.Invoice.NeedToPay = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id)).FirstOrDefault().NeedToPay;
                 item.Invoice.StoreName = store.Name;
@@ -111,7 +117,7 @@ namespace CMMS.API.Controllers
                             invoiceDetails.ItemName += $" | {variantAttribute.Value}";
                             invoiceDetails.SalePrice = variant.Price;
                             invoiceDetails.ImageUrl = variant.VariantImageUrl;
-                            invoiceDetails.ItemTotalPrice = invoiceDetails.ItemTotalPrice; 
+                            invoiceDetails.ItemTotalPrice = invoiceDetails.ItemTotalPrice;
                         }
                     }
                 }
@@ -133,7 +139,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var shippingDetail =  await _shippingDetailService.Get(_ => _.Id.Equals(model.Id), _ => _.Invoice).FirstOrDefaultAsync();
+                var shippingDetail = await _shippingDetailService.Get(_ => _.Id.Equals(model.Id), _ => _.Invoice).FirstOrDefaultAsync();
                 if (shippingDetail != null)
                 {
                     // update invoice status
@@ -172,15 +178,15 @@ namespace CMMS.API.Controllers
                         await _efTransaction.CommitAsync();
                         return Ok(new { success = true, message = "Cập nhật tình trạng giao hàng thành công" });
                     }
-                } 
+                }
                 return BadRequest("Không tìm thấy shipping detail");
             }
             catch (Exception)
             {
-                await _efTransaction.RollbackAsync(); 
+                await _efTransaction.RollbackAsync();
                 throw;
             }
-          
+
         }
 
         [HttpPut("update-shippingDetail")]
@@ -216,8 +222,10 @@ namespace CMMS.API.Controllers
             }
             var result = await _userService.ShipperSignUpAsync(model);
 
-            if(result.Succeeded)
+            if (result.Succeeded)
                 await _mailService.SendEmailAsync(model.Email, "Tài khoản shipper cho hệ thống CMMS", null);
+
+            await _userService.SaveChangeAsync();
             return Ok(new
             {
                 data = result.Succeeded,
@@ -276,6 +284,40 @@ namespace CMMS.API.Controllers
                     currentPage = filterModel.defaultSearch.currentPage,
                 }
             });
+        }
+
+
+        [HttpPost("get-shipping-fee")]
+        public async Task<IActionResult> GetShippingPrices(ShippingFeeModel model)
+        {
+            var user = await _currentUserService.GetCurrentUser();
+            var store = _storeService.Get(_ => _.Id.Equals(user.StoreId)).FirstOrDefault();
+            if (store != null)
+            {
+                var deliveryAddress = model.DeliveryAddress;
+                var storeDistance = await _shippingService.GeStoreOrderbyDeliveryDistance(deliveryAddress, store);
+
+
+                float totalWeight = 0;
+                foreach (var item in model.storeItems)
+                {
+                    var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
+                    totalWeight += (float)weight;
+                } 
+                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance.Distance / 1000, (decimal)totalWeight);
+                // handle final price
+                return Ok(new
+                {
+                    data = new
+                    {
+                        shippingFee = shippingFee,
+                        totalWeight = totalWeight,
+                        shippingDistance = storeDistance.Distance
+                    }
+                });
+            }
+            return BadRequest("Không tìm thấy cửa hàng");
+
         }
     }
 }

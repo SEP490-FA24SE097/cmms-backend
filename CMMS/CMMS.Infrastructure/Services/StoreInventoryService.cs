@@ -141,14 +141,15 @@ namespace CMMS.Infrastructure.Services
                 switch (invoiceStatus)
                 {
                     case (int)InvoiceStatus.Pending:
-                        // storeInventory.InOrderQuantity += cartItem.Quantity;
                         storeInventory.InOrderQuantity += orderQuantity;
                         break;
                     case (int)InvoiceStatus.Done:
-                        // storeInventory.TotalQuantity -= cartItem.Quantity;
-                        // storeInventory.InOrderQuantity -= cartItem.Quantity;
+                 
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
                         storeInventory.InOrderQuantity -= orderQuantity;
+                        break;
+                    case (int)InvoiceStatus.DoneInStore:
+                        storeInventory.TotalQuantity -= (decimal)orderQuantity;
                         break;
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:

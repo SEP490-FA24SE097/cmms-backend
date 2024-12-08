@@ -147,15 +147,16 @@ namespace CMMS.API.Controllers
             // handle final price
 
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
+            var totalShippingFee = preCheckOutModels.Sum(x => x.ShippngFree);
             var discountPrice = await _userService.GetCustomerDiscountPercentAsync((decimal)totalAmount, user.Id);
             var preCheckOutModel = new PreCheckOutModel
             {
                 Items = preCheckOutModels,
-                TotalAmount = totalAmount,
+                TotalAmount = totalAmount - totalShippingFee,
                 Discount = discountPrice,
                 SalePrice = totalAmount - discountPrice,
+                ShippingFee = totalShippingFee
             };
-
             return Ok(new { data = preCheckOutModel });
 
         }

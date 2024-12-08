@@ -287,6 +287,7 @@ namespace CMMS.API.Controllers
             var note = invoiceInfo.Note;
 
             var storeManager = await _currentUserService.GetCurrentUser();
+            var storeId = storeManager.StoreId;
             try
             {
                 // quick sale => sale in store
@@ -296,7 +297,7 @@ namespace CMMS.API.Controllers
 
                     Invoice invoice = new Invoice();
                     invoice.Id = invoiceCode;
-                    invoice.StoreId = storeManager.StoreId;
+                    invoice.StoreId = storeId;
                     invoice.InvoiceStatus = (int)InvoiceStatus.Done;
                     invoice.InvoiceType = (int)InvoiceType.Normal;
                     invoice.Note = note;
@@ -307,10 +308,9 @@ namespace CMMS.API.Controllers
                     invoice.CustomerId = customerId;
                     invoice.GroupId = Guid.NewGuid().ToString();
                     await _invoiceService.AddAsync(invoice);
-
-                    // create invoiceDetail
                     foreach (var item in invoiceInfo.StoreItems)
                     {
+                        
                         var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
                         var totalItemPrice = material.SalePrice * item.Quantity;
                         if (item.VariantId != null)
@@ -318,7 +318,6 @@ namespace CMMS.API.Controllers
                             var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
                             totalItemPrice = variant.Price * item.Quantity;
                         }
-                        // insert invoice Details
                         var invoiceDetail = new InvoiceDetail
                         {
                             Id = Guid.NewGuid().ToString(),
@@ -328,11 +327,11 @@ namespace CMMS.API.Controllers
                             Quantity = item.Quantity,
                             InvoiceId = invoiceCode,
                         };
-                        // update store quantity
-                        await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Done);
+                        var cartItem = _mapper.Map<CartItem>(item);
+                        cartItem.StoreId = storeId;
+                        await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.DoneInStore);
                         await _invoiceDetailService.AddAsync(invoiceDetail);
                     }
-
                     Transaction transaction = new Transaction();
 
                     transaction.Id = "TT" + invoiceCode;
@@ -353,6 +352,8 @@ namespace CMMS.API.Controllers
                 else if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.DeliverySale)
                 {
                     // hoa don do cua hang tu tao
+
+                    // cập nhật xong => nhập địa chri xong => Nhấn nút check giá ship => Sau đó mới truyển data từ phía trên xuống.
                     if (invoiceInfo.InvoiceId == null)
                     {
                         var responseMessage = "Không đủ số lượng tồn kho cho sản phẩm ";
@@ -372,14 +373,16 @@ namespace CMMS.API.Controllers
                                 var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                                 storeItemName += $" | {variantAttribute.Value}";
                             }
-                            var canPurchase = await _storeInventoryService.CanPurchase(item);
+                            var cartItem = _mapper.Map<CartItem>(item);
+                            cartItem.StoreId = storeId;
+                            var canPurchase = await _storeInventoryService.CanPurchase(cartItem);
                             if (!canPurchase)
                             {
                                 responseMessage += $", {storeItemName}";
                                 isValidQuantity = false;
                             }
                         }
-                        if (!isValidQuantity) return Ok(new { success = false, message = responseMessage });
+                        if (!isValidQuantity) return BadRequest(responseMessage);
                         // generate invoice
                         var invoiceCode = _invoiceService.GenerateInvoiceCode();
                         // insert invoice
@@ -453,8 +456,11 @@ namespace CMMS.API.Controllers
                                 Quantity = item.Quantity,
                                 InvoiceId = invoiceCode,
                             };
+
+                            var cartItem = _mapper.Map<CartItem>(item);
+                            cartItem.StoreId = storeId;
                             // update store quantity
-                            var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
+                            var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
                             //if (updateQuantityStatus)
                             //    // chỗ này phải lock process của luồng này lại k cho chạy đồng thời.
                             //    return Ok(new { success = false, message = "Số lượng hàng hóa có biến động kiểm tra lại" });

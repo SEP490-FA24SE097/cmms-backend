@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Identity.Client;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,5 +20,11 @@ namespace CMMS.Core.Models
         public string MaterialId { get; set; }
         public string? VariantId { get; set; }
         public decimal Quantity { get; set; }
+    }
+
+    public class ShippingFeeModel
+    {
+        public List<CartItemWithoutStoreId>? storeItems { get; set; }
+        public string DeliveryAddress { get; set; }
     }
 }
