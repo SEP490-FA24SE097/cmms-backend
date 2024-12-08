@@ -12,6 +12,7 @@ using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.API.Controllers
 {
@@ -111,9 +112,19 @@ namespace CMMS.API.Controllers
                         invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
                         if (invoiceDetail.VariantId != null)
                         {
-                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
-                            var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                            invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                            var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                            //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                            //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                            if (variant.MaterialVariantAttributes.Count > 0)
+                            {
+                                var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                invoiceDetail.ItemName += $" | {variant.SKU} {attributesString}";
+                            }
+                            else
+                            {
+                                invoiceDetail.ItemName += $" | {variant.SKU}";
+                            }
                             invoiceDetail.SalePrice = variant.Price;
                             invoiceDetail.ImageUrl = variant.VariantImageUrl;
                             invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
@@ -187,9 +198,19 @@ namespace CMMS.API.Controllers
                             invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
                             if (invoiceDetail.VariantId != null)
                             {
-                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
-                                var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                                invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                                //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                                //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                                if (variant.MaterialVariantAttributes.Count > 0)
+                                {
+                                    var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                    var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                    invoiceDetail.ItemName += $" | {variant.SKU} {attributesString}";
+                                }
+                                else
+                                {
+                                    invoiceDetail.ItemName += $" | {variant.SKU}";
+                                }
                                 invoiceDetail.SalePrice = variant.Price;
                                 invoiceDetail.ImageUrl = variant.VariantImageUrl;
                                 invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
@@ -244,9 +265,19 @@ namespace CMMS.API.Controllers
                     invoiceItem.ItemTotalPrice = material.SalePrice * invoiceItem.Quantity;
                     if (invoiceItem.VariantId != null)
                     {
-                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceItem.VariantId))).FirstOrDefault();
-                        var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                        invoiceItem.ItemName += $" | {variantAttribute.Value}";
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                        //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                        //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                        if (variant.MaterialVariantAttributes.Count > 0)
+                        {
+                            var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                            var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                            invoiceItem.ItemName += $" | {variant.SKU} {attributesString}";
+                        }
+                        else
+                        {
+                            invoiceItem.ItemName += $" | {variant.SKU}";
+                        }
                         invoiceItem.SalePrice = variant.Price;
                         invoiceItem.ImageUrl = variant.VariantImageUrl;
                         invoiceItem.ItemTotalPrice = variant.Price * invoiceItem.Quantity;
@@ -369,9 +400,20 @@ namespace CMMS.API.Controllers
 
                             if (item.VariantId != null)
                             {
-                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
-                                var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                                storeItemName += $" | {variantAttribute.Value}";
+                                //  var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).FirstOrDefault();
+                                //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                                //storeItemName += $" | {variantAttribute.Value}";
+                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                                if (variant.MaterialVariantAttributes.Count > 0)
+                                {
+                                    var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                    var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                    storeItemName += $" | {variant.SKU} {attributesString}";
+                                }
+                                else
+                                {
+                                    storeItemName += $" | {variant.SKU}";
+                                }
                             }
                             var cartItem = _mapper.Map<CartItem>(item);
                             cartItem.StoreId = storeId;

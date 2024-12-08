@@ -225,9 +225,16 @@ namespace CMMS.Infrastructure.Services
                         {
                             //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             // cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                            var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
-                            var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                            cartItemVM.ItemName += $" | {attributesString}";
+                            if (variant.MaterialVariantAttributes.Count > 0)
+                            {
+                                var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                cartItemVM.ItemName += $" | {variant.SKU} {attributesString}";
+                            }
+                            else
+                            {
+                                cartItemVM.ItemName += $" | {variant.SKU}";
+                            }
                             cartItemVM.SalePrice = variant.Price;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;
                             cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
@@ -305,7 +312,7 @@ namespace CMMS.Infrastructure.Services
                quantity = x.TotalQuantity - x.InOrderQuantity
            }).Sum(_ => _.quantity);
 
-           
+
 
             return (decimal)availableQuantity;
         }
