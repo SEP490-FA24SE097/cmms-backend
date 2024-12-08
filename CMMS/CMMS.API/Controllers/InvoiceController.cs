@@ -509,14 +509,16 @@ namespace CMMS.API.Controllers
                         }
                         // generate shipping detail
                         var shippingDetailId = "GH" + invoiceCode;
-                        var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
+                        var shippingDetail = new ShippingDetail();
+                        //var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
+                        shippingDetail.Id = shippingDetailId;
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
-                        _shippingDetailService.Update(shippingDetail);
+                        await  _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Tạo đơn hàng thành công" });

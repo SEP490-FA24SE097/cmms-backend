@@ -117,13 +117,10 @@ namespace CMMS.Infrastructure.Services
             IdentityResult result = null;
             if (model.Password != null)
                 result = await _userManager.CreateAsync(user, model.Password);
-            else
-                result = await _userManager.CreateAsync(user);
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
             }
-            await _userService.SaveChangeAsync();
             return result;
         }
 

@@ -35,7 +35,7 @@ namespace CMMS.Infrastructure.Constant
         public string? PhoneReceive { get; set; }
         public decimal? SalePrice { get; set; }
         public decimal? Discount { get; set; }
-        public string? ShippingFee { get; set; }
+        public decimal? ShippingFee { get; set; }
         public decimal? TotalAmount { get; set; }
         public decimal? CustomerPaid { get; set; }
         public string? InvoiceId { get; set; }

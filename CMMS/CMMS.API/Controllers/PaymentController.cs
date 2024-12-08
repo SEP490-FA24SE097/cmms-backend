@@ -71,18 +71,17 @@ namespace CMMS.API.Controllers
 
             switch (invoiceInfo.PaymentType)
             {
-
                 case PaymentType.OnlinePayment:
-                //var paymentRequestData = new PaymentRequestData
-                //{
-                //    CustomerId = customerId,
-                //    Note = invoiceInfo.Note,
-                //    OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
-                //    Address = invoiceInfo.Address,
-                //    CartItems = invoiceInfo.CartItems,
-                //};
-                //var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
-                //return Ok(paymentUrl);
+                    var paymentRequestData = new PaymentRequestData
+                    {
+                        CustomerId = customerId,
+                        Note = invoiceInfo.Note,
+                        OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
+                        Address = invoiceInfo.Address,
+                        PreCheckOutItemCartModel = invoiceInfo.PreCheckOutItemCartModel,
+                    };
+                    var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
+                    return Ok(paymentUrl);
 
                 #region payment debt invoice finxing
                 case PaymentType.DebtInvoice:

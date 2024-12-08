@@ -125,7 +125,6 @@ namespace CMMS.API.Controllers
             var currentUser = await _currentUserService.GetCurrentUser();
             var storeId = currentUser.StoreId;
 
-
             var listCustomer = _userService.Get(_ => _.Id != null, _ => _.Invoices);
             var filterUserList = new List<string>();
             foreach (var customer in listCustomer)
@@ -181,6 +180,62 @@ namespace CMMS.API.Controllers
                 }
             });
         }
+
+        [HttpGet("get-customer-data-in-store")]
+        public async Task<ActionResult> GetAllCustomerInStoreByStoreAsync([FromQuery] CustomerFilterModel filterModel)
+        {
+            var currentUser = await _currentUserService.GetCurrentUser();
+            var storeId = currentUser.StoreId;
+
+            var listCustomer = await _userService.GetAll();
+            var filterUserList = new List<string>();
+            foreach (var customer in listCustomer)
+            {
+                var user = _mapper.Map<ApplicationUser>(customer);
+                var roles = await _userService.GetRolesAsync(user);
+                if (roles.IsNullOrEmpty() || roles.Contains(Role.Customer.ToString()))
+                {
+                    filterUserList.Add(customer.Id);
+                }
+            }
+            var fitlerList = _userService
+                 .Get(_ => filterUserList.Contains(_.Id) &&
+                 (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
+                 (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+                 (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
+                 (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
+                 , _ => _.Invoices);
+
+
+            decimal? currentDebtTotal = _userService.GetAllCustomerCurrentDebt();
+            decimal? totalSale = _userService.GetAllCustomerTotalSale();
+            decimal totalSaleAfterRefund = _userService.GetAllCustomerTotalSaleAfterRefund();
+
+            var total = fitlerList.Count();
+            var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
+                .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
+            var result = _mapper.Map<List<UserStoreVM>>(filterListPaged);
+            foreach (var item in result)
+            {
+                item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
+                item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
+
+                item.CurrentDebt = _userService.GetCustomerCurrentDebt(item.Id);
+                item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
+                item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
+            }
+            return Ok(new
+            {
+                data = result,
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
+        }
+
         [HttpPut("update-customer")]
         public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
