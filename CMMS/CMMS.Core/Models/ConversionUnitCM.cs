@@ -8,7 +8,7 @@ namespace CMMS.Core.Models
 {
     public class ConversionUnitCM
     {
-        public string Name { get; set; }
+        public Guid UnitId { get; set; }
         public decimal ConversionRate { get; set; }
         public decimal Price { get; set; }
     }

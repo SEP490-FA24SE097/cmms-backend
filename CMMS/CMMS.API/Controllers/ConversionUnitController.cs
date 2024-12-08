@@ -35,7 +35,7 @@ namespace CMMS.API.Controllers
                 var list = conversionUnitName.Select(x => new ConversionUnit()
                 {
                     Id = new Guid(),
-                    //  Name = x.Name,
+                    UnitId = x.UnitId,
                     ConversionRate = x.ConversionRate,
                     Price = x.Price,
                     MaterialId = materialId
@@ -46,7 +46,7 @@ namespace CMMS.API.Controllers
                 var variants = _variantService.Get(x => x.MaterialId == materialId).ToList();
                 if (!variants.Any())
                 {
-                    var material = _materialService.Get(x => x.Id == materialId).FirstOrDefault();
+                    var material = _materialService.Get(x => x.Id == materialId).Include(x=>x.Unit).FirstOrDefault();
                     if (material == null)
                     {
                         return BadRequest();
