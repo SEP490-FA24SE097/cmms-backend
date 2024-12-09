@@ -15,6 +15,7 @@ namespace CMMS.Infrastructure.Services.Shipping
     public interface IShippingService
     {
         Task<List<StoreDistance>> GetListStoreOrderbyDeliveryDistance(string deliveryAddress, List<Store> stores);
+        Task<StoreDistance> GeStoreOrderbyDeliveryDistance(string deliveryAddress, Store stores);
         Task<string> ResponseLatitueLongtitueValue(string deliveryAddress);
         decimal CalculateShippingFee(decimal distance, decimal weight);
         double CalculateDistanceBetweenPostionLatLon(double lat1, double lon1, double lat2, double lon2);
@@ -116,6 +117,27 @@ namespace CMMS.Infrastructure.Services.Shipping
             double lng = position.GetProperty("lng").GetDouble();
 
             return $"{lat},{lng}";
+        }
+
+        public async Task<StoreDistance> GeStoreOrderbyDeliveryDistance(string deliveryAddress, Store store)
+        {
+            var baseUrl = _configuration["Distancematrix:BaseUrlGet"];
+            var apiKey = _configuration["Distancematrix:APIKey"];
+            var destinations = $"{store.Latitude}, {store.Longitude}"; 
+
+            var deliveryPosition = await ResponseLatitueLongtitueValue(deliveryAddress);
+
+            var apiUrl = $"{baseUrl}?origins={deliveryPosition}&destinations={destinations}&key={apiKey}";
+            var response = await _httpClient.GetAsync(apiUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<DistanceMatrixResponse>(responseContent);
+            var distances = result.rows.First().elements
+                .Select((element, index) => new StoreDistance { Store = store, Distance = element.distance.value }).First();
+            return distances;
         }
     }
 }

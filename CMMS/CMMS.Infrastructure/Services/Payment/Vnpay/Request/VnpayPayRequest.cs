@@ -100,11 +100,16 @@ namespace CMMS.Infrastructure.Services.Payment.Vnpay.Request
 	}
 
 	public class PaymentRequestData { 
-		public decimal Amount { get; set; }
-		public string OrderInfo { get; set; }
+		public decimal? TotalAmount { get; set; }
+		public string? OrderInfo { get; set; }
 		public string? Note { get; set; }
-		public string CustomerId { get; set; }
-		public string? Address { get; set; }
-        public List<CartItem>? CartItems { get; set; }
+		public string? CustomerId { get; set; }
+        public string? Address { get; set; }
+        public string? Ward { get; set; }
+        public string? District { get; set; }
+        public string? Province { get; set; }
+        public string? PhoneReceive { get; set; }
+        public decimal? Discount { get; set; }
+        public List<PreCheckOutItemCartModel>? PreCheckOutItemCartModel { get; set; }
     }
 }

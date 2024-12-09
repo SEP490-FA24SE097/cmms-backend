@@ -141,14 +141,15 @@ namespace CMMS.Infrastructure.Services
                 switch (invoiceStatus)
                 {
                     case (int)InvoiceStatus.Pending:
-                        // storeInventory.InOrderQuantity += cartItem.Quantity;
                         storeInventory.InOrderQuantity += orderQuantity;
                         break;
                     case (int)InvoiceStatus.Done:
-                        // storeInventory.TotalQuantity -= cartItem.Quantity;
-                        // storeInventory.InOrderQuantity -= cartItem.Quantity;
+                 
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
                         storeInventory.InOrderQuantity -= orderQuantity;
+                        break;
+                    case (int)InvoiceStatus.DoneInStore:
+                        storeInventory.TotalQuantity -= (decimal)orderQuantity;
                         break;
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:
@@ -224,7 +225,7 @@ namespace CMMS.Infrastructure.Services
                         {
                             //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             // cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                            if (variant.MaterialVariantAttributes.Count > 0)
+                            if (variant.MaterialVariantAttributes != null && variant.MaterialVariantAttributes.Count > 0)
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));

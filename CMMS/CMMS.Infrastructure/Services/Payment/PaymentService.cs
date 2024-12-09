@@ -136,10 +136,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 if(customer == null) return false;
                 var customerAddress = $"{customer.Address}, {customer.Ward}, {customer.District}, {customer.Province}";
 
-
-         
                 //  chỗ này đem qua bên phần xử lý hóa đơn.
-                
                 //if (invoiceInfo.Address != null)
                 //{
                 //    var customerDeliveryPostition = (await _shippingService.ResponseLatitueLongtitueValue(customerAddress)).Split(",");
@@ -296,15 +293,13 @@ namespace CMMS.Infrastructure.Services.Payment
         public string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
         {
             var paymentId = Guid.NewGuid().ToString();
-            var customerId = paymentRequestData.CustomerId;
+
             var orderInfo = paymentRequestData.OrderInfo;
             var note = paymentRequestData.Note != null ? paymentRequestData.Note : "";
-            var totalAmount = paymentRequestData.Amount;
-
-            var customer = _userService.Get(_ => _.Id.Equals(customerId)).FirstOrDefault();
+            var totalAmount = paymentRequestData.TotalAmount;
+            var customer = _userService.Get(_ => _.Id.Equals(paymentRequestData.CustomerId)).FirstOrDefault();
             // get customer address
             var customerAddress = $"{customer.Address} {customer.Ward} {customer.District} {customer.Province}";
-            var shippingAddress = paymentRequestData.Address != null ? paymentRequestData.Address : customerAddress;
             VnpayPayRequest vnpayPaymentRequest = new VnpayPayRequest
             {
                 vnp_Version = _configuration["Vnpay:Version"],
@@ -341,87 +336,104 @@ namespace CMMS.Infrastructure.Services.Payment
                         // create database transcation 
                         try
                         {
-                            // create invoice 
-                            var invoice = new Invoice
+                            var storeInvoices = paymentRequestData.PreCheckOutItemCartModel;
+                            var groupInvoiceId = Guid.NewGuid().ToString();
+                            foreach (var storeInvoice in storeInvoices)
                             {
-                                Id = Guid.NewGuid().ToString(),
-                                CustomerId = customerId,
-                                InvoiceDate = DateTime.Now,
-                                InvoiceStatus = (int)InvoiceStatus.Pending,
-                                InvoiceType = (int)InvoiceType.Debt,
-                                Note = note,
-                                TotalAmount = totalAmount
-                            };
-                            await _invoiceRepositoryScope.AddAsync(invoice);
-                            await _unitOfWorkScope.SaveChangeAsync();
+                                var storeId = storeInvoice.StoreId;
+                                var invoiceCode = _invoiceService.GenerateInvoiceCode();
 
-                            // insert transaction
-                            var transaction = new Transaction();
-                            transaction.Id = Guid.NewGuid().ToString();
-                            transaction.TransactionType = (int)TransactionType.PurchaseCustomerDebt;
-                            transaction.TransactionDate = DateTime.Now;
-                            transaction.CustomerId = customerId;
-                            transaction.InvoiceId = invoice.Id;
-                            transaction.Amount = totalAmount;
-                            await _transactionService.AddAsync(transaction);
+                                // insert invoice
 
-
-                            // create invoiceDetail
-                            foreach (var cartItem in paymentRequestData.CartItems)
-                            {
-                                var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                                var invoiceDetail = new InvoiceDetail
+                                // sua cho invoice nay lai lay sai data.
+                                var invoice = new Invoice
                                 {
-                                    Id = Guid.NewGuid().ToString(),
-                                    LineTotal = material.SalePrice * cartItem.Quantity,
-                                    MaterialId = Guid.Parse(cartItem.MaterialId),
-                                    VariantId = Guid.Parse(cartItem.VariantId),
-                                    Quantity = cartItem.Quantity,
-                                    InvoiceId = invoice.Id,
+                                    Id = invoiceCode,
+                                    CustomerId = paymentRequestData.CustomerId,
+                                    InvoiceDate = DateTime.Now,
+                                    InvoiceStatus = (int)InvoiceStatus.Pending,
+                                    InvoiceType = (int)InvoiceType.Normal,
+                                    Note = paymentRequestData.Note,
+                                    StoreId = storeId,
+                                    // get total cart 
+                                    SalePrice = (decimal)storeInvoice.TotalStoreAmount,
+                                    TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
+                                    Discount = paymentRequestData.Discount != null ? paymentRequestData.Discount : 0,
+                                    SellPlace = (int)SellPlace.Website,
+                                    // create group invoice
+                                    GroupId = groupInvoiceId
+
                                 };
-                                if (cartItem.VariantId != null)
+                                await _invoiceService.AddAsync(invoice);
+                                var InvoiceResult = await _invoiceService.SaveChangeAsync();
+
+                                foreach (var storeItem in storeInvoice.StoreItems)
                                 {
-                                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).FirstOrDefault();
-                                    invoiceDetail.VariantId = Guid.Parse(cartItem.VariantId);
-                                    invoiceDetail.LineTotal = variant.Price * cartItem.Quantity;
+                                    // insert invoice Details
+                                    var invoiceDetail = new InvoiceDetail
+                                    {
+                                        Id = Guid.NewGuid().ToString(),
+                                        LineTotal = storeItem.ItemTotalPrice,
+                                        MaterialId = Guid.Parse(storeItem.MaterialId),
+                                        VariantId = storeItem.VariantId != null ? Guid.Parse(storeItem.VariantId) : null,
+                                        Quantity = storeItem.Quantity,
+                                        InvoiceId = invoice.Id,
+                                    };
+                                    await _invoiceDetailService.AddAsync(invoiceDetail);
+
+                                    var cartItem = new CartItem
+                                    {
+                                        MaterialId = storeItem.MaterialId,
+                                        VariantId = storeItem.VariantId != null ? storeItem.VariantId : null,
+                                        StoreId = storeId,
+                                        Quantity = storeItem.Quantity
+                                    };
+                                    // update store quantity
+                                    var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
+                                }
+                                if (InvoiceResult)
+                                {
+                                    // insert transaction
+                                    // tao transaction ban hang.
+                                    var transaction = new Transaction();
+                                    transaction.Id = "DH" + invoiceCode;
+                                    transaction.TransactionType = (int)TransactionType.SaleItem;
+                                    transaction.TransactionDate = DateTime.Now;
+                                    transaction.CustomerId = paymentRequestData.CustomerId;
+                                    transaction.InvoiceId = invoice.Id;
+                                    transaction.Amount = (decimal)storeInvoice.FinalPrice;
+                                    transaction.TransactionPaymentType = 1;
+                                    await _transactionService.AddAsync(transaction);
+
+                                    //await _invoiceService.SaveChangeAsync();
+                                    var shippingDetail = new ShippingDetail();
+                                    shippingDetail.Id = "GH" + invoiceCode;
+                                    shippingDetail.Invoice = invoice;
+                                    shippingDetail.PhoneReceive = paymentRequestData.PhoneReceive;
+                                    shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                                    shippingDetail.Address = customerAddress;
+                                    shippingDetail.ShippingFee = storeInvoice.ShippngFree;
+                                    await _shippingDetailService.AddAsync(shippingDetail);
                                 }
 
-                                await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
+                                // create payment
+                                var payment = new Core.Entities.Payment
+                                {
+                                    Id = paymentId,
+                                    AmountPaid = (decimal)invoice.SalePrice,
+                                    PaymentDate = DateTime.Now,
+                                    PaymentDescription = orderInfo,
+                                    PaymentStatus = 0,
+                                    PaymentMethod = "pay",
+                                    InvoiceId = invoice.Id,
+                                    BankCode = vnpayPaymentRequest.vnp_BankCode,
+
+                                };
+                                await _paymentRepositoryscoped.AddAsync(payment);
                             }
-
-                            // create payment
-                            var payment = new Core.Entities.Payment
-                            {
-                                Id = paymentId,
-                                AmountPaid = totalAmount,
-                                PaymentDate = DateTime.Now,
-                                PaymentDescription = orderInfo,
-                                PaymentStatus = 0,
-                                PaymentMethod = "pay",
-                                InvoiceId = invoice.Id,
-                                BankCode = vnpayPaymentRequest.vnp_BankCode,
-
-                            };
-                            await _paymentRepositoryscoped.AddAsync(payment);
-
-                            // create shipping detail
-
-                            var shippingDetail = new ShippingDetail
-                            {
-                                Id = Guid.NewGuid().ToString(),
-                                Address = shippingAddress,
-                                EstimatedArrival = DateTime.Now.AddDays(3),
-                                InvoiceId = invoice.Id,
-                                //PhoneReceive = invoiceInfo.PhoneReceive
-                            };
-                            await _shippingDetailRepositoryScope.AddAsync(shippingDetail);
-
-
-                            await _unitOfWorkScope.SaveChangeAsync();
-
-                            // Commit transaction sucecssfully
-
-                            await _efTranscationScope.CommitAsync();
+                            var result = await _unitOfWork.SaveChangeAsync();
+                            await _efTransaction.CommitAsync();
+               
                         }
                         catch (Exception)
                         {

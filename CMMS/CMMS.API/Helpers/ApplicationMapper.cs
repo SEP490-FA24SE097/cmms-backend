@@ -30,6 +30,7 @@ namespace CMMS.API.Helpers
             CreateMap<CartDTO, CartVM>().ReverseMap();
             CreateMap<CartItemVM, CartItem>().ReverseMap();
             CreateMap<CartItemWithoutStoreId, CartItemVM>().ReverseMap();
+            CreateMap<CartItemWithoutStoreId, AddItemModel>().ReverseMap();
             CreateMap<CartItemWithoutStoreId, CartItem>().ReverseMap();
             CreateMap<CartItem, AddItemModel>().ReverseMap();
 
