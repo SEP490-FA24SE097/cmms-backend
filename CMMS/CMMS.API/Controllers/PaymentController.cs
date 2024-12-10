@@ -110,7 +110,9 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
         {
             var resultData = await _paymentService.VnpayReturnUrl(vnpayPayResponse);
-            return Ok(resultData);
+            return Ok(new {
+            data = resultData
+            });
         }
 
         [HttpPost("pre-checkout")]
