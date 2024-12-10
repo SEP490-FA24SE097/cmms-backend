@@ -127,7 +127,7 @@ namespace CMMS.Infrastructure.Services
                 var conversionRate = await GetConversionRate(materialId, variantId);
                 if (conversionRate != null)
                 {
-                    return Get(x => x.Id == Guid.Parse(materialId)).Select(x => x.WeightValue).FirstOrDefault() / (float)conversionRate;
+                    return Get(x => x.Id == Guid.Parse(materialId)).Select(x => x.WeightValue).FirstOrDefault() * (float)conversionRate;
                 }
                 else
                 {

@@ -220,7 +220,7 @@ namespace CMMS.Infrastructure.Services
                     // Xử lý biến thể (variant) nếu có
                     if (!string.IsNullOrEmpty(cartItem.VariantId))
                     {
-                        var variant = await _variantService.FindAsync(Guid.Parse(cartItem.VariantId));
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                         if (variant != null)
                         {
                             //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
