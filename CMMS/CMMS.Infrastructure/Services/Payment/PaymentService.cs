@@ -313,7 +313,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 vnp_OrderType = "other",
                 vnp_CurrCode = _configuration["Vnpay:CurrentCode"],
                 vnp_ReturnUrl = _configuration["Vnpay:ReturnUrl"],
-                vnp_ExpireDate = DateTime.Now.AddMinutes(5).ToString("yyyyMMddHHmmss"),
+                vnp_ExpireDate = DateTimeOffset.Now.AddMinutes(5).ToString("yyyyMMddHHmmss"),
                 vnp_TxnRef = invoiceCode,
 
             };
