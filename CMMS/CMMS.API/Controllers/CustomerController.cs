@@ -214,15 +214,15 @@ namespace CMMS.API.Controllers
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
-            var result = _mapper.Map<List<UserStoreVM>>(filterListPaged);
+            var result = _mapper.Map<List<UserDataStoreVM>>(filterListPaged);
             foreach (var item in result)
             {
-                item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
-                item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
+                //item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
+                //item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
 
                 item.CurrentDebt = _userService.GetCustomerCurrentDebt(item.Id);
-                item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
-                item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
+                //item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
+                //item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
             }
             return Ok(new
             {

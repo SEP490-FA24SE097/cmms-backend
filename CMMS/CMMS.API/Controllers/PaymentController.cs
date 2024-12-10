@@ -61,13 +61,11 @@ namespace CMMS.API.Controllers
         {
             var customerId = _currentUserService.GetUserId();
 
-            decimal totalCartAmount = 0;
             invoiceInfo.CustomerId = customerId;
 
             bool result = false;
             CustomerBalanceVM customerBalance = null;
             CustomerBalance customerBalanceEntity = null;
-            decimal customerBalanceAvailable = 0;
 
             switch (invoiceInfo.PaymentType)
             {
@@ -76,9 +74,10 @@ namespace CMMS.API.Controllers
                     {
                         CustomerId = customerId,
                         Note = invoiceInfo.Note,
-                        OrderInfo = $"Purchase for invoice pirce: {totalCartAmount} VND",
+                        OrderInfo = $"Purchase for invoice pirce: {invoiceInfo.SalePrice} VND",
                         Address = invoiceInfo.Address,
                         PreCheckOutItemCartModel = invoiceInfo.PreCheckOutItemCartModel,
+                        TotalAmount = invoiceInfo.SalePrice,  
                     };
                     var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);

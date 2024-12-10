@@ -293,7 +293,7 @@ namespace CMMS.Infrastructure.Services.Payment
         public string VnpayCreatePayPaymentRequestAsync(PaymentRequestData paymentRequestData)
         {
             var paymentId = Guid.NewGuid().ToString();
-
+            var invoiceCode = _invoiceService.GenerateInvoiceCode();
             var orderInfo = paymentRequestData.OrderInfo;
             var note = paymentRequestData.Note != null ? paymentRequestData.Note : "";
             var totalAmount = paymentRequestData.TotalAmount;
@@ -314,141 +314,141 @@ namespace CMMS.Infrastructure.Services.Payment
                 vnp_CurrCode = _configuration["Vnpay:CurrentCode"],
                 vnp_ReturnUrl = _configuration["Vnpay:ReturnUrl"],
                 vnp_ExpireDate = DateTime.Now.AddMinutes(5).ToString("yyyyMMddHHmmss"),
-                vnp_TxnRef = paymentId,
+                vnp_TxnRef = invoiceCode,
 
             };
             var paymentLink = vnpayPaymentRequest.GetLink(_configuration["Vnpay:PaymentUrl"], _configuration["Vnpay:HashSecret"]);
-
-            Task.Run(async () =>
+            try
             {
-                try
+                Task.Run(async () =>
                 {
-                    _logger.LogInformation("Starting payment task for order: {orderDescription}", orderInfo);
-                    using (var scope = _serviceScopeFactory.CreateScope())
+                    try
                     {
-                        var _paymentRepositoryscoped = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
-                        var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                        var _efTranscationScope = scope.ServiceProvider.GetRequiredService<ITransaction>();
-                        var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
-                        var _invoiceDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceDetailRepository>();
-                        var _shippingDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IShippingDetailRepository>();
-
-                        // create database transcation 
-                        try
+                        _logger.LogInformation("Starting payment task for order: {orderDescription}", orderInfo);
+                        using (var scope = _serviceScopeFactory.CreateScope())
                         {
-                            var storeInvoices = paymentRequestData.PreCheckOutItemCartModel;
-                            var groupInvoiceId = Guid.NewGuid().ToString();
-                            foreach (var storeInvoice in storeInvoices)
+                            var _paymentRepositoryscoped = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
+                            var _unitOfWorkScope = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                            var _efTranscationScope = scope.ServiceProvider.GetRequiredService<ITransaction>();
+                            var _invoiceRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceRepository>();
+                            var _invoiceDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IInvoiceDetailRepository>();
+                            var _shippingDetailRepositoryScope = scope.ServiceProvider.GetRequiredService<IShippingDetailRepository>();
+                            var _transactionRepostoryScope = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();
+                            var _stroInventoryServiceScope = scope.ServiceProvider.GetRequiredService<IStoreInventoryService>();
+
+                            // create database transcation 
+                            try
                             {
-                                var storeId = storeInvoice.StoreId;
-                                var invoiceCode = _invoiceService.GenerateInvoiceCode();
-
-                                // insert invoice
-
-                                // sua cho invoice nay lai lay sai data.
-                                var invoice = new Invoice
+                                var storeInvoices = paymentRequestData.PreCheckOutItemCartModel;
+                                var groupInvoiceId = Guid.NewGuid().ToString();
+                                foreach (var storeInvoice in storeInvoices)
                                 {
-                                    Id = invoiceCode,
-                                    CustomerId = paymentRequestData.CustomerId,
-                                    InvoiceDate = DateTime.Now,
-                                    InvoiceStatus = (int)InvoiceStatus.Pending,
-                                    InvoiceType = (int)InvoiceType.Normal,
-                                    Note = paymentRequestData.Note,
-                                    StoreId = storeId,
-                                    // get total cart 
-                                    SalePrice = (decimal)storeInvoice.TotalStoreAmount,
-                                    TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
-                                    Discount = paymentRequestData.Discount != null ? paymentRequestData.Discount : 0,
-                                    SellPlace = (int)SellPlace.Website,
-                                    // create group invoice
-                                    GroupId = groupInvoiceId
+                                    var storeId = storeInvoice.StoreId;
 
-                                };
-                                await _invoiceService.AddAsync(invoice);
-                                var InvoiceResult = await _invoiceService.SaveChangeAsync();
+                                    var invoice = new Invoice
+                                    {
+                                        Id = invoiceCode,
+                                        CustomerId = paymentRequestData.CustomerId,
+                                        InvoiceDate = DateTime.Now,
+                                        InvoiceStatus = (int)InvoiceStatus.Pending,
+                                        InvoiceType = (int)InvoiceType.Normal,
+                                        Note = paymentRequestData.Note,
+                                        StoreId = storeId,
+                                        SalePrice = (decimal)storeInvoice.TotalStoreAmount,
+                                        TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
+                                        Discount = paymentRequestData.Discount != null ? paymentRequestData.Discount : 0,
+                                        SellPlace = (int)SellPlace.Website,
+                                        GroupId = groupInvoiceId
 
-                                foreach (var storeItem in storeInvoice.StoreItems)
-                                {
-                                    // insert invoice Details
-                                    var invoiceDetail = new InvoiceDetail
+                                    };
+                                    await _invoiceRepositoryScope.AddAsync(invoice);
+                                    var InvoiceResult = await _unitOfWorkScope.SaveChangeAsync();
+
+                                    foreach (var storeItem in storeInvoice.StoreItems)
+                                    {
+                                        var invoiceDetail = new InvoiceDetail
+                                        {
+                                            Id = Guid.NewGuid().ToString(),
+                                            LineTotal = storeItem.ItemTotalPrice,
+                                            MaterialId = Guid.Parse(storeItem.MaterialId),
+                                            VariantId = storeItem.VariantId != null ? Guid.Parse(storeItem.VariantId) : null,
+                                            Quantity = storeItem.Quantity,
+                                            InvoiceId = invoice.Id,
+                                        };
+                                        await _invoiceDetailRepositoryScope.AddAsync(invoiceDetail);
+
+                                        var cartItem = new CartItem
+                                        {
+                                            MaterialId = storeItem.MaterialId,
+                                            VariantId = storeItem.VariantId != null ? storeItem.VariantId : null,
+                                            StoreId = storeId,
+                                            Quantity = storeItem.Quantity
+                                        };
+                                        // update store quantity
+                                        var updateQuantityStatus = await _stroInventoryServiceScope.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
+                                    }
+                                    if (InvoiceResult)
+                                    {
+
+                                        var transaction = new Transaction();
+                                        transaction.Id = "DH" + invoiceCode;
+                                        transaction.TransactionType = (int)TransactionType.SaleItem;
+                                        transaction.TransactionDate = DateTime.Now;
+                                        transaction.CustomerId = paymentRequestData.CustomerId;
+                                        transaction.InvoiceId = invoice.Id;
+                                        transaction.Amount = (decimal)storeInvoice.FinalPrice;
+                                        transaction.TransactionPaymentType = 1;
+                                        await _transactionRepostoryScope.AddAsync(transaction);
+
+                                        var shippingDetail = new ShippingDetail();
+                                        shippingDetail.Id = "GH" + invoiceCode;
+                                        shippingDetail.Invoice = invoice;
+                                        shippingDetail.PhoneReceive = paymentRequestData.PhoneReceive;
+                                        shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                                        shippingDetail.Address = customerAddress;
+                                        shippingDetail.ShippingFee = storeInvoice.ShippngFree;
+                                        await _shippingDetailRepositoryScope.AddAsync(shippingDetail);
+                                    }
+
+                                    // create payment
+                                    var payment = new Core.Entities.Payment
                                     {
                                         Id = Guid.NewGuid().ToString(),
-                                        LineTotal = storeItem.ItemTotalPrice,
-                                        MaterialId = Guid.Parse(storeItem.MaterialId),
-                                        VariantId = storeItem.VariantId != null ? Guid.Parse(storeItem.VariantId) : null,
-                                        Quantity = storeItem.Quantity,
+                                        AmountPaid = (decimal)invoice.SalePrice,
+                                        PaymentDate = DateTime.Now,
+                                        PaymentDescription = orderInfo,
+                                        PaymentStatus = 0,
+                                        PaymentMethod = "pay",
                                         InvoiceId = invoice.Id,
+                                        BankCode = vnpayPaymentRequest.vnp_BankCode,
+
                                     };
-                                    await _invoiceDetailService.AddAsync(invoiceDetail);
-
-                                    var cartItem = new CartItem
-                                    {
-                                        MaterialId = storeItem.MaterialId,
-                                        VariantId = storeItem.VariantId != null ? storeItem.VariantId : null,
-                                        StoreId = storeId,
-                                        Quantity = storeItem.Quantity
-                                    };
-                                    // update store quantity
-                                    var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(cartItem, (int)InvoiceStatus.Pending);
+                                    await _paymentRepositoryscoped.AddAsync(payment);
                                 }
-                                if (InvoiceResult)
-                                {
-                                    // insert transaction
-                                    // tao transaction ban hang.
-                                    var transaction = new Transaction();
-                                    transaction.Id = "DH" + invoiceCode;
-                                    transaction.TransactionType = (int)TransactionType.SaleItem;
-                                    transaction.TransactionDate = DateTime.Now;
-                                    transaction.CustomerId = paymentRequestData.CustomerId;
-                                    transaction.InvoiceId = invoice.Id;
-                                    transaction.Amount = (decimal)storeInvoice.FinalPrice;
-                                    transaction.TransactionPaymentType = 1;
-                                    await _transactionService.AddAsync(transaction);
-
-                                    //await _invoiceService.SaveChangeAsync();
-                                    var shippingDetail = new ShippingDetail();
-                                    shippingDetail.Id = "GH" + invoiceCode;
-                                    shippingDetail.Invoice = invoice;
-                                    shippingDetail.PhoneReceive = paymentRequestData.PhoneReceive;
-                                    shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
-                                    shippingDetail.Address = customerAddress;
-                                    shippingDetail.ShippingFee = storeInvoice.ShippngFree;
-                                    await _shippingDetailService.AddAsync(shippingDetail);
-                                }
-
-                                // create payment
-                                var payment = new Core.Entities.Payment
-                                {
-                                    Id = paymentId,
-                                    AmountPaid = (decimal)invoice.SalePrice,
-                                    PaymentDate = DateTime.Now,
-                                    PaymentDescription = orderInfo,
-                                    PaymentStatus = 0,
-                                    PaymentMethod = "pay",
-                                    InvoiceId = invoice.Id,
-                                    BankCode = vnpayPaymentRequest.vnp_BankCode,
-
-                                };
-                                await _paymentRepositoryscoped.AddAsync(payment);
+                                var result = await _unitOfWorkScope.SaveChangeAsync();
+                                await _efTranscationScope.CommitAsync();
                             }
-                            var result = await _unitOfWork.SaveChangeAsync();
-                            await _efTransaction.CommitAsync();
-               
-                        }
-                        catch (Exception)
-                        {
-                            // rollback 
-                            await _efTranscationScope.RollbackAsync();
-                            throw;
+                            catch (Exception)
+                            {
+                                // rollback 
+                                await _efTranscationScope.RollbackAsync();
+                                throw;
+                            }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing payment for order: {orderDescription}", paymentRequestData.OrderInfo);
-                }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing payment for order: {orderDescription}", paymentRequestData.OrderInfo);
+                    }
 
-            });
+                });
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+      
             return paymentLink;
         }
 
@@ -483,12 +483,11 @@ namespace CMMS.Infrastructure.Services.Payment
                             break;
                     }
 
-                    var payment = _paymentRepositoryScope.Get(_ => _.Id.Equals(vnpayPayResponse.vnp_TxnRef)).FirstOrDefault();
+                    var payment = _paymentRepositoryScope.Get(_ => _.InvoiceId.Equals(vnpayPayResponse.vnp_TxnRef)).FirstOrDefault();
                     if (payment != null)
                     {
                         //update invoice
                         var invoice = await _invoiceRepositoryScope.FindAsync(payment.InvoiceId);
-                        //invoice.InvoiceStatus = (int)InvoiceStatus.PaymentSucces;
                         _invoiceRepositoryScope.Update(invoice);
                         // update payment
                         payment.BankCode = vnpayPayResponse.vnp_BankCode;
@@ -503,7 +502,6 @@ namespace CMMS.Infrastructure.Services.Payment
                             CustomerId = invoice.CustomerId,
                             InvoiceId = invoice.Id,
                             TransactionDate = DateTime.Now,
-                            //TransactionType = (int)TransactionType.PurchaseDebtInvoice,
                         };
                         await _transactionRepositoryScope.AddAsync(transcation);
                         var result = await _unitOfWork.SaveChangeAsync();
