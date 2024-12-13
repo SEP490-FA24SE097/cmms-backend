@@ -11,6 +11,7 @@ using CMMS.API.TimeConverter;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Packaging.Signing;
 
 namespace CMMS.API.Controllers
 {
@@ -44,31 +45,32 @@ namespace CMMS.API.Controllers
             {
                 var list = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
                 {
-                    x.Id,
-                    x.TimeStamp,
+                    id = x.Id,
+                    timeStamp = x.TimeStamp,
                     supplierName = x.Supplier == null ? null : x.Supplier.Name,
-                    x.Status,
-                    x.Note,
+                    status = x.Status,
+                    note = x.Note,
                     totalQuantity = x.Quantity,
-                    totalProduct = x.ImportDetails.Count,
-                    x.TotalPrice,
-                    x.TotalDiscount,
-                    x.TotalDue,
-                    x.TotalPaid,
-                    importDetails = x.ImportDetails.Select(x => new
+                    totalProduct = x.ImportDetails.Count > 0 ? x.ImportDetails.Count : 0,
+                    totalPice = x.TotalPrice,
+                    totalDiscount = x.TotalDiscount,
+                    totalDue = x.TotalDue,
+                    totalPaid = x.TotalPaid
+                    ,
+                    importDetails = x.ImportDetails.Count <= 0 ? null : x.ImportDetails.Select(x => new
                     {
-                        x.Material.MaterialCode,
-                        x.Material.Name,
-                        x.MaterialId,
-                        x.VariantId,
+                        materialCode = x.Material.MaterialCode,
+                        name = x.Material.Name,
+                        materialId = x.MaterialId,
+                        variantId = x.VariantId,
                         sku = x.Variant == null ? null : x.Variant.SKU,
-                        x.Quantity,
-                        x.UnitPrice,
-                        x.UnitDiscount,
+                        quantity = x.Quantity,
+                        unitPrice = x.UnitPrice,
+                        unitDiscount = x.UnitDiscount,
                         unitImportPrice = x.UnitPrice - x.UnitDiscount,
-                        x.DiscountPrice,
-                        x.PriceAfterDiscount,
-                        x.Note
+                        discountPrice = x.DiscountPrice,
+                        priceAfterDiscount = x.PriceAfterDiscount,
+                        note = x.Note
                     }).ToList()
 
                 }).ToList();
@@ -77,7 +79,7 @@ namespace CMMS.API.Controllers
                     data = Helpers.LinqHelpers.ToPageList(list, page - 1, itemPerPage),
                     pagination = new
                     {
-                        total = _importService.GetAll().ToList().Count,
+                        total = list.Count,
                         perPage = itemPerPage,
                         currentPage = page
                     }
@@ -95,7 +97,7 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id==id).Select(x => new
+            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
                 x.TimeStamp,
@@ -129,7 +131,7 @@ namespace CMMS.API.Controllers
             {
                 return NotFound();
             }
-            return Ok(new{data=import});
+            return Ok(new { data = import });
         }
 
         // POST: api/imports
