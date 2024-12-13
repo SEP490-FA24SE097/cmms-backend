@@ -1,4 +1,5 @@
-﻿using CMMS.Core.Entities;
+﻿using Azure.Core.Pipeline;
+using CMMS.Core.Entities;
 using CMMS.Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -65,11 +66,18 @@ namespace CMMS.Core.Models
                 return null;
             }
         }
-
         public decimal? CurrentDebt { get; set; }
         public decimal? TotalSale { get; set; }
         public decimal? TotalSaleAfterRefund { get; set; }
+    }
 
+    public class UserDataStoreVM
+    {
+        public string Id { get; set; }
+        public decimal? CurrentDebt { get; set; }
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
     }
 
     public class UserCM : UserDTO

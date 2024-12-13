@@ -13,6 +13,7 @@ namespace CMMS.API.Helpers
             CreateMap<ApplicationUser, UserRolesVM>().ReverseMap();
             CreateMap<ApplicationUser, UserVM>().ReverseMap();
             CreateMap<ApplicationUser, UserCM>().ReverseMap();
+            CreateMap<ApplicationUser, UserDataStoreVM>().ReverseMap();
             CreateMap<ApplicationUser, UserStoreVM>()
                  .ForMember(dest => dest.StoreCreateName, opt => opt.MapFrom(src => src.Store.Name))
                 .ReverseMap();

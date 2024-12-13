@@ -115,19 +115,19 @@ namespace CMMS.Infrastructure.Services
             user.EmailConfirmed = true;
             user.Id = userId;
             IdentityResult result = null;
-            if (model.Password != null)
-                result = await _userManager.CreateAsync(user, model.Password);
+            result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
             }
+            
             return result;
         }
 
 
         public async Task<IdentityResult> CustomerSignUpAsync(UserDTO model)
         {
-     
+
             var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
             if (isDupplicate != null)
             {
@@ -322,8 +322,8 @@ namespace CMMS.Infrastructure.Services
                     var material = await _materialService.FindAsync(invoiceDetail.MaterialId);
                     var costPrice = material.CostPrice * invoiceDetail.Quantity;
                     decimal itemRevenue = lineTotal - costPrice;
-                    
-                    if(invoiceDetail.VariantId != null)
+
+                    if (invoiceDetail.VariantId != null)
                     {
                         var variant = await _variantService.FindAsync((Guid)invoiceDetail.VariantId);
                         costPrice = variant.CostPrice * invoiceDetail.Quantity;
