@@ -167,6 +167,8 @@ namespace CMMS.API.Controllers
                                 MaterialId = request.MaterialId,
                                 VariantId = request.Id,
                                 TotalQuantity = request.Quantity,
+                                MinStock = 10,
+                                MaxStock = 1000,
                                 LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                             });
                         }
@@ -270,6 +272,8 @@ namespace CMMS.API.Controllers
                                         MaterialId = variant.MaterialId,
                                         VariantId = variant.Id,
                                         TotalQuantity = request.Quantity,
+                                        MinStock = 10,
+                                        MaxStock = 1000,
                                         LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                                     });
                                 }
@@ -378,6 +382,8 @@ namespace CMMS.API.Controllers
                                             MaterialId = rootVariant.MaterialId,
                                             VariantId = rootVariant.Id,
                                             TotalQuantity = request.Quantity * variant.ConversionUnit.ConversionRate,
+                                            MinStock = 10,
+                                            MaxStock = 1000,
                                             LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                                         });
                                     }
@@ -502,7 +508,7 @@ namespace CMMS.API.Controllers
                     material = x.Material.Name,
                     materialCode = x.Material.MaterialCode,
                     x.MaterialId,
-                    variant = x.Variant.SKU,
+                    variant = x.Variant == null ? null : x.Variant.SKU,
                     x.VariantId,
                     x.Status,
                     x.Quantity,

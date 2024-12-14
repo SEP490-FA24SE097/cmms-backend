@@ -9,7 +9,6 @@ namespace CMMS.Core.Models
     public class MaterialUM
     {
         public Guid Id { get; set; }
-        public string? StoreId { get; set; }
         public string? Name { get; set; }
         public string? WeightUnit { get; set; }
         public float? WeightValue { get; set; }

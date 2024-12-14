@@ -12,7 +12,7 @@ namespace CMMS.Core.Models
         public string SKU { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
-        public string VariantImageUrl { get; set; }
+        public string VariantImage { get; set; }
 
     }
 }

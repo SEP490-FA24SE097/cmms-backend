@@ -760,30 +760,6 @@ namespace CMMS.API.Controllers
                     }));
                     await _subImageService.SaveChangeAsync();
                 }
-
-                if (materialUM.StoreId != null)
-                {
-                    var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).ToList();
-                    foreach (var variant in variants)
-                    {
-                        var storeItem = _storeInventoryService
-                            .Get(x => x.StoreId == materialUM.StoreId && x.VariantId == variant.Id).FirstOrDefault();
-                        if (storeItem == null)
-                        {
-                            _storeInventoryService.AddAsync(new StoreInventory()
-                            {
-                                Id = new Guid(),
-                                VariantId = variant.Id,
-                                MaterialId = materialUM.Id,
-                                MinStock = materialUM.MinStock,
-                                MaxStock = materialUM.MaxStock,
-                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime(),
-                                TotalQuantity = 0
-                            });
-                        }
-                    }
-
-                }
                 return Ok(material);
             }
             catch (Exception ex)
