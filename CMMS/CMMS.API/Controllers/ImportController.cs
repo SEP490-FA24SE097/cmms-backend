@@ -196,7 +196,7 @@ namespace CMMS.API.Controllers
                                 {
                                     Id = Guid.NewGuid(),
                                     MaterialId = item.MaterialId,
-                                    VariantId = item.Id,
+                                    VariantId = item.VariantId,
                                     TotalQuantity = item.Quantity,
                                     LastUpdateTime = GetVietNamTime()
                                 });
