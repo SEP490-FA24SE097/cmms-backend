@@ -101,6 +101,7 @@ namespace CMMS.API.Controllers
             var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
+                importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                 x.TimeStamp,
                 supplierName = x.Supplier == null ? null : x.Supplier.Name,
                 x.Status,
