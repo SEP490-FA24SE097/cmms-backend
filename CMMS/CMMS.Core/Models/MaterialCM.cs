@@ -18,11 +18,9 @@ namespace CMMS.Core.Models
             public decimal SalePrice { get; set; }
             public List<string> ImagesFile { get; set; }
             public float WeightValue { get; set; }
-            
             public string? Description { get; set; }
             public decimal MinStock { get; set; }
             public decimal MaxStock { get; set; }
-            public string CoverImageUrl { get; set; }
             public bool IsPoint { get; set; }
             public Guid BasicUnitId { get; set; }
             public List<MaterialUnitDto> MaterialUnitDtoList { get; set; }
