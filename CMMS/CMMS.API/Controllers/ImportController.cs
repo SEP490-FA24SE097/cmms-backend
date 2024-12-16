@@ -46,6 +46,7 @@ namespace CMMS.API.Controllers
                 var list = _importService.Get(x => (supplierId == null || x.SupplierId == supplierId) && (from == null || x.TimeStamp >= from) && (to == null || x.TimeStamp <= to)).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
                 {
                     id = x.Id,
+                    importCode= "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     timeStamp = x.TimeStamp,
                     supplierName = x.Supplier == null ? null : x.Supplier.Name,
                     status = x.Status,

@@ -649,7 +649,7 @@ namespace CMMS.API.Controllers
                 var material = new Material
                 {
                     Id = newGuid,
-                    MaterialCode = "MAT" + newGuid.ToString().ToLower().Substring(0, 4),
+                    MaterialCode = "MAT-" + newGuid.ToString().ToUpper().Substring(0, 4),
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
