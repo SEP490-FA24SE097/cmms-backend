@@ -39,11 +39,11 @@ namespace CMMS.API.Controllers
 
         // GET: api/imports
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string? status)
+        public IActionResult GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] Guid? supplierId, [FromQuery] string? status)
         {
             try
             {
-                var list = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
+                var list = _importService.Get(x => (supplierId == null || x.SupplierId == supplierId) && (from == null || x.TimeStamp >= from) && (to == null || x.TimeStamp <= to)).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
                 {
                     id = x.Id,
                     timeStamp = x.TimeStamp,
@@ -76,7 +76,7 @@ namespace CMMS.API.Controllers
                 }).ToList();
                 return Ok(new
                 {
-                    data = Helpers.LinqHelpers.ToPageList(list, page - 1, itemPerPage),
+                    data = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1, itemPerPage == null ? 12 : (int)itemPerPage),
                     pagination = new
                     {
                         total = list.Count,
