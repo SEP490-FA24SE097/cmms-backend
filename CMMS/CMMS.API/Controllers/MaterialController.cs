@@ -679,6 +679,10 @@ namespace CMMS.API.Controllers
         {
             try
             {
+                if (_materialService.Get(x => x.Name == materialCm.Name).FirstOrDefault() != null)
+                {
+                    return BadRequest("Name can not be duplicated!");
+                }
                 var images = await UploadImages.UploadToFirebase(materialCm.ImagesFile);
                 var newGuid = Guid.NewGuid();
                 var material = new Material
@@ -710,7 +714,7 @@ namespace CMMS.API.Controllers
                     MaterialId = material.Id
                 }));
                 await _subImageService.SaveChangeAsync();
-                if (materialCm.MaterialUnitDtoList!=null)
+                if (materialCm.MaterialUnitDtoList != null)
                 {
                     var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
                     {
