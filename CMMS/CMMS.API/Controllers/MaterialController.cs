@@ -664,7 +664,7 @@ namespace CMMS.API.Controllers
                     UnitId = materialCm.BasicUnitId,
                     CategoryId = materialCm.CategoryId,
                     Timestamp = TimeConverter.TimeConverter.GetVietNamTime(),
-                    IsRewardEligible = materialCm.IsPoint
+                    IsRewardEligible = materialCm.IsPoint != null ? true : false
                 };
                 await _materialService.AddAsync(material);
                 await _materialService.SaveChangeAsync();
