@@ -645,7 +645,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var images = await UploadImages.UploadToFirebase(materialCm.ImagesFile);
-                var newGuid = new Guid();
+                var newGuid = Guid.NewGuid();
                 var material = new Material
                 {
                     Id = newGuid,
