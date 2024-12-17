@@ -112,6 +112,8 @@ namespace CMMS.API.Controllers
                                     Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / x.ConversionUnit.ConversionRate,
                                     VariantPrice = x.Price,
                                     VariantCostPrice = x.CostPrice,
+                                    MinStock = x.Material.MinStock / x.ConversionUnit.ConversionRate,
+                                    MaxStock = x.Material.MaxStock / x.ConversionUnit.ConversionRate,
                                     Attributes = x.MaterialVariantAttributes.Count <= 0
                                         ? null
                                         : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
