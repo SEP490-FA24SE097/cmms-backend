@@ -56,8 +56,6 @@ namespace CMMS.API.Controllers
                     totalPice = x.TotalPrice,
                     totalDiscount = x.TotalDiscount,
                     totalDue = x.TotalDue,
-                    totalPaid = x.TotalPaid
-                    ,
                     importDetails = x.ImportDetails.Count <= 0 ? null : x.ImportDetails.Select(x => new
                     {
                         materialCode = x.Material.MaterialCode,
@@ -110,7 +108,6 @@ namespace CMMS.API.Controllers
                 x.TotalPrice,
                 x.TotalDiscount,
                 x.TotalDue,
-                x.TotalPaid,
                 importDetails = x.ImportDetails.Select(x => new
                 {
                     x.Material.MaterialCode,
@@ -153,7 +150,6 @@ namespace CMMS.API.Controllers
                     SupplierId = import.SupplierId,
                     TotalDiscount = import.TotalDiscount,
                     TotalDue = import.TotalDue,
-                    TotalPaid = import.TotalPaid,
                     Note = import.Note,
                     Status = import.IsCompleted ? "Đã nhập hàng" : "Phiếu tạm"
                 };
