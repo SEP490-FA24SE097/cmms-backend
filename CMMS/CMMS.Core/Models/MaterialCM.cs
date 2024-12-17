@@ -12,18 +12,18 @@ namespace CMMS.Core.Models
     {
         public class PostMaterialRequest
         {
-            public string Barcode { get; set; }
+            public string? Barcode { get; set; }
             public string Name { get; set; }
             public decimal CostPrice { get; set; }
             public decimal SalePrice { get; set; }
             public List<string> ImagesFile { get; set; }
-            public float WeightValue { get; set; }
+            public float? WeightValue { get; set; }
             public string? Description { get; set; }
             public decimal MinStock { get; set; }
             public decimal MaxStock { get; set; }
-            public bool IsPoint { get; set; }
+            public bool? IsPoint { get; set; } = false;
             public Guid BasicUnitId { get; set; }
-            public List<MaterialUnitDto> MaterialUnitDtoList { get; set; }
+            public List<MaterialUnitDto>? MaterialUnitDtoList { get; set; }
             public Guid CategoryId { get; set; }
             public Guid BrandId { get; set; }
         }
