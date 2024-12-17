@@ -27,7 +27,6 @@ namespace CMMS.Core.Models
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal UnitDiscount { get; set; }
-        public decimal DiscountPrice { get; set; }
         public decimal PriceAfterDiscount { get; set; }
         public string? Note { get; set; }
     }

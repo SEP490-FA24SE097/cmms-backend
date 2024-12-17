@@ -50,7 +50,7 @@ namespace CMMS.API.Controllers
                          VariantId = x.VariantId,
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                         Quantity = x.TotalQuantity - (decimal)x.InRequestQuantity,
+                         Quantity = x.InRequestQuantity==null? x.TotalQuantity: x.TotalQuantity - (decimal)x.InRequestQuantity,
                          InOrderQuantity = x.InRequestQuantity,
                          VariantPrice = x.Variant == null ? null : x.Variant.Price,
                          Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
