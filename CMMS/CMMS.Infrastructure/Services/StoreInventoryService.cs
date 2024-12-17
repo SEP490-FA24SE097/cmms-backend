@@ -214,7 +214,7 @@ namespace CMMS.Infrastructure.Services
                         ItemName = material.Name,
                         SalePrice = material.SalePrice,
                         ItemTotalPrice = itemTotalPrice,
-                        ImageUrl = material.ImageUrl
+                        ImageUrl = material.ImageUrl,
                     };
 
                     // Xử lý biến thể (variant) nếu có
@@ -241,6 +241,11 @@ namespace CMMS.Infrastructure.Services
                         }
                     }
 
+                    var storeInventoryItem = _mapper.Map<CartItem>(cartItemVM);
+                    storeInventoryItem.StoreId = store.Store.Id;
+                    cartItemVM.InStock = await GetAvailableQuantityInStore(storeInventoryItem);
+
+
                     // Tìm hoặc tạo mới cửa hàng trong danh sách kết quả
                     var storeResult = result.FirstOrDefault(x => x.StoreId == store.Store.Id);
                     if (storeResult == null)
@@ -252,7 +257,6 @@ namespace CMMS.Infrastructure.Services
                             StoreItems = new List<CartItemVM>(),
                             TotalStoreAmount = 0,
                             ShippingDistance = store.Distance
-
                         };
                         result.Add(storeResult);
                     }
@@ -260,6 +264,8 @@ namespace CMMS.Infrastructure.Services
                     // Thêm sản phẩm vào danh sách của cửa hàng
                     storeResult.StoreItems.Add(cartItemVM);
                     storeResult.TotalStoreAmount += cartItemVM.ItemTotalPrice;
+
+                    
 
                     // Cập nhật số lượng còn lại
                     remainingQuantity -= allocatedQuantity;
@@ -270,7 +276,7 @@ namespace CMMS.Infrastructure.Services
 
                 if (remainingQuantity > 0)
                 {
-                    throw new InvalidOperationException($"Không thể phân bổ đủ số lượng cho sản phẩm {cartItem.MaterialId}");
+                    
                 }
             }
             return result;

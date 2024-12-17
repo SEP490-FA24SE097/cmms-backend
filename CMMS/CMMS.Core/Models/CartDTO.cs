@@ -69,10 +69,11 @@ namespace CMMS.Core.Models
     {
         public string? StoreId { get; set; }
         public string? StoreName { get; set; }
-        public decimal? TotalStoreAmount { get; set; }
-        public decimal? ShippngFree { get; set; }
-        public decimal? FinalPrice { get; set; }
-        public decimal? ShippingDistance { get; set; }
+        public decimal? TotalStoreAmount { get; set; } = 0;
+        public decimal? ShippngFree { get; set; } = 0;
+        public decimal? FinalPrice { get; set; } = 0;
+        public decimal? ShippingDistance { get; set; } = 0;
+        public bool? IsOver200km { get; set; } = false; 
         public List<CartItemVM> StoreItems { get; set; }    
     }
 

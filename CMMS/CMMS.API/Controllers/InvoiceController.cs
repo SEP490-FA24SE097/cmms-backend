@@ -151,7 +151,7 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> GetCustomerInvoicesAsync([FromQuery] InvoiceFitlerModel filterModel)
         {
             var userId = _currentUserService.GetUserId();
-            var fitlerList = _invoiceService
+            var filteredList = _invoiceService
             .Get(_ =>
             (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
             (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
@@ -163,10 +163,19 @@ namespace CMMS.API.Controllers
             (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
             , _ => _.Customer);
 
-            var groupInvoices = fitlerList.GroupBy(_ => _.GroupId);
+            // 2. Group theo GroupId
+            var groupedInvoices = filteredList
+                .GroupBy(_ => _.GroupId)
+                .ToList(); // Tạm lưu kết quả Group vào List
+
+            // 3. Phân trang trên danh sách GroupId
+            var pagedGroups = groupedInvoices
+                .Skip((filterModel.defaultSearch.currentPage - 1) * filterModel.defaultSearch.perPage)
+                .Take(filterModel.defaultSearch.perPage)
+                .ToList();
 
             var result = new List<GroupInvoiceVM>();
-            foreach (var groupInvoice in groupInvoices)
+            foreach (var groupInvoice in pagedGroups)
             {
                 var groupInvoiceVM = new GroupInvoiceVM();
                 var groupId = groupInvoice.Key;
@@ -228,7 +237,7 @@ namespace CMMS.API.Controllers
 
             var filterListPaged = result.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
              .OrderByDescending(_ => _.InvoiceDate);
-            var total = groupInvoices.Count();
+            var total = groupedInvoices.Count();
             return Ok(new
             {
                 data = result,

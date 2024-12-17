@@ -77,7 +77,7 @@ namespace CMMS.API.Controllers
                         OrderInfo = $"Purchase for invoice pirce: {invoiceInfo.SalePrice} VND",
                         Address = invoiceInfo.Address,
                         PreCheckOutItemCartModel = invoiceInfo.PreCheckOutItemCartModel,
-                        TotalAmount = invoiceInfo.SalePrice,  
+                        TotalAmount = invoiceInfo.SalePrice,
                     };
                     var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);
@@ -110,8 +110,9 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
         {
             var resultData = await _paymentService.VnpayReturnUrl(vnpayPayResponse);
-            return Ok(new {
-            data = resultData
+            return Ok(new
+            {
+                data = resultData
             });
         }
 
@@ -135,12 +136,13 @@ namespace CMMS.API.Controllers
                 foreach (var item in listStoreItem)
                 {
                     var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
-                    totalWeight += (float)weight;
+                    totalWeight += (float)(weight * (float)item.Quantity);
                 }
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
                 var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                result.ShippngFree = shippingFee;
+                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                result.ShippngFree = roundedAmount;
                 result.FinalPrice = shippingFee + result.TotalStoreAmount;
             }
 
@@ -160,5 +162,52 @@ namespace CMMS.API.Controllers
             return Ok(new { data = preCheckOutModel });
 
         }
+
+        [HttpPost("update-pre-checkout")]
+        public async Task<IActionResult> UpdateCheckoutResponseData([FromBody] List<PreCheckOutItemCartModel> preCheckOutModels)
+        {
+            var user = await _currentUserService.GetCurrentUser();
+            if (user.Address == null)
+                return BadRequest("Cần cung cấp địa chỉ nhận hàng của user");
+
+            foreach (var result in preCheckOutModels)
+            {
+                var listStoreItem = result.StoreItems;
+                float totalWeight = 0;
+                foreach (var item in listStoreItem)
+                {
+                    var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
+                    totalWeight += (float) (weight * (float)item.Quantity);
+                }
+                // change m to km
+                var storeDistance = result.ShippingDistance / 1000;
+                if (storeDistance >= 200)
+                {
+                    result.IsOver200km = true;
+                }
+                else
+                {
+                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    result.ShippngFree = roundedAmount;
+                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
+                }
+            }
+            // handle final price
+            var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
+            var totalShippingFee = preCheckOutModels.Sum(x => x.ShippngFree);
+            var discountPrice = await _userService.GetCustomerDiscountPercentAsync((decimal)totalAmount, user.Id);
+            var preCheckOutModel = new PreCheckOutModel
+            {
+                Items = preCheckOutModels,
+                TotalAmount = totalAmount - totalShippingFee,
+                Discount = discountPrice,
+                SalePrice = totalAmount - discountPrice,
+                ShippingFee = totalShippingFee
+            };
+            return Ok(new { data = preCheckOutModel });
+
+        }
+
     }
 }
