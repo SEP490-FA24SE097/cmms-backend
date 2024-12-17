@@ -176,7 +176,8 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var items = await _storeInventoryService
+                
+                var secondItems = await _storeInventoryService
                     .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).
@@ -202,8 +203,8 @@ namespace CMMS.API.Controllers
                         }).ToList(),
                         LastUpdateTime = x.LastUpdateTime
                     }).ToListAsync();
-                List<WarehouseDTO> list = [];
-                foreach (var item in items)
+                List<WarehouseDTO> secondList = [];
+                foreach (var item in secondItems)
                 {
                     if (item.VariantId != null)
                     {
@@ -214,7 +215,7 @@ namespace CMMS.API.Controllers
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                                 Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
-                            list.AddRange(subVariants.Select(x => new WarehouseDTO()
+                            secondList.AddRange(subVariants.Select(x => new WarehouseDTO()
                             {
                                 Id = item.Id,
                                 MaterialId = x.MaterialId,
@@ -238,15 +239,15 @@ namespace CMMS.API.Controllers
 
                     }
                 }
-                items.AddRange(list);
-                var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
+                secondItems.AddRange(secondList);
+                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems, page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
-                    data = result,
+                    data = secondResult,
                     pagination = new
                     {
-                        total = items.Count,
+                        total = secondItems.Count,
                         perPage = itemPerPage == null ? 12 : itemPerPage,
                         currentPage = page == null ? 1 : page
                     }

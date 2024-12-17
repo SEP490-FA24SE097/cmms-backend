@@ -19,6 +19,8 @@ namespace CMMS.Core.Models
         public string VariantName { get; set; }
         public string VariantImage { get; set; }
         public decimal Quantity { get; set; }
+        public decimal? MinStock { get; set; }
+        public decimal? MaxStock { get; set; }
         [JsonIgnore]
         public decimal? InOrderQuantity { get; set; }
         public decimal? MaterialPrice { get; set; }

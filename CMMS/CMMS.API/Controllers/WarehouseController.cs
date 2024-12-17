@@ -51,6 +51,8 @@ namespace CMMS.API.Controllers
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
                          Quantity = x.InRequestQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InRequestQuantity,
+                         MinStock = x.Material.MinStock,
+                         MaxStock = x.Material.MaxStock,
                          InOrderQuantity = x.InRequestQuantity,
                          VariantPrice = x.Variant == null ? null : x.Variant.Price,
                          Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()

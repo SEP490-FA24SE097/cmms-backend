@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Threading.Tasks.Dataflow;
+using System.Xml.XPath;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
@@ -55,7 +56,7 @@ namespace CMMS.API.Controllers
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
                     .Include(x => x.Unit)
-                    .Where(x => (materialName.IsNullOrEmpty()||x.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Where(x => (materialName.IsNullOrEmpty() || x.Name.ToLower().Contains(materialName.ToLower())) &&
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
@@ -533,19 +534,53 @@ namespace CMMS.API.Controllers
         //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         //    }
         //}
-        [HttpGet("get-all-materials-with-name-unit")]
+        [HttpGet("get-all-materials-for-import")]
         [AllowAnonymous]
-        public IActionResult GetAllNames()
+        public IActionResult GetAllNames([FromQuery] string? materialName,
+            [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId)
         {
             try
             {
-                var result = _materialService.GetAll().Select(x => new
+                var result = _materialService.Get(x => (materialName.IsNullOrEmpty() || x.Name.ToLower().Contains(materialName.ToLower())) &&
+                                                  (categoryId == null || x.CategoryId == categoryId) && (brandId == null || x.BrandId == brandId)).Include(x => x.Variants).ToList();
+                List<ImportProductDTO> list = [];
+                foreach (var item in result)
                 {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Unit = x.Unit
-                });
-                return Ok(new { data = result });
+                    if (item.Variants.Count > 0)
+                    {
+                        list.AddRange(item.Variants.Select(x => new ImportProductDTO
+                        {
+                            MaterialId = item.Id,
+                            MaterialName = item.Name == null ? null : item.Name,
+                            SalePrice = item.SalePrice,
+                            CostPrice = item.CostPrice,
+                            Image = item.ImageUrl == null ? null : item.ImageUrl,
+                            VariantId = x.Id,
+                            Sku = x.SKU,
+                            VariantImage = x.VariantImageUrl,
+                            VariantSalePrice = x.Price,
+                            VariantCostPrice = x.CostPrice
+                        }).ToList());
+                    }
+                    else
+                    {
+                        list.Add(new ImportProductDTO()
+                        {
+                            MaterialId = item.Id,
+                            MaterialName = item.Name == null ? null : item.Name,
+                            SalePrice = item.SalePrice,
+                            CostPrice = item.CostPrice,
+                            Image = item.ImageUrl == null ? null : item.ImageUrl,
+                            VariantId = null,
+                            Sku = null,
+                            VariantImage = null,
+                            VariantSalePrice = null,
+                            VariantCostPrice = null
+                        });
+                    }
+                }
+
+                return Ok(new { data = list });
             }
             catch (Exception ex)
             {
@@ -653,7 +688,7 @@ namespace CMMS.API.Controllers
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
-                    
+
                     WeightValue = materialCm.WeightValue,
                     ImageUrl = images.First(),
                     SalePrice = materialCm.SalePrice,
@@ -675,45 +710,50 @@ namespace CMMS.API.Controllers
                     MaterialId = material.Id
                 }));
                 await _subImageService.SaveChangeAsync();
-
-                var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
+                if (materialCm.MaterialUnitDtoList!=null)
                 {
-                    Id = new Guid(),
-                    UnitId = x.UnitId,
-                    ConversionRate = x.ConversionRate,
-                    Price = x.Price,
-                    MaterialId = material.Id
-                }).ToList();
-                await _conversionUnitService.AddRange(list);
-                await _conversionUnitService.SaveChangeAsync();
-                var newMaterial = _materialService.Get(x => x.Id == material.Id).Include(x => x.Unit).FirstOrDefault();
-                var newVariant = new Variant()
-                {
-                    Id = new Guid(),
-                    VariantImageUrl = material.ImageUrl,
-                    Price = material.SalePrice,
-                    CostPrice = material.CostPrice,
-                    ConversionUnitId = null,
-                    SKU = material.Name + " (" + newMaterial.Unit.Name + ")",
-                    MaterialId = material.Id
-                };
-                await _variantService.AddAsync(newVariant);
-                foreach (var item in list)
-                {
-                    var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit).FirstOrDefault();
-                    await _variantService.AddAsync(new Variant()
+                    var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
+                    {
+                        Id = new Guid(),
+                        UnitId = x.UnitId,
+                        ConversionRate = x.ConversionRate,
+                        Price = x.Price,
+                        MaterialId = material.Id
+                    }).ToList();
+                    await _conversionUnitService.AddRange(list);
+                    await _conversionUnitService.SaveChangeAsync();
+                    var newMaterial = _materialService.Get(x => x.Id == material.Id).Include(x => x.Unit).FirstOrDefault();
+                    var newVariant = new Variant()
                     {
                         Id = new Guid(),
                         VariantImageUrl = material.ImageUrl,
-                        Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
-                        CostPrice = material.CostPrice * item.ConversionRate,
-                        ConversionUnitId = item.Id,
-                        AttributeVariantId = newVariant.Id,
-                        SKU = material.Name + " (" + unitName.Unit.Name + ")",
+                        Price = material.SalePrice,
+                        CostPrice = material.CostPrice,
+                        ConversionUnitId = null,
+                        SKU = material.Name + " (" + newMaterial.Unit.Name + ")",
                         MaterialId = material.Id
-                    });
+                    };
+                    await _variantService.AddAsync(newVariant);
+                    foreach (var item in list)
+                    {
+                        var unitName = _conversionUnitService.Get(x => x.Id == item.Id).Include(x => x.Unit)
+                            .FirstOrDefault();
+                        await _variantService.AddAsync(new Variant()
+                        {
+                            Id = new Guid(),
+                            VariantImageUrl = material.ImageUrl,
+                            Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
+                            CostPrice = material.CostPrice * item.ConversionRate,
+                            ConversionUnitId = item.Id,
+                            AttributeVariantId = newVariant.Id,
+                            SKU = material.Name + " (" + unitName.Unit.Name + ")",
+                            MaterialId = material.Id
+                        });
+                    }
+
+                    await _variantService.SaveChangeAsync();
                 }
-                await _variantService.SaveChangeAsync();
+
                 return Ok();
             }
             catch (Exception ex)
@@ -746,7 +786,7 @@ namespace CMMS.API.Controllers
                     ? material.IsRewardEligible
                     : (bool)materialUM.isPoint;
                 material.MaxStock = materialUM.MaxStock == 0 ? material.MaxStock : materialUM.MaxStock;
-              
+
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
                 await _materialService.SaveChangeAsync();
                 if (!materialUM.ImageFiles.IsNullOrEmpty())

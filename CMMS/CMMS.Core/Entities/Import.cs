@@ -12,6 +12,7 @@ namespace CMMS.Core.Entities
         [Key]
         public Guid Id { get; set; }
         public Guid? SupplierId { get; set; }
+        public string? StoreId { get; set; }
         public decimal Quantity { get; set; }
         public decimal TotalPrice { get; set; }
         public decimal TotalDiscount { get; set; }
@@ -20,6 +21,7 @@ namespace CMMS.Core.Entities
         public DateTime TimeStamp { get; set; }
         public decimal TotalDue { get; set; }
         public virtual Supplier? Supplier { get; set; }
+        public virtual Store? Store { get; set; }
         public virtual ICollection<ImportDetail> ImportDetails { get; set; }
     }
 }

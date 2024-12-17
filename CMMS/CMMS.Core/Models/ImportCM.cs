@@ -10,12 +10,12 @@ namespace CMMS.Core.Models
 {    public class ImportCM
     {
         public Guid? SupplierId { get; set; }
+        public string? StoreId { get; set; }
         public decimal Quantity { get; set; }
         public decimal TotalPrice { get; set; }
         public decimal TotalDiscount { get; set; }
         public bool IsCompleted { get; set; }
         public string? Note { get; set; }
-        public DateTime TimeStamp { get; set; }
         public decimal TotalDue { get; set; }
         public virtual ICollection<ImportDetailCM> ImportDetails { get; set; }
     }
@@ -28,5 +28,16 @@ namespace CMMS.Core.Models
         public decimal UnitDiscount { get; set; }
         public decimal PriceAfterDiscount { get; set; }
         public string? Note { get; set; }
+    }
+    public class ImportUM
+    {   public Guid ImportId { get; set; }
+        public Guid? SupplierId { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal TotalDiscount { get; set; }
+        public bool IsCompleted { get; set; }
+        public string? Note { get; set; }
+        public decimal TotalDue { get; set; }
+        public virtual ICollection<ImportDetailCM> ImportDetails { get; set; }
     }
 }
