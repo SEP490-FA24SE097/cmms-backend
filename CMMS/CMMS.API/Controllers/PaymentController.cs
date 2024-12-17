@@ -14,6 +14,7 @@ using CMMS.Infrastructure.Services.Payment.Vnpay.Response;
 using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Net.WebSockets;
 
 namespace CMMS.API.Controllers
@@ -174,24 +175,62 @@ namespace CMMS.API.Controllers
             {
                 var listStoreItem = result.StoreItems;
                 float totalWeight = 0;
+                var storeId = result.StoreId;
+                List<CartItemVM> cartItemVMs = new List<CartItemVM>();
                 foreach (var item in listStoreItem)
                 {
+
+                    var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
+                    var itemTotalPrice = material.SalePrice * item.Quantity;
+
+                    var cartItemVM = new CartItemVM
+                    {
+                        MaterialId = item.MaterialId,
+                        VariantId = item.VariantId,
+                        Quantity = item.Quantity,
+                        ItemName = material.Name,
+                        SalePrice = material.SalePrice,
+                        ItemTotalPrice = itemTotalPrice,
+                        ImageUrl = material.ImageUrl,
+                    };
+
+                    // Xử lý biến thể (variant) nếu có
+                    if (!string.IsNullOrEmpty(item.VariantId))
+                    {
+                        var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                        if (variant != null)
+                        {
+                            if (variant.MaterialVariantAttributes != null && variant.MaterialVariantAttributes.Count > 0)
+                            {
+                                var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                cartItemVM.ItemName += $" | {variant.SKU} {attributesString}";
+                            }
+                            else
+                            {
+                                cartItemVM.ItemName += $" | {variant.SKU}";
+                            }
+                            cartItemVM.SalePrice = variant.Price;
+                            cartItemVM.ImageUrl = variant.VariantImageUrl;
+                            cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
+                        }
+                    }
+
                     var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
-                    totalWeight += (float) (weight * (float)item.Quantity);
+                    totalWeight += (float)(weight * (float)item.Quantity);
+                    var storeInventoryItem = _mapper.Map<CartItem>(cartItemVM);
+                    storeInventoryItem.StoreId = storeId;
+                    cartItemVM.InStock = await _storeInventoryService.GetAvailableQuantityInStore(storeInventoryItem);
+
+                    cartItemVMs.Add(cartItemVM);
                 }
+                result.StoreItems = cartItemVMs;
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
-                if (storeDistance >= 200)
-                {
-                    result.IsOver200km = true;
-                }
-                else
-                {
-                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
-                    result.ShippngFree = roundedAmount;
-                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
-                }
+                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                result.ShippngFree = roundedAmount;
+                result.FinalPrice = shippingFee + result.TotalStoreAmount;
             }
             // handle final price
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
