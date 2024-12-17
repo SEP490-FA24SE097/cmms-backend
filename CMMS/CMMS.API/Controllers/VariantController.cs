@@ -1,6 +1,7 @@
 ﻿using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
+using CMMS.Infrastructure.Services.Firebase;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,6 @@ namespace CMMS.API.Controllers
                     Price = variant.Price,
                     variant.CostPrice,
                     variant.ConversionUnitId,
-                  //  ConversionUnitName = variant.ConversionUnitId == null ? null : variant.ConversionUnit.Name,
                     VariantImageUrl = variant.VariantImageUrl,
                     attributes = attributes
                 });
@@ -139,6 +139,8 @@ namespace CMMS.API.Controllers
                     return BadRequest();
                 }
                 var dic = variant.Attributes.ToDictionary(x => x.Id, x => x.Value);
+                List<string> list=[variant.VariantImage];
+                var image = await UploadImages.UploadToFirebase(list);
                 var newVariant = new Variant
                 {
                     Id = Guid.NewGuid(),
@@ -146,7 +148,7 @@ namespace CMMS.API.Controllers
                     SKU = variant.SKU == null ? material.Name + "-" + string.Join("-", dic.Values) : variant.SKU,
                     Price = variant.Price,
                     CostPrice = variant.CostPrice,
-                    VariantImageUrl = variant.VariantImageUrl
+                    VariantImageUrl = image.First()
                 };
                 await _variantService.AddAsync(newVariant);
                 await _variantService.SaveChangeAsync();
@@ -186,11 +188,12 @@ namespace CMMS.API.Controllers
                 }
 
                 // Update the variant
-
+                List<string> list = [variantUM.VariantImage];
+                var image = await UploadImages.UploadToFirebase(list);
                 existingVariant.SKU = variantUM.SKU;
                 existingVariant.Price = variantUM.Price;
                 existingVariant.CostPrice = variantUM.CostPrice;
-                existingVariant.VariantImageUrl = variantUM.VariantImageUrl;
+                existingVariant.VariantImageUrl = image.First();
 
                 _variantService.Update(existingVariant);
                 await _variantService.SaveChangeAsync();

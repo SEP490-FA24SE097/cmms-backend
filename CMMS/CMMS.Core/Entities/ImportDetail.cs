@@ -17,7 +17,7 @@ namespace CMMS.Core.Entities
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal UnitDiscount { get; set; }
-        public decimal DiscountPrice { get; set; }
+        public decimal? DiscountPrice { get; set; }
         public decimal PriceAfterDiscount { get; set; }
         public string? Note { get; set; }
         public virtual Import Import { get; set; }

@@ -19,7 +19,6 @@ namespace CMMS.Core.Entities
         public string? Note { get; set; }
         public DateTime TimeStamp { get; set; }
         public decimal TotalDue { get; set; }
-        public decimal TotalPaid { get; set; }
         public virtual Supplier? Supplier { get; set; }
         public virtual ICollection<ImportDetail> ImportDetails { get; set; }
     }

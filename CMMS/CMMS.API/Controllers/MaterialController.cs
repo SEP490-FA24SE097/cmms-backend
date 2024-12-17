@@ -645,11 +645,11 @@ namespace CMMS.API.Controllers
             try
             {
                 var images = await UploadImages.UploadToFirebase(materialCm.ImagesFile);
-                var newGuid = new Guid();
+                var newGuid = Guid.NewGuid();
                 var material = new Material
                 {
                     Id = newGuid,
-                    MaterialCode = "MAT" + newGuid.ToString().ToLower().Substring(0, 4),
+                    MaterialCode = "MAT-" + newGuid.ToString().ToUpper().Substring(0, 4),
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
@@ -759,30 +759,6 @@ namespace CMMS.API.Controllers
                         SubImageUrl = x
                     }));
                     await _subImageService.SaveChangeAsync();
-                }
-
-                if (materialUM.StoreId != null)
-                {
-                    var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).ToList();
-                    foreach (var variant in variants)
-                    {
-                        var storeItem = _storeInventoryService
-                            .Get(x => x.StoreId == materialUM.StoreId && x.VariantId == variant.Id).FirstOrDefault();
-                        if (storeItem == null)
-                        {
-                            _storeInventoryService.AddAsync(new StoreInventory()
-                            {
-                                Id = new Guid(),
-                                VariantId = variant.Id,
-                                MaterialId = materialUM.Id,
-                                MinStock = materialUM.MinStock,
-                                MaxStock = materialUM.MaxStock,
-                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime(),
-                                TotalQuantity = 0
-                            });
-                        }
-                    }
-
                 }
                 return Ok(material);
             }

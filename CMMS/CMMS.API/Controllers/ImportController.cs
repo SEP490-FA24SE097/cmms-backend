@@ -11,6 +11,7 @@ using CMMS.API.TimeConverter;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Packaging.Signing;
 
 namespace CMMS.API.Controllers
 {
@@ -38,46 +39,45 @@ namespace CMMS.API.Controllers
 
         // GET: api/imports
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int page, [FromQuery] int itemPerPage, [FromQuery] string? status)
+        public IActionResult GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] Guid? supplierId, [FromQuery] string? status)
         {
             try
             {
-                var list = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
+                var list = _importService.Get(x => (supplierId == null || x.SupplierId == supplierId) && (from == null || x.TimeStamp >= from) && (to == null || x.TimeStamp <= to)).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => status == null || x.Status == status).Select(x => new
                 {
-                    x.Id,
-                    x.TimeStamp,
+                    id = x.Id,
+                    importCode= "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
+                    timeStamp = x.TimeStamp,
                     supplierName = x.Supplier == null ? null : x.Supplier.Name,
-                    x.Status,
-                    x.Note,
+                    status = x.Status,
+                    note = x.Note,
                     totalQuantity = x.Quantity,
-                    totalProduct = x.ImportDetails.Count,
-                    x.TotalPrice,
-                    x.TotalDiscount,
-                    x.TotalDue,
-                    x.TotalPaid,
-                    importDetails = x.ImportDetails.Select(x => new
+                    totalProduct = x.ImportDetails.Count > 0 ? x.ImportDetails.Count : 0,
+                    totalPice = x.TotalPrice,
+                    totalDiscount = x.TotalDiscount,
+                    totalDue = x.TotalDue,
+                    importDetails = x.ImportDetails.Count <= 0 ? null : x.ImportDetails.Select(x => new
                     {
-                        x.Material.MaterialCode,
-                        x.Material.Name,
-                        x.MaterialId,
-                        x.VariantId,
+                        materialCode = x.Material.MaterialCode,
+                        name = x.Material.Name,
+                        materialId = x.MaterialId,
+                        variantId = x.VariantId,
                         sku = x.Variant == null ? null : x.Variant.SKU,
-                        x.Quantity,
-                        x.UnitPrice,
-                        x.UnitDiscount,
+                        quantity = x.Quantity,
+                        unitPrice = x.UnitPrice,
+                        unitDiscount = x.UnitDiscount,
                         unitImportPrice = x.UnitPrice - x.UnitDiscount,
-                        x.DiscountPrice,
-                        x.PriceAfterDiscount,
-                        x.Note
+                        priceAfterDiscount = x.PriceAfterDiscount,
+                        note = x.Note
                     }).ToList()
 
                 }).ToList();
                 return Ok(new
                 {
-                    data = Helpers.LinqHelpers.ToPageList(list, page - 1, itemPerPage),
+                    data = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1, itemPerPage == null ? 12 : (int)itemPerPage),
                     pagination = new
                     {
-                        total = _importService.GetAll().ToList().Count,
+                        total = list.Count,
                         perPage = itemPerPage,
                         currentPage = page
                     }
@@ -95,9 +95,10 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id==id).Select(x => new
+            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
+                importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                 x.TimeStamp,
                 supplierName = x.Supplier == null ? null : x.Supplier.Name,
                 x.Status,
@@ -107,7 +108,6 @@ namespace CMMS.API.Controllers
                 x.TotalPrice,
                 x.TotalDiscount,
                 x.TotalDue,
-                x.TotalPaid,
                 importDetails = x.ImportDetails.Select(x => new
                 {
                     x.Material.MaterialCode,
@@ -119,7 +119,6 @@ namespace CMMS.API.Controllers
                     x.UnitPrice,
                     x.UnitDiscount,
                     unitImportPrice = x.UnitPrice - x.UnitDiscount,
-                    x.DiscountPrice,
                     x.PriceAfterDiscount,
                     x.Note
                 }).ToList()
@@ -129,7 +128,7 @@ namespace CMMS.API.Controllers
             {
                 return NotFound();
             }
-            return Ok(new{data=import});
+            return Ok(new { data = import });
         }
 
         // POST: api/imports
@@ -151,7 +150,6 @@ namespace CMMS.API.Controllers
                     SupplierId = import.SupplierId,
                     TotalDiscount = import.TotalDiscount,
                     TotalDue = import.TotalDue,
-                    TotalPaid = import.TotalPaid,
                     Note = import.Note,
                     Status = import.IsCompleted ? "Đã nhập hàng" : "Phiếu tạm"
                 };
@@ -164,7 +162,6 @@ namespace CMMS.API.Controllers
                     VariantId = x.VariantId,
                     MaterialId = x.MaterialId,
                     PriceAfterDiscount = x.PriceAfterDiscount,
-                    DiscountPrice = x.DiscountPrice,
                     UnitDiscount = x.UnitDiscount,
                     UnitPrice = x.UnitPrice,
                     Quantity = x.Quantity,
@@ -192,7 +189,7 @@ namespace CMMS.API.Controllers
                                 {
                                     Id = Guid.NewGuid(),
                                     MaterialId = item.MaterialId,
-                                    VariantId = item.Id,
+                                    VariantId = item.VariantId,
                                     TotalQuantity = item.Quantity,
                                     LastUpdateTime = GetVietNamTime()
                                 });

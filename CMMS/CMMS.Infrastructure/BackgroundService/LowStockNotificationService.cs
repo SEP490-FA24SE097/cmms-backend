@@ -100,23 +100,26 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                         }
                         if (StoreNotificationHub.GetConnectionId(storeId) is { } connectionId)
                         {
-                            await _storeHubContext.Clients.Client(connectionId).SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({product.TotalQuantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động",stoppingToken);
+                            await _storeHubContext.Clients.Client(connectionId).SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({product.TotalQuantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động", stoppingToken);
                         };
                         var checkRequest = await storeMaterialImportRequestService.CheckExist(x =>
                             x.MaterialId == product.MaterialId && x.VariantId == product.VariantId && x.StoreId == storeId && x.Status == "Processing");
                         if (!checkRequest)
                         {
-                            await storeMaterialImportRequestService.AddAsync(new StoreMaterialImportRequest()
+                            if (product.ImportQuantity != null && product.ImportQuantity > 0)
                             {
-                                Id = new Guid(),
-                                MaterialId = product.MaterialId,
-                                VariantId = product.VariantId,
-                                Quantity = product.ImportQuantity == null ? 0 : (decimal)product.ImportQuantity,
-                                Status = "Processing",
-                                StoreId = storeId,
-                                LastUpdateTime = Helpers.TimeConverter.GetVietNamTime()
-                            });
-                            await storeMaterialImportRequestService.SaveChangeAsync();
+                                await storeMaterialImportRequestService.AddAsync(new StoreMaterialImportRequest()
+                                {
+                                    Id = new Guid(),
+                                    MaterialId = product.MaterialId,
+                                    VariantId = product.VariantId,
+                                    Quantity = product.ImportQuantity == null ? 0 : (decimal)product.ImportQuantity,
+                                    Status = "Processing",
+                                    StoreId = storeId,
+                                    LastUpdateTime = Helpers.TimeConverter.GetVietNamTime()
+                                });
+                                await storeMaterialImportRequestService.SaveChangeAsync();
+                            }
                         }
                     }
                 }

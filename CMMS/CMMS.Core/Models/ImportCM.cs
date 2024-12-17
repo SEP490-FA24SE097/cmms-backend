@@ -17,7 +17,6 @@ namespace CMMS.Core.Models
         public string? Note { get; set; }
         public DateTime TimeStamp { get; set; }
         public decimal TotalDue { get; set; }
-        public decimal TotalPaid { get; set; }
         public virtual ICollection<ImportDetailCM> ImportDetails { get; set; }
     }
     public class ImportDetailCM
@@ -27,7 +26,6 @@ namespace CMMS.Core.Models
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal UnitDiscount { get; set; }
-        public decimal DiscountPrice { get; set; }
         public decimal PriceAfterDiscount { get; set; }
         public string? Note { get; set; }
     }
