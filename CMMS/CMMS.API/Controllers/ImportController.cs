@@ -103,6 +103,7 @@ namespace CMMS.API.Controllers
                 importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                 x.TimeStamp,
                 supplierName = x.Supplier == null ? null : x.Supplier.Name,
+                supplierId = x.SupplierId,
                 x.Status,
                 x.Note,
                 totalQuantity = x.Quantity,
@@ -142,6 +143,11 @@ namespace CMMS.API.Controllers
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
+                }
+
+                if (import.ImportDetails == null)
+                {
+                    return BadRequest("Import detail must not be null!");
                 }
                 var imp = new Import
                 {
@@ -394,7 +400,7 @@ namespace CMMS.API.Controllers
 
         }
         [HttpPut]
-        public async Task<IActionResult> Update([FromBody] ImportCM import)
+        public async Task<IActionResult> Update([FromBody] ImportUM import)
         {
             try
             {
@@ -402,25 +408,40 @@ namespace CMMS.API.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-                var imp = new Import
-                {
-                    Id = Guid.NewGuid(),
-                    Quantity = import.Quantity,
-                    TotalPrice = import.TotalPrice,
-                    TimeStamp = GetVietNamTime(),
-                    SupplierId = import.SupplierId,
-                    TotalDiscount = import.TotalDiscount,
-                    TotalDue = import.TotalDue,
-                    Note = import.Note,
-                    StoreId = import.StoreId.IsNullOrEmpty() ? null : import.StoreId,
-                    Status = import.IsCompleted ? "Đã nhập hàng" : "Phiếu tạm"
-                };
-                await _importService.AddAsync(imp);
+
+                var existImp = await _importService.FindAsync(import.ImportId);
+                if (existImp.Status == "Đã nhập hàng")
+                    return BadRequest(ModelState);
+                if (existImp != null)
+                    {
+
+                        existImp.Quantity = import.Quantity;
+                        existImp.TotalPrice = import.TotalPrice;
+                        existImp.TimeStamp = GetVietNamTime();
+                        existImp.SupplierId = import.SupplierId;
+                        existImp.TotalDiscount = import.TotalDiscount;
+                        existImp.TotalDue = import.TotalDue;
+                        existImp.Note = import.Note;
+                        existImp.Status = import.Status;
+                        existImp.ImportDetails = import.ImportDetails.Select(x => new ImportDetail()
+                        {
+                            Id = x.Id,
+                            ImportId = existImp.Id,
+                            VariantId = x.VariantId,
+                            MaterialId = x.MaterialId,
+                            PriceAfterDiscount = x.PriceAfterDiscount,
+                            UnitDiscount = x.UnitDiscount,
+                            UnitPrice = x.UnitPrice,
+                            Quantity = x.Quantity,
+                            Note = x.Note
+                        }).ToList();
+
+                    }
                 await _importService.SaveChangeAsync();
                 await _importDetailService.AddRange(import.ImportDetails.Select(x => new ImportDetail()
                 {
                     Id = new Guid(),
-                    ImportId = imp.Id,
+                    ImportId = existImp.Id,
                     VariantId = x.VariantId,
                     MaterialId = x.MaterialId,
                     PriceAfterDiscount = x.PriceAfterDiscount,
@@ -430,11 +451,11 @@ namespace CMMS.API.Controllers
                     Note = x.Note
                 }));
                 await _importDetailService.SaveChangeAsync();
-                if (!import.StoreId.IsNullOrEmpty())
+                if (!existImp.StoreId.IsNullOrEmpty())
                 {
-                    if (import.IsCompleted)
+                    if (import.Status == "Đã nhập hàng")
                     {
-                        var list = _importService.Get(x => x.Id == imp.Id).Include(x => x.ImportDetails)
+                        var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
                             .Select(x => x.ImportDetails).FirstOrDefault();
                         foreach (var item in list)
                         {
@@ -453,7 +474,7 @@ namespace CMMS.API.Controllers
                                     await _storeInventoryService.AddAsync(new StoreInventory()
                                     {
                                         Id = Guid.NewGuid(),
-                                        StoreId = import.StoreId,
+                                        StoreId = existImp.StoreId,
                                         MaterialId = item.MaterialId,
                                         VariantId = item.VariantId,
                                         TotalQuantity = item.Quantity,
@@ -489,7 +510,7 @@ namespace CMMS.API.Controllers
                                             await _storeInventoryService.AddAsync(new StoreInventory()
                                             {
                                                 Id = Guid.NewGuid(),
-                                                StoreId = import.StoreId,
+                                                StoreId = existImp.StoreId,
                                                 MaterialId = item.MaterialId,
                                                 VariantId = item.VariantId,
                                                 TotalQuantity = item.Quantity,
@@ -523,7 +544,7 @@ namespace CMMS.API.Controllers
                                                 await _storeInventoryService.AddAsync(new StoreInventory()
                                                 {
                                                     Id = Guid.NewGuid(),
-                                                    StoreId = import.StoreId,
+                                                    StoreId = existImp.StoreId,
                                                     MaterialId = item.MaterialId,
                                                     VariantId = item.VariantId,
                                                     TotalQuantity = item.Quantity,
@@ -546,9 +567,9 @@ namespace CMMS.API.Controllers
                 }
                 else
                 {
-                    if (import.IsCompleted)
+                    if (import.Status== "Đã nhập hàng")
                     {
-                        var list = _importService.Get(x => x.Id == imp.Id).Include(x => x.ImportDetails)
+                        var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
                             .Select(x => x.ImportDetails).FirstOrDefault();
                         foreach (var item in list)
                         {
