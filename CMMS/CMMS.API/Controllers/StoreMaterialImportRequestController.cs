@@ -77,6 +77,7 @@ namespace CMMS.API.Controllers
                     return BadRequest("The request status must be 'Processing'");
                 }
                 request.Status = "Canceled";
+                request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                 await _requestService.SaveChangeAsync();
                 return Ok();
             }
@@ -105,18 +106,18 @@ namespace CMMS.API.Controllers
                     if (!fromStoreId.IsNullOrEmpty())
                     {
                         var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, fromStoreId);
-                        if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - storeInventoryItem.InOrderQuantity < importQuantity)
+                        if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - (storeInventoryItem.InOrderQuantity ?? 0) < importQuantity)
                             return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
-                        storeInventoryItem.InOrderQuantity = importQuantity;
+                        storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) + importQuantity;
                         request.FromStoreId = fromStoreId;
                         request.Status = "Approved";
                         request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                         await _requestService.SaveChangeAsync();
                         return Ok();
                     }
-                    if (item == null || item.TotalQuantity - item.InRequestQuantity < importQuantity)
+                    if (item == null || item.TotalQuantity - (item.InRequestQuantity ?? 0) < importQuantity)
                         return BadRequest("Không đủ sản phẩm trong kho");
-                    item.InRequestQuantity = importQuantity;
+                    item.InRequestQuantity = (item.InRequestQuantity ?? 0) + importQuantity;
                     request.Status = "Approved";
                 }
                 else
@@ -182,7 +183,7 @@ namespace CMMS.API.Controllers
                             if (storeInventoryItem != null)
                             {
                                 storeInventoryItem.TotalQuantity -= request.Quantity;
-                                storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
                                 storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                 var goodsNote = new GoodsDeliveryNote()
                                 {
@@ -220,7 +221,7 @@ namespace CMMS.API.Controllers
                             if (warehouse != null)
                             {
                                 warehouse.TotalQuantity -= request.Quantity;
-                                warehouse.InRequestQuantity -= request.Quantity;
+                                warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
                                 warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                 var goodsNote = new GoodsDeliveryNote()
                                 {
@@ -294,7 +295,7 @@ namespace CMMS.API.Controllers
                                     if (storeInventoryItem != null)
                                     {
                                         storeInventoryItem.TotalQuantity -= request.Quantity;
-                                        storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                        storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
                                         storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                         var goodsNote = new GoodsDeliveryNote()
                                         {
@@ -332,7 +333,7 @@ namespace CMMS.API.Controllers
                                     if (warehouse != null)
                                     {
                                         warehouse.TotalQuantity -= request.Quantity;
-                                        warehouse.InRequestQuantity -= request.Quantity;
+                                        warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
                                         warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                         var goodsNote = new GoodsDeliveryNote()
                                         {
@@ -404,7 +405,7 @@ namespace CMMS.API.Controllers
                                         if (storeInventoryItem != null)
                                         {
                                             storeInventoryItem.TotalQuantity -= request.Quantity;
-                                            storeInventoryItem.InOrderQuantity -= request.Quantity;
+                                            storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
                                             storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
@@ -442,7 +443,7 @@ namespace CMMS.API.Controllers
                                         if (warehouse != null)
                                         {
                                             warehouse.TotalQuantity -= request.Quantity;
-                                            warehouse.InRequestQuantity -= request.Quantity;
+                                            warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
                                             warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
@@ -484,7 +485,7 @@ namespace CMMS.API.Controllers
                     var item = await GetWarehouseItem(request.MaterialId, request.VariantId);
                     var conversionRate = await GetConversionRate(request.MaterialId, request.VariantId);
                     var importQuantity = conversionRate > 0 ? request.Quantity * conversionRate : request.Quantity;
-                    item.InRequestQuantity -= importQuantity;
+                    item.InRequestQuantity = (item.InRequestQuantity ?? 0) - importQuantity;
                 }
                 await _requestService.SaveChangeAsync();
                 return Ok();

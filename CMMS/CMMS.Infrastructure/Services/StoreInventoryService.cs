@@ -123,7 +123,7 @@ namespace CMMS.Infrastructure.Services
             var conversionRate = await GetConversionRate(cartItem.MaterialId, cartItem.VariantId);
             if (storeInventory != null)
             {
-                var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
+                var availableQuantity = storeInventory.TotalQuantity - (storeInventory.InOrderQuantity ?? 0);
                 var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
                 if (orderQuantity <= availableQuantity) return true;
                 //if (cartItem.Quantity <= availableQuantity) return true;
@@ -141,12 +141,12 @@ namespace CMMS.Infrastructure.Services
                 switch (invoiceStatus)
                 {
                     case (int)InvoiceStatus.Pending:
-                        storeInventory.InOrderQuantity += orderQuantity;
+                        storeInventory.InOrderQuantity = (storeInventory.InOrderQuantity ?? 0) + orderQuantity;
                         break;
                     case (int)InvoiceStatus.Done:
-                 
+
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
-                        storeInventory.InOrderQuantity -= orderQuantity;
+                        storeInventory.InOrderQuantity = (storeInventory.InOrderQuantity ?? 0) - orderQuantity;
                         break;
                     case (int)InvoiceStatus.DoneInStore:
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
@@ -175,7 +175,7 @@ namespace CMMS.Infrastructure.Services
                 if (storeInventory != null)
                 {
                     // var availableQuantity = storeInventory.TotalQuantity - storeInventory.InOrderQuantity;
-                    var availableQuantity = conversionRate == null ? storeInventory.TotalQuantity - storeInventory.InOrderQuantity : (storeInventory.TotalQuantity - storeInventory.InOrderQuantity) / conversionRate;
+                    var availableQuantity = conversionRate == null ? storeInventory.TotalQuantity - (storeInventory.InOrderQuantity ?? 0) : (storeInventory.TotalQuantity - (storeInventory.InOrderQuantity ?? 0)) / conversionRate;
                     return (decimal)availableQuantity;
                 }
             }
@@ -295,7 +295,7 @@ namespace CMMS.Infrastructure.Services
                             {
                                 storeId = x.StoreId,
                                 storeName = x.Store.Name,
-                                quantity = (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
+                                quantity = (x.TotalQuantity - (x.InOrderQuantity ?? 0)) / variant.ConversionUnit.ConversionRate
                             }).Sum(x => x.quantity);
                             return (decimal)result;
                         }
@@ -309,7 +309,7 @@ namespace CMMS.Infrastructure.Services
            {
                storeId = x.StoreId,
                storeName = x.Store.Name,
-               quantity = x.TotalQuantity - x.InOrderQuantity
+               quantity = x.TotalQuantity - (x.InOrderQuantity ?? 0)
            }).Sum(_ => _.quantity);
 
 

@@ -67,7 +67,7 @@ namespace CMMS.API.Controllers
                     cartItemVM.IsChangeQuantity = true;
                 if (cartItem.VariantId != null)
                 {
-                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x=>x.MaterialVariantAttributes).FirstOrDefault();
+                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                     //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                     //cartItemVM.ItemName += $" | {variantAttribute.Value}";
                     if (variant.MaterialVariantAttributes.Count > 0)
@@ -148,7 +148,7 @@ namespace CMMS.API.Controllers
 
                                     storeId = x.StoreId,
                                     storeName = x.Store.Name,
-                                    quantity = (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
+                                    quantity = x.InOrderQuantity == null ? x.TotalQuantity / variant.ConversionUnit.ConversionRate : (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
                                 }));
                             }
                         }
@@ -160,7 +160,7 @@ namespace CMMS.API.Controllers
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,
-                        quantity = x.TotalQuantity - x.InOrderQuantity
+                        quantity = x.InOrderQuantity == null ? x.TotalQuantity : x.TotalQuantity - x.InOrderQuantity
                     }).ToListAsync();
 
                 return Ok(new { data = new { totalQuantityInAllStore = items.Sum(x => x.quantity), items } });
@@ -192,7 +192,7 @@ namespace CMMS.API.Controllers
                         VariantId = x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
                         VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                        Quantity = x.TotalQuantity - (decimal)x.InOrderQuantity,
+                        Quantity = x.InOrderQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InOrderQuantity,
                         InOrderQuantity = x.InOrderQuantity,
                         VariantPrice = x.Variant == null ? null : x.Variant.Price,
                         Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
@@ -225,7 +225,7 @@ namespace CMMS.API.Controllers
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,
-                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate - (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
+                                Quantity = item.InOrderQuantity == null ? item.Quantity / x.ConversionUnit.ConversionRate : (item.Quantity - (decimal)item.InOrderQuantity) / x.ConversionUnit.ConversionRate,
                                 VariantPrice = x.Price,
                                 Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
                                 {
@@ -294,6 +294,27 @@ namespace CMMS.API.Controllers
                 {
                     material.MinStock = minStock == null ? material.MinStock : (decimal)minStock;
                     material.MaxStock = maxStock == null ? material.MaxStock : (decimal)maxStock;
+                    material.LastUpdateTime = GetVietNamTime();
+                }
+                await _storeInventoryService.SaveChangeAsync();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+        [HttpPost("update-auto-import-material-quantity")]
+        public async Task<IActionResult> Update([FromQuery] string storeId, [FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] decimal quantity)
+        {
+            try
+            {
+                var material = _storeInventoryService
+                    .Get(x => x.StoreId == storeId && x.MaterialId == materialId && x.VariantId == variantId)
+                    .FirstOrDefault();
+                if (material != null)
+                {
+                    material.ImportQuantity = quantity;
                     material.LastUpdateTime = GetVietNamTime();
                 }
                 await _storeInventoryService.SaveChangeAsync();

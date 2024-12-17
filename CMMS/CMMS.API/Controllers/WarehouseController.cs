@@ -50,7 +50,7 @@ namespace CMMS.API.Controllers
                          VariantId = x.VariantId,
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                         Quantity = x.InRequestQuantity==null? x.TotalQuantity: x.TotalQuantity - (decimal)x.InRequestQuantity,
+                         Quantity = x.InRequestQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InRequestQuantity,
                          InOrderQuantity = x.InRequestQuantity,
                          VariantPrice = x.Variant == null ? null : x.Variant.Price,
                          Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
@@ -85,8 +85,7 @@ namespace CMMS.API.Controllers
                                     VariantId = x.Id,
                                     VariantName = x.SKU,
                                     VariantImage = x.VariantImageUrl,
-                                    Quantity = item.Quantity / x.ConversionUnit.ConversionRate -
-                                               (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
+                                    Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / x.ConversionUnit.ConversionRate,
                                     VariantPrice = x.Price,
                                     Attributes = x.MaterialVariantAttributes.Count <= 0
                                         ? null
