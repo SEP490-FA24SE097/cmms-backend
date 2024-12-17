@@ -757,36 +757,36 @@ namespace CMMS.API.Controllers
                         });
                     }
                     await _variantService.SaveChangeAsync();
-                    var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null)
-                        .ToList();
-                    if (variants.Count > 0)
-                    {
-                        await _warehouseService.AddRange(variants.Select(x => new Warehouse()
-                        {
-                            Id = Guid.NewGuid(),
-                            MaterialId = x.MaterialId,
-                            VariantId = x.Id,
-                            TotalQuantity = 0,
-                            InRequestQuantity = 0,
-                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                        }));
-                    }
-                    else
-                    {
-                        await _warehouseService.AddAsync(new Warehouse()
-                        {
-                            Id = Guid.NewGuid(),
-                            MaterialId = material.Id,
-                            VariantId = null,
-                            TotalQuantity = 0,
-                            InRequestQuantity = 0,
-                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                        });
-                    }
 
-                    await _warehouseService.SaveChangeAsync();
+                }
+                var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null)
+                    .ToList();
+                if (variants.Count > 0)
+                {
+                    await _warehouseService.AddRange(variants.Select(x => new Warehouse()
+                    {
+                        Id = new Guid(),
+                        MaterialId = x.MaterialId,
+                        VariantId = x.Id,
+                        TotalQuantity = 0,
+                        InRequestQuantity = 0,
+                        LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                    }));
+                }
+                else
+                {
+                    await _warehouseService.AddAsync(new Warehouse()
+                    {
+                        Id = new Guid(),
+                        MaterialId = material.Id,
+                        VariantId = null,
+                        TotalQuantity = 0,
+                        InRequestQuantity = 0,
+                        LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                    });
                 }
 
+                await _warehouseService.SaveChangeAsync();
                 return Ok();
             }
             catch (Exception ex)

@@ -52,6 +52,8 @@ namespace CMMS.API.Controllers
                     importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     timeStamp = x.TimeStamp,
                     supplierName = x.Supplier == null ? null : x.Supplier.Name,
+                    storeId = x.StoreId,
+                    storeName = x.Store == null ? null : x.Store.Name,
                     status = x.Status,
                     note = x.Note,
                     totalQuantity = x.Quantity,
@@ -98,13 +100,15 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Where(x => x.Id == id).Select(x => new
+            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Include(x => x.Store).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
                 importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
                 x.TimeStamp,
                 supplierName = x.Supplier == null ? null : x.Supplier.Name,
                 supplierId = x.SupplierId,
+                storeId = x.StoreId,
+                storeName = x.Store == null ? null : x.Store.Name,
                 x.Status,
                 x.Note,
                 totalQuantity = x.Quantity,
@@ -712,6 +716,11 @@ namespace CMMS.API.Controllers
         {
             try
             {
+                var import = await _importService.FindAsync(importId);
+                if (import.Status != "Phiếu tạm")
+                    return BadRequest("Không thể hoàn thành phiếu nhập hàng");
+                import.Status = "Đã nhập hàng";
+                await _importDetailService.SaveChangeAsync();
                 var list = _importService.Get(x => x.Id == importId).Include(x => x.ImportDetails)
                     .Select(x => x.ImportDetails).FirstOrDefault();
                 foreach (var item in list)
