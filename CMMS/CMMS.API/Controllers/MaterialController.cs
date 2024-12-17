@@ -29,7 +29,8 @@ namespace CMMS.API.Controllers
         private readonly ISubImageService _subImageService;
         private readonly IConversionUnitService _conversionUnitService;
         private readonly IStoreInventoryService _storeInventoryService;
-        public MaterialController(IMaterialService materialService,
+        private readonly IWarehouseService _warehouseService;
+        public MaterialController(IWarehouseService warehouseService, IMaterialService materialService,
             IMaterialVariantAttributeService materialVariantAttributeService, IVariantService variantService, IImportDetailService importDetailService,
             IImportService importService, IConversionUnitService conversionUnitService, ISubImageService subImageService, IUnitService unitService, IStoreInventoryService storeInventoryService)
         {
@@ -42,6 +43,7 @@ namespace CMMS.API.Controllers
             _unitService = unitService;
             _importDetailService = importDetailService;
             _storeInventoryService = storeInventoryService;
+            _warehouseService = warehouseService;
         }
 
 
@@ -754,8 +756,35 @@ namespace CMMS.API.Controllers
                             MaterialId = material.Id
                         });
                     }
-
                     await _variantService.SaveChangeAsync();
+                    var variants = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null)
+                        .ToList();
+                    if (variants.Count > 0)
+                    {
+                        await _warehouseService.AddRange(variants.Select(x => new Warehouse()
+                        {
+                            Id = Guid.NewGuid(),
+                            MaterialId = x.MaterialId,
+                            VariantId = x.Id,
+                            TotalQuantity = 0,
+                            InRequestQuantity = 0,
+                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                        }));
+                    }
+                    else
+                    {
+                        await _warehouseService.AddAsync(new Warehouse()
+                        {
+                            Id = Guid.NewGuid(),
+                            MaterialId = material.Id,
+                            VariantId = null,
+                            TotalQuantity = 0,
+                            InRequestQuantity = 0,
+                            LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                        });
+                    }
+
+                    await _warehouseService.SaveChangeAsync();
                 }
 
                 return Ok();

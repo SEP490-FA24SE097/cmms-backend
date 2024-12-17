@@ -27,7 +27,7 @@ namespace CMMS.API.Controllers
             _materialVariantAttributeService = materialVariantAttributeService;
         }
         [HttpGet("get-warehouse-products")]
-        public async Task<IActionResult> Get([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+        public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId)
         {
             try
@@ -47,6 +47,7 @@ namespace CMMS.API.Controllers
                          MaterialName = x.Material.Name,
                          MaterialImage = x.Material.ImageUrl,
                          MaterialPrice = x.Material.SalePrice,
+                         MaterialCostPrice = x.Material.CostPrice,
                          VariantId = x.VariantId,
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
@@ -62,6 +63,26 @@ namespace CMMS.API.Controllers
                          }).ToList(),
                          LastUpdateTime = x.LastUpdateTime
                      }).ToListAsync();
+                switch (quantityStatus)
+                {
+                    case 1:
+                        //con hang
+                        items = items.Where(x => x.Quantity > 0).ToList();
+                        break;
+                    case 2:
+                        //het hang
+                        items = items.Where(x => x.Quantity <= 0).ToList();
+                        break;
+                    case 3:
+                        //tren min stock
+                        items = items.Where(x => x.Quantity >= x.MinStock).ToList();
+                        break;
+                    case 4:
+                        //duoi min stock
+                        items = items.Where(x => x.Quantity < x.MinStock).ToList();
+                        break;
+
+                }
                 List<WarehouseDTO> list = [];
                 foreach (var item in items)
                 {
@@ -84,11 +105,13 @@ namespace CMMS.API.Controllers
                                     MaterialCode = x.Material.MaterialCode,
                                     MaterialImage = x.Material.ImageUrl,
                                     MaterialPrice = x.Material.SalePrice,
+                                    MaterialCostPrice = x.Material.CostPrice,
                                     VariantId = x.Id,
                                     VariantName = x.SKU,
                                     VariantImage = x.VariantImageUrl,
                                     Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / x.ConversionUnit.ConversionRate,
                                     VariantPrice = x.Price,
+                                    VariantCostPrice = x.CostPrice,
                                     Attributes = x.MaterialVariantAttributes.Count <= 0
                                         ? null
                                         : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
@@ -104,6 +127,7 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
+
                 var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new

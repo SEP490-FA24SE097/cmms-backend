@@ -171,12 +171,12 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("get-products-by-store-id")]
-        public async Task<IActionResult> Get([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+        public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] string storeId)
         {
             try
             {
-                
+
                 var secondItems = await _storeInventoryService
                     .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
@@ -203,6 +203,26 @@ namespace CMMS.API.Controllers
                         }).ToList(),
                         LastUpdateTime = x.LastUpdateTime
                     }).ToListAsync();
+                switch (quantityStatus)
+                {
+                    case 1:
+                        //con hang
+                        secondItems = secondItems.Where(x => x.Quantity > 0).ToList();
+                        break;
+                    case 2:
+                        //het hang
+                        secondItems = secondItems.Where(x => x.Quantity <= 0).ToList();
+                        break;
+                    case 3:
+                        //tren min stock
+                        secondItems = secondItems.Where(x => x.Quantity >= x.MinStock).ToList();
+                        break;
+                    case 4:
+                        //duoi min stock
+                        secondItems = secondItems.Where(x => x.Quantity < x.MinStock).ToList();
+                        break;
+
+                }
                 List<WarehouseDTO> secondList = [];
                 foreach (var item in secondItems)
                 {
