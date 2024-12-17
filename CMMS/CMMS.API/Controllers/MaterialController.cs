@@ -710,7 +710,7 @@ namespace CMMS.API.Controllers
                     MaterialId = material.Id
                 }));
                 await _subImageService.SaveChangeAsync();
-                if (materialCm.MaterialUnitDtoList.Count > 0)
+                if (materialCm.MaterialUnitDtoList!=null)
                 {
                     var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
                     {
