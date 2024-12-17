@@ -69,7 +69,6 @@ namespace CMMS.API.Controllers
                         unitPrice = x.UnitPrice,
                         unitDiscount = x.UnitDiscount,
                         unitImportPrice = x.UnitPrice - x.UnitDiscount,
-                        discountPrice = x.DiscountPrice,
                         priceAfterDiscount = x.PriceAfterDiscount,
                         note = x.Note
                     }).ToList()

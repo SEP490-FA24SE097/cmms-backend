@@ -35,7 +35,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x =>  (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).
                      Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
@@ -72,26 +72,32 @@ namespace CMMS.API.Controllers
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                                 Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
-                            list.AddRange(subVariants.Select(x => new WarehouseDTO()
+                            if (subVariants.Count > 0)
                             {
-                                Id = item.Id,
-                                MaterialId = x.MaterialId,
-                                MaterialName = x.Material.Name,
-                                MaterialCode = x.Material.MaterialCode,
-                                MaterialImage = x.Material.ImageUrl,
-                                MaterialPrice = x.Material.SalePrice,
-                                VariantId = x.Id,
-                                VariantName = x.SKU,
-                                VariantImage = x.VariantImageUrl,
-                                Quantity = item.Quantity / x.ConversionUnit.ConversionRate - (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
-                                VariantPrice = x.Price,
-                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                list.AddRange(subVariants.Select(x => new WarehouseDTO()
                                 {
-                                    Name = x.Attribute.Name,
-                                    Value = x.Value
-                                }).ToList(),
-                                LastUpdateTime = item.LastUpdateTime
-                            }));
+                                    Id = item.Id,
+                                    MaterialId = x.MaterialId,
+                                    MaterialName = x.Material.Name,
+                                    MaterialCode = x.Material.MaterialCode,
+                                    MaterialImage = x.Material.ImageUrl,
+                                    MaterialPrice = x.Material.SalePrice,
+                                    VariantId = x.Id,
+                                    VariantName = x.SKU,
+                                    VariantImage = x.VariantImageUrl,
+                                    Quantity = item.Quantity / x.ConversionUnit.ConversionRate -
+                                               (decimal)item.InOrderQuantity / x.ConversionUnit.ConversionRate,
+                                    VariantPrice = x.Price,
+                                    Attributes = x.MaterialVariantAttributes.Count <= 0
+                                        ? null
+                                        : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                        {
+                                            Name = x.Attribute.Name,
+                                            Value = x.Value
+                                        }).ToList(),
+                                    LastUpdateTime = item.LastUpdateTime
+                                }));
+                            }
                         }
 
                     }
