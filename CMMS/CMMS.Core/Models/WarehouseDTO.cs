@@ -24,7 +24,9 @@ namespace CMMS.Core.Models
         [JsonIgnore]
         public decimal? InOrderQuantity { get; set; }
         public decimal? MaterialPrice { get; set; }
+        public decimal? MaterialCostPrice { get; set; }
         public decimal? VariantPrice { get; set; }
+        public decimal? VariantCostPrice { get; set; }
         public List<AttributeDTO>? Attributes { get; set; }
         public DateTime LastUpdateTime { get; set; }
     }
