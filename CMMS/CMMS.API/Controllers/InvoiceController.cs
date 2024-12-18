@@ -87,7 +87,6 @@ namespace CMMS.API.Controllers
 
             foreach (var invoice in result)
             {
-
                 var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
                 var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
                 invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
@@ -136,7 +135,7 @@ namespace CMMS.API.Controllers
                     }
                 }
 
-                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
 
             return Ok(new
@@ -228,9 +227,10 @@ namespace CMMS.API.Controllers
                                 invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
                             }
                         }
+                        invoiceDetail.ItemTotalPrice += (decimal)shippingDetail.ShippingFee;
                     }
 
-                    invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+                    invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
                 }
 
                 groupInvoiceVM.TotalAmount = (double)listInvoices.Sum(_ => _.SalePrice);
