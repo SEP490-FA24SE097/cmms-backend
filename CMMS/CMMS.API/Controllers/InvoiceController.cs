@@ -134,7 +134,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                invoice.SalePrice += (decimal)shippingDetail.ShippingFee;
+                invoice.SalePrice += (shippingDetail.ShippingFee != null ? (decimal)shippingDetail.ShippingFee : 0);
                 invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
 
@@ -229,7 +229,7 @@ namespace CMMS.API.Controllers
                         }
                     }
 
-                    invoice.SalePrice += (decimal)shippingDetail.ShippingFee;
+                    invoice.SalePrice += (shippingDetail.ShippingFee != null ? (decimal)shippingDetail.ShippingFee : 0);
                     invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
                 }
 
