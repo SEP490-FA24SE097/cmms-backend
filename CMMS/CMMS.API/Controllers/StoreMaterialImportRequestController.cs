@@ -512,6 +512,7 @@ namespace CMMS.API.Controllers
                 var list = _requestService.Get(x => (storeId == null || x.StoreId.Equals(storeId)) && (status == null || x.Status.ToLower().Equals(status.ToLower()))).Include(x => x.Material).Include(x => x.Variant).Include(x => x.Store).Select(x => new
                 {
                     x.Id,
+                    requestCode= "REQ-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     store = x.Store.Name,
                     x.StoreId,
                     material = x.Material.Name,
