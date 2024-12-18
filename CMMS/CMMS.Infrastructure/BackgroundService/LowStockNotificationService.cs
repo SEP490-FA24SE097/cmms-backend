@@ -110,7 +110,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                             {
                                 await storeMaterialImportRequestService.AddAsync(new StoreMaterialImportRequest()
                                 {
-                                    Id = new Guid(),
+                                    Id = Guid.NewGuid(),
                                     MaterialId = product.MaterialId,
                                     VariantId = product.VariantId,
                                     Quantity = product.ImportQuantity == null ? 0 : (decimal)product.ImportQuantity,

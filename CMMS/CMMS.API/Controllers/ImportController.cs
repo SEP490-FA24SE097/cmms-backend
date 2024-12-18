@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
 
         // GET: api/imports
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] Guid? supplierId, [FromQuery] string? status)
+        public IActionResult GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] bool? isDateDescending, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] Guid? supplierId, [FromQuery] string? status)
         {
             try
             {
@@ -77,6 +77,22 @@ namespace CMMS.API.Controllers
                     }).ToList()
 
                 }).ToList();
+                if (isDateDescending != null)
+                {
+                    if ((bool)isDateDescending)
+                    {
+                        list = list.OrderByDescending(x => x.timeStamp).ToList();
+                    }
+                    if (!(bool)isDateDescending)
+                    {
+                        list = list.OrderBy(x => x.timeStamp).ToList();
+                    }
+                }
+                else
+                {
+                    list = list.OrderByDescending(x => x.timeStamp).ToList();
+                }
+
                 return Ok(new
                 {
                     data = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1, itemPerPage == null ? 12 : (int)itemPerPage),
@@ -171,7 +187,7 @@ namespace CMMS.API.Controllers
                 await _importService.SaveChangeAsync();
                 await _importDetailService.AddRange(import.ImportDetails.Select(x => new ImportDetail()
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     ImportId = imp.Id,
                     VariantId = x.VariantId,
                     MaterialId = x.MaterialId,
@@ -459,7 +475,7 @@ namespace CMMS.API.Controllers
                 await _importService.SaveChangeAsync();
                 await _importDetailService.AddRange(import.ImportDetails.Select(x => new ImportDetail()
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     ImportId = existImp.Id,
                     VariantId = x.VariantId,
                     MaterialId = x.MaterialId,

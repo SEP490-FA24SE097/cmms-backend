@@ -107,7 +107,7 @@ namespace CMMS.API.Controllers
             {
                 var goodsDeliveryNote = new GoodsDeliveryNote
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     Total = goodsDeliveryNoteCm.Total,
                     TotalByText = goodsDeliveryNoteCm.TotalByText,
                     StoreId = goodsDeliveryNoteCm.StoreId,
@@ -119,7 +119,7 @@ namespace CMMS.API.Controllers
                 await _goodsDeliveryNoteService.SaveChangeAsync();
                 await _goodsDeliveryNoteDetailService.AddRangeAsync(goodsDeliveryNoteCm.Details.Select(x => new GoodsDeliveryNoteDetail
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     GoodsDeliveryNoteId = goodsDeliveryNote.Id,
                     MaterialId = x.MaterialId,
                     VariantId = x.VariantId,

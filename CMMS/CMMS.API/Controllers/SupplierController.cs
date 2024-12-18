@@ -60,7 +60,7 @@ namespace CMMS.API.Controllers
 
                 await _supplierService.AddAsync(new Supplier
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     Address = supplierDTO.Address,
                     Email = supplierDTO.Email,
                     PhoneNumber = supplierDTO.PhoneNumber,
