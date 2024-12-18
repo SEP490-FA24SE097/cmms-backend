@@ -66,7 +66,7 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpPost("cancel-processing-request")]
+        [HttpGet("cancel-processing-request")]
         public async Task<IActionResult> Create([FromQuery] Guid requestId)
         {
             try
@@ -88,7 +88,7 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpPost("approve-or-cancel-store-material-import-request")]
+        [HttpGet("approve-or-cancel-store-material-import-request")]
         public async Task<IActionResult> Create([FromQuery] string? fromStoreId, [FromQuery] Guid requestId, [FromQuery] bool isApproved)
         {
             try
@@ -141,7 +141,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
             }
         }
-        [HttpPost("confirm-or-cancel-store-material-import-request")]
+        [HttpGet("confirm-or-cancel-store-material-import-request")]
         public async Task<IActionResult> Confirm([FromQuery] Guid requestId, [FromQuery] bool isConfirmed)
         {
             try
