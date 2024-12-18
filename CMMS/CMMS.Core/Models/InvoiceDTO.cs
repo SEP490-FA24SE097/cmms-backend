@@ -113,6 +113,15 @@ namespace CMMS.Core.Models
         }
     }
 
+    public class DashboardInvoiceFitlerModel
+    {
+        public DateTime? SpecificDate { get; set; }
+        public int? NearDays { get; set; }
+        public int? Year { get; set; }
+        public string? StoreId { get; set; }
+        
+    }
+
     public class InvoiceDetailVM : CartItemVM
     {
 

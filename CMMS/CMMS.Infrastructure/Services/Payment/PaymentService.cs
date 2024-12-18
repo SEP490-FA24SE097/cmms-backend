@@ -171,7 +171,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         Note = invoiceInfo.Note,
                         StoreId = storeId,
                         // get total cart 
-                        SalePrice = (decimal)storeInvoice.TotalStoreAmount,
+                        SalePrice = (decimal)storeInvoice.FinalPrice,
                         TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
                         Discount = invoiceInfo.Discount != null ? invoiceInfo.Discount : 0,
                         SellPlace = (int)SellPlace.Website,
@@ -476,9 +476,11 @@ namespace CMMS.Infrastructure.Services.Payment
                     {
                         case "00":
                             resultData.PaymentMessage = "Payment succesfully";
+                            resultData.RedirectUrl = _configuration["Vnpay:PaymentSuccessed"].ToString();
                             break;
                         case "10":
                             resultData.PaymentMessage = "Payment process failed";
+                            resultData.RedirectUrl = _configuration["Vnpay:PaymentFailed"].ToString();
                             break;
                     }
 
@@ -487,12 +489,10 @@ namespace CMMS.Infrastructure.Services.Payment
                     {
                         //update invoice
                         var invoice = await _invoiceRepositoryScope.FindAsync(payment.InvoiceId);
-                        _invoiceRepositoryScope.Update(invoice);
                         // update payment
                         payment.BankCode = vnpayPayResponse.vnp_BankCode;
                         payment.PaymentStatus = Int32.Parse(vnpayPayResponse.vnp_ResponseCode);
                         _paymentRepositoryScope.Update(payment);
-
 
                         var transaction = new Transaction();
                         transaction.Id = "TT" + invoice.Id;

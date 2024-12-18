@@ -125,9 +125,13 @@ namespace CMMS.API.Controllers
                             {
                                 invoiceDetail.ItemName += $" | {variant.SKU}";
                             }
+
                             invoiceDetail.SalePrice = variant.Price;
                             invoiceDetail.ImageUrl = variant.VariantImageUrl;
                             invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                            invoiceDetail.InOrder = item.InOrderQuantity;
+                            invoiceDetail.InStock = item.TotalQuantity;
+
                         }
                     }
                 }
@@ -236,11 +240,15 @@ namespace CMMS.API.Controllers
             }
 
             var filterListPaged = result.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
-             .OrderByDescending(_ => _.InvoiceDate);
+                .OrderByDescending(_ => _.InvoiceDate);
+            if (filterModel.defaultSearch.isAscending)
+            {
+                filterListPaged = result.OrderBy(_ => _.InvoiceDate);
+            } 
             var total = groupedInvoices.Count();
             return Ok(new
             {
-                data = result,
+                data = filterListPaged,
                 pagination = new
                 {
                     total,
@@ -744,6 +752,23 @@ namespace CMMS.API.Controllers
             var htmlContent = await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
             var pdfBytes = _generateInvoicePdf.GeneratePdf(htmlContent);
             return File(pdfBytes, "application/pdf", "Invoice.pdf");
+        }
+
+
+
+        [HttpGet("get-revenue-all")]
+        public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
+        {
+            if(filterModel.Year != null && filterModel.StoreId != null)
+            {
+                var result = await _invoiceService.GetMonthlyRevenueAsync(filterModel);
+                return Ok(result);
+            }
+            var revenueData = await _invoiceService.GetStoreRevenueAsync(filterModel);
+            return Ok(new
+            {
+              data = revenueData
+            }); 
         }
     }
 }

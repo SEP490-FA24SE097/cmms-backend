@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure;
 using CMMS.API.Constant;
 using CMMS.API.Helpers;
 using CMMS.API.Services;
@@ -15,6 +16,7 @@ using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
 using System.Net.WebSockets;
 
 namespace CMMS.API.Controllers
@@ -36,6 +38,7 @@ namespace CMMS.API.Controllers
         private IShippingService _shippingService;
         private IUserService _userService;
         private readonly ITransaction _efTransaction;
+        private readonly HttpClient _httpClient;
 
         public PaymentController(IPaymentService paymentService,
             ICurrentUserService currentUserService,
@@ -43,7 +46,7 @@ namespace CMMS.API.Controllers
             IMaterialService materialService,
             ICustomerBalanceService customerBalanceService,
             IMapper mapper, IStoreService storeService, IMaterialVariantAttributeService materialVariantAttributeService,
-            IStoreInventoryService storeInventoryService, IShippingService shippingService, IUserService userService)
+            IStoreInventoryService storeInventoryService, IShippingService shippingService, IUserService userService, HttpClient httpClient)
         {
             _currentUserService = currentUserService;
             _paymentService = paymentService;
@@ -56,6 +59,7 @@ namespace CMMS.API.Controllers
             _storeInventoryService = storeInventoryService;
             _shippingService = shippingService;
             _userService = userService;
+            _httpClient = httpClient;
         }
         [HttpPost]
         public async Task<IActionResult> CreatePayment([FromBody] InvoiceData invoiceInfo)
@@ -111,10 +115,13 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> VnpayPaymentResponse([FromQuery] VnpayPayResponse vnpayPayResponse)
         {
             var resultData = await _paymentService.VnpayReturnUrl(vnpayPayResponse);
-            return Ok(new
+            if(resultData.PaymentStatus == "00")
             {
-                data = resultData
-            });
+                return Redirect(resultData.RedirectUrl);
+            } else
+            {
+                return Redirect(resultData.RedirectUrl);
+            }
         }
 
         [HttpPost("pre-checkout")]
@@ -141,10 +148,19 @@ namespace CMMS.API.Controllers
                 }
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
-                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
-                result.ShippngFree = roundedAmount;
-                result.FinalPrice = shippingFee + result.TotalStoreAmount;
+
+                if (storeDistance >= 200)
+                {
+                    result.IsOver200km = true;
+                }
+                else
+                {
+                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    result.ShippngFree = roundedAmount;
+                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
+                }
+
             }
 
             // handle final price
@@ -227,10 +243,19 @@ namespace CMMS.API.Controllers
                 result.StoreItems = cartItemVMs;
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
-                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
-                result.ShippngFree = roundedAmount;
-                result.FinalPrice = shippingFee + result.TotalStoreAmount;
+
+                if (storeDistance >= 200)
+                {
+                    result.IsOver200km = true;
+                }
+                else
+                {
+                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    result.ShippngFree = roundedAmount;
+                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
+                }
+          
             }
             // handle final price
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);

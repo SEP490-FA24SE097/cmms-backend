@@ -201,7 +201,7 @@ namespace CMMS.API.Controllers
             var fitlerList = _userService
                  .Get(_ => filterUserList.Contains(_.Id) &&
                  (string.IsNullOrEmpty(filterModel.CustomerTrackingCode) || _.Id.Equals(filterModel.CustomerTrackingCode)) &&
-                 (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+                 (string.IsNullOrEmpty(filterModel.Email) || _.Email.Contains(filterModel.Email) || _.FullName.Contains(filterModel.Email)) &&
                  (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
                  (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
                  , _ => _.Invoices);
@@ -268,6 +268,18 @@ namespace CMMS.API.Controllers
 
             string userName = _userService.GenerateCustomerCode();
             model.UserName = userName;
+
+            var emailExist = await _userService.FindbyEmail(model.Email);
+            var userNameExist = await _userService.FindByUserName(model.UserName);
+            if (emailExist != null)
+            {
+                return BadRequest("Email đã được sử dụng");
+            }
+            else if (userNameExist != null)
+            {
+                return BadRequest("User đã được sử dụng");
+            }
+
             if (model.TaxCode != null)
             {
                 var taxCode = model.TaxCode;
