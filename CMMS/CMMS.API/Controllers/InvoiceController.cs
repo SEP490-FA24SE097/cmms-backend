@@ -749,5 +749,19 @@ namespace CMMS.API.Controllers
             var pdfBytes = _generateInvoicePdf.GeneratePdf(htmlContent);
             return File(pdfBytes, "application/pdf", "Invoice.pdf");
         }
+
+
+
+        [HttpGet("get-revenue-all")]
+        public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
+        {
+            if(filterModel.Year != null && filterModel.StoreId != null)
+            {
+                var result = await _invoiceService.GetMonthlyRevenueAsync(filterModel);
+                return Ok(result);
+            }
+            var revenueData = await _invoiceService.GetStoreRevenueAsync(filterModel);
+            return Ok(revenueData); 
+        }
     }
 }

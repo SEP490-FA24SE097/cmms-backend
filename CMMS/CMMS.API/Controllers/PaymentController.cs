@@ -141,10 +141,19 @@ namespace CMMS.API.Controllers
                 }
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
-                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
-                result.ShippngFree = roundedAmount;
-                result.FinalPrice = shippingFee + result.TotalStoreAmount;
+
+                if (storeDistance >= 200)
+                {
+                    result.IsOver200km = true;
+                }
+                else
+                {
+                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    result.ShippngFree = roundedAmount;
+                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
+                }
+
             }
 
             // handle final price
@@ -227,10 +236,19 @@ namespace CMMS.API.Controllers
                 result.StoreItems = cartItemVMs;
                 // change m to km
                 var storeDistance = result.ShippingDistance / 1000;
-                var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
-                result.ShippngFree = roundedAmount;
-                result.FinalPrice = shippingFee + result.TotalStoreAmount;
+
+                if (storeDistance >= 200)
+                {
+                    result.IsOver200km = true;
+                }
+                else
+                {
+                    var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
+                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    result.ShippngFree = roundedAmount;
+                    result.FinalPrice = shippingFee + result.TotalStoreAmount;
+                }
+          
             }
             // handle final price
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
