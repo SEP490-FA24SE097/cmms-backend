@@ -765,7 +765,10 @@ namespace CMMS.API.Controllers
                 return Ok(result);
             }
             var revenueData = await _invoiceService.GetStoreRevenueAsync(filterModel);
-            return Ok(revenueData); 
+            return Ok(new
+            {
+              data = revenueData
+            }); 
         }
     }
 }
