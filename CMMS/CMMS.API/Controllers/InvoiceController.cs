@@ -83,6 +83,7 @@ namespace CMMS.API.Controllers
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
+
             var result = _mapper.Map<List<InvoiceVM>>(filterListPaged);
 
             foreach (var invoice in result)
@@ -90,7 +91,6 @@ namespace CMMS.API.Controllers
                 var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
                 var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
                 invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
-
                 var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
                 var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
                 invoice.StaffName = staff != null ? staff.FullName : store.Name;
@@ -136,7 +136,7 @@ namespace CMMS.API.Controllers
                 }
                 invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
-
+            var reuslt = result.OrderByDescending(_ => _.InvoiceDate);
             return Ok(new
             {
                 data = result,

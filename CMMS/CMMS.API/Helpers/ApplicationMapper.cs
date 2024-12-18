@@ -56,6 +56,7 @@ namespace CMMS.API.Helpers
             CreateMap<ShippingDetail, ShippingDetaiInvoiceResponseVM>()
                 .ForMember(dest => dest.ShipperName, opt => opt.MapFrom(src => src.Shipper.FullName))
                 .ForMember(dest => dest.ShipperCode, opt => opt.MapFrom(src => src.Shipper.Id))
+                .ForMember(dest => dest.PhoneReceive, opt => opt.MapFrom(src => src.PhoneReceive))
                 .ReverseMap();
 
             #endregion
