@@ -251,8 +251,9 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> ConfirmAccount([FromQuery] string email)
         {
             var result = await _userService.ConfirmAccount(email);
-            if (result) return Ok(result);
-            else return BadRequest("Xác thực email không thành công");
+            if (result)
+                return Redirect("https://cmms-customer-app.vercel.app/login");
+            return BadRequest("Có lỗi trong lúc confirm email");
         }
 
     }
