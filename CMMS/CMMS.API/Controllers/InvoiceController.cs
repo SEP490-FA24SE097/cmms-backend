@@ -236,11 +236,15 @@ namespace CMMS.API.Controllers
             }
 
             var filterListPaged = result.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
-             .OrderByDescending(_ => _.InvoiceDate);
+                .OrderByDescending(_ => _.InvoiceDate);
+            if (filterModel.defaultSearch.isAscending)
+            {
+                filterListPaged = result.OrderBy(_ => _.InvoiceDate);
+            } 
             var total = groupedInvoices.Count();
             return Ok(new
             {
-                data = result,
+                data = filterListPaged,
                 pagination = new
                 {
                     total,
