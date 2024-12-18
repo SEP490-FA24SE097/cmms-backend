@@ -66,12 +66,12 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpGet("cancel-processing-request")]
-        public async Task<IActionResult> Create([FromQuery] Guid requestId)
+        [HttpPost("cancel-processing-request")]
+        public async Task<IActionResult> Create([FromBody] CancelDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
                 if (request.Status != "Processing")
                 {
                     return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
@@ -88,32 +88,32 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpGet("approve-or-cancel-store-material-import-request")]
-        public async Task<IActionResult> Create([FromQuery] string? fromStoreId, [FromQuery] Guid requestId, [FromQuery] bool isApproved)
+        [HttpPost("approve-or-cancel-store-material-import-request")]
+        public async Task<IActionResult> Create([FromBody] ApproveDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
                 var item = await GetWarehouseItem(request.MaterialId, request.VariantId);
                 var conversionRate = await GetConversionRate(request.MaterialId, request.VariantId);
                 var importQuantity = conversionRate > 0 ? request.Quantity * conversionRate : request.Quantity;
-                if (isApproved)
+                if (dto.IsApproved)
                 {
                     if (request.Status != "Processing")
                     {
                         return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                     }
-                    if (!fromStoreId.IsNullOrEmpty())
+                    if (!dto.FromStoreId.IsNullOrEmpty())
                     {
-                        if (fromStoreId == request.StoreId)
+                        if (dto.FromStoreId == request.StoreId)
                         {
                             return BadRequest("From store id can not be store id!");
                         }
-                        var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, fromStoreId);
+                        var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, dto.FromStoreId);
                         if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - (storeInventoryItem.InOrderQuantity ?? 0) < importQuantity)
                             return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
                         storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) + importQuantity;
-                        request.FromStoreId = fromStoreId;
+                        request.FromStoreId =dto.FromStoreId ;
                         request.Status = "Approved";
                         request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                         await _requestService.SaveChangeAsync();
@@ -141,14 +141,14 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
             }
         }
-        [HttpGet("confirm-or-cancel-store-material-import-request")]
-        public async Task<IActionResult> Confirm([FromQuery] Guid requestId, [FromQuery] bool isConfirmed)
+        [HttpPost("confirm-or-cancel-store-material-import-request")]
+        public async Task<IActionResult> Confirm([FromBody] ConfirmDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
 
-                if (isConfirmed)
+                if (dto.IsConfirmed)
                 {
                     if (request.Status != "Approved")
                     {
