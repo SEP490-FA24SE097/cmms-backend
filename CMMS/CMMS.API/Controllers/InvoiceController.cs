@@ -125,9 +125,13 @@ namespace CMMS.API.Controllers
                             {
                                 invoiceDetail.ItemName += $" | {variant.SKU}";
                             }
+
                             invoiceDetail.SalePrice = variant.Price;
                             invoiceDetail.ImageUrl = variant.VariantImageUrl;
                             invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                            invoiceDetail.InOrder = item.InOrderQuantity;
+                            invoiceDetail.InStock = item.TotalQuantity;
+
                         }
                     }
                 }
