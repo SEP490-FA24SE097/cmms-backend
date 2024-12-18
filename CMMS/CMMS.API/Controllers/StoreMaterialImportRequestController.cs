@@ -505,14 +505,14 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("get-request-list-by-storeId-and-status")]
-        public async Task<IActionResult> Get([FromQuery] string? storeId, [FromQuery] string? status)
+        public async Task<IActionResult> Get([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] string? storeId, [FromQuery] string? status)
         {
             try
             {
                 var list = _requestService.Get(x => (storeId == null || x.StoreId.Equals(storeId)) && (status == null || x.Status.ToLower().Equals(status.ToLower()))).Include(x => x.Material).Include(x => x.Variant).Include(x => x.Store).Select(x => new
                 {
                     x.Id,
-                    requestCode= "REQ-" + x.Id.ToString().ToUpper().Substring(0, 4),
+                    requestCode = "REQ-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     store = x.Store.Name,
                     x.StoreId,
                     material = x.Material.Name,
@@ -524,8 +524,19 @@ namespace CMMS.API.Controllers
                     x.Quantity,
                     x.LastUpdateTime
 
-                }).ToList();
-                return Ok(new { data = list });
+                }).OrderByDescending(x => x.LastUpdateTime).ToList();
+                var secondResult = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1,
+                    itemPerPage == null ? 12 : (int)itemPerPage);
+                return Ok(new
+                {
+                    data = secondResult,
+                    pagination = new
+                    {
+                        total = list.Count,
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
+                    }
+                });
             }
             catch (Exception e)
             {
