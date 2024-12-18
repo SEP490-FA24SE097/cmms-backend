@@ -74,7 +74,7 @@ namespace CMMS.API.Controllers
                 var request = await _requestService.FindAsync(requestId);
                 if (request.Status != "Processing")
                 {
-                    return BadRequest("The request status must be 'Processing'");
+                    return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                 }
                 request.Status = "Canceled";
                 request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
@@ -101,7 +101,7 @@ namespace CMMS.API.Controllers
                 {
                     if (request.Status != "Processing")
                     {
-                        return BadRequest("The request status must be 'Processing'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                     }
                     if (!fromStoreId.IsNullOrEmpty())
                     {
@@ -128,7 +128,7 @@ namespace CMMS.API.Controllers
                 {
                     if (request.Status != "Processing")
                     {
-                        return BadRequest("The request status must be 'Processing'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                     }
                     request.Status = "Canceled";
                 }
@@ -152,7 +152,7 @@ namespace CMMS.API.Controllers
                 {
                     if (request.Status != "Approved")
                     {
-                        return BadRequest("The request status must be 'Approved'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Approved'");
                     }
                     request.Status = "Confirmed";
                     if (request.VariantId == null)
@@ -488,7 +488,7 @@ namespace CMMS.API.Controllers
                 else
                 {
                     if (request.Status != "Approved")
-                        return BadRequest("The request status must be 'Approved'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Approved'");
                     request.Status = "Canceled";
                     var item = await GetWarehouseItem(request.MaterialId, request.VariantId);
                     var conversionRate = await GetConversionRate(request.MaterialId, request.VariantId);
