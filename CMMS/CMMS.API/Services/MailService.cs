@@ -9,6 +9,7 @@ namespace CMMS.API.Services
     public interface IMailService
     {
         Task SendEmailAsync(string email, string subject, string htmlMessage);
+        Task SendEmailAsyncStaff(string email, string subject, string htmlMessage, string userName, string password);
     }
     public class MailService : IMailService
     {

@@ -223,7 +223,7 @@ namespace CMMS.API.Controllers
             var result = await _userService.ShipperSignUpAsync(model);
 
             if (result.Succeeded)
-                await _mailService.SendEmailAsync(model.Email, "Tài khoản shipper cho hệ thống CMMS", null);
+                await _mailService.SendEmailAsyncStaff(model.Email, "Tài khoản shipper cho hệ thống CMMS",null, model.UserName, model.Password);
 
             await _efTransaction.CommitAsync();
             return Ok(new
