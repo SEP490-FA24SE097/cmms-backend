@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
             {
                 var request = new StoreMaterialImportRequest
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     StoreId = importRequest.StoreId,
                     MaterialId = importRequest.MaterialId,
                     VariantId = importRequest.VariantId,
@@ -187,7 +187,7 @@ namespace CMMS.API.Controllers
                                 storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                 var goodsNote = new GoodsDeliveryNote()
                                 {
-                                    Id = new Guid(),
+                                    Id = Guid.NewGuid(),
                                     StoreId = request.FromStoreId,
                                     ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                     Total = 0,
@@ -198,7 +198,7 @@ namespace CMMS.API.Controllers
                                 await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                 var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                 {
-                                    Id = new Guid(),
+                                    Id = Guid.NewGuid(),
                                     GoodsDeliveryNoteId = goodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
@@ -225,7 +225,7 @@ namespace CMMS.API.Controllers
                                 warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                 var goodsNote = new GoodsDeliveryNote()
                                 {
-                                    Id = new Guid(),
+                                    Id = Guid.NewGuid(),
                                     StoreId = null,
                                     ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                     Total = 0,
@@ -236,7 +236,7 @@ namespace CMMS.API.Controllers
                                 await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                 var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                 {
-                                    Id = new Guid(),
+                                    Id = Guid.NewGuid(),
                                     GoodsDeliveryNoteId = goodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
@@ -299,7 +299,7 @@ namespace CMMS.API.Controllers
                                         storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                         var goodsNote = new GoodsDeliveryNote()
                                         {
-                                            Id = new Guid(),
+                                            Id = Guid.NewGuid(),
                                             StoreId = request.FromStoreId,
                                             ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                             Total = 0,
@@ -310,7 +310,7 @@ namespace CMMS.API.Controllers
                                         await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                         var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                         {
-                                            Id = new Guid(),
+                                            Id = Guid.NewGuid(),
                                             GoodsDeliveryNoteId = goodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
@@ -337,7 +337,7 @@ namespace CMMS.API.Controllers
                                         warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                         var goodsNote = new GoodsDeliveryNote()
                                         {
-                                            Id = new Guid(),
+                                            Id = Guid.NewGuid(),
                                             StoreId = null,
                                             ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                             Total = 0,
@@ -348,7 +348,7 @@ namespace CMMS.API.Controllers
                                         await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                         var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                         {
-                                            Id = new Guid(),
+                                            Id = Guid.NewGuid(),
                                             GoodsDeliveryNoteId = goodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
@@ -409,7 +409,7 @@ namespace CMMS.API.Controllers
                                             storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
-                                                Id = new Guid(),
+                                                Id = Guid.NewGuid(),
                                                 StoreId = request.FromStoreId,
                                                 ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                                 Total = 0,
@@ -420,7 +420,7 @@ namespace CMMS.API.Controllers
                                             await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                             var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                             {
-                                                Id = new Guid(),
+                                                Id = Guid.NewGuid(),
                                                 GoodsDeliveryNoteId = goodsNote.Id,
                                                 MaterialId = request.MaterialId,
                                                 VariantId = request.VariantId,
@@ -447,7 +447,7 @@ namespace CMMS.API.Controllers
                                             warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
-                                                Id = new Guid(),
+                                                Id = Guid.NewGuid(),
                                                 StoreId = null,
                                                 ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
                                                 Total = 0,
@@ -458,7 +458,7 @@ namespace CMMS.API.Controllers
                                             await _goodsDeliveryNoteService.AddAsync(goodsNote);
                                             var goodsNoteDetail = new GoodsDeliveryNoteDetail()
                                             {
-                                                Id = new Guid(),
+                                                Id = Guid.NewGuid(),
                                                 GoodsDeliveryNoteId = goodsNote.Id,
                                                 MaterialId = request.MaterialId,
                                                 VariantId = request.VariantId,

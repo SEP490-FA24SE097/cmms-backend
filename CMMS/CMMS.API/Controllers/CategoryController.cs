@@ -77,7 +77,7 @@ namespace CMMS.API.Controllers
             {
                 await _categoryService.AddRange(categories.Select(x => new Category
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     Name = x.Name,
                     ParentCategoryId = x.ParentCategoryId
                 }));

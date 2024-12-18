@@ -155,7 +155,7 @@ namespace CMMS.API.Controllers
                 await _materialVariantAttributeService.AddRange(dic.Select(x =>
                     new MaterialVariantAttribute
                     {
-                        Id = new Guid(),
+                        Id = Guid.NewGuid(),
                         VariantId = newVariant.Id,
                         AttributeId = x.Key,
                         Value = x.Value

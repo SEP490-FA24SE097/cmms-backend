@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var result = await _unitService.FindAsync(Guid.Parse(id));
-                return Ok(new{data=result});
+                return Ok(new { data = result });
             }
             catch (Exception ex)
             {
@@ -54,10 +54,19 @@ namespace CMMS.API.Controllers
         {
             try
             {
+                var list = units.Select(x => x.ToLower()).Distinct().ToList();
+                if (units.Count > list.Count)
+                    return BadRequest("List has duplicates!");
+                foreach (var unit in units)
+                {
+                    var check = _unitService.Get(x => x.Name.ToLower() == unit.ToLower()).FirstOrDefault();
+                    if (check != null)
+                        return BadRequest($"{check.Name} is already existed!");
+                }
 
                 await _unitService.AddRange(units.Select(x => new Unit
                 {
-                    Id = new Guid(),
+                    Id = Guid.NewGuid(),
                     Name = x
                 }));
                 await _unitService.SaveChangeAsync();
