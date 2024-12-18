@@ -106,7 +106,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 transaction = new Transaction();
                 transaction.Id = "DH" + invoice.Id;
                 transaction.TransactionType = (int)TransactionType.SaleItem;
-                transaction.TransactionDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss"));
+                transaction.TransactionDate = TimeConverter.GetVietNamTime();
                 transaction.CustomerId = invoice.CustomerId;
                 transaction.InvoiceId = invoice.Id;
                 transaction.TransactionPaymentType = 1;
@@ -165,7 +165,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     {
                         Id = invoiceCode,
                         CustomerId = invoiceInfo.CustomerId,
-                        InvoiceDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")),
+                        InvoiceDate = TimeConverter.GetVietNamTime(),
                         InvoiceStatus = invoiceInfo.PaymentType.Equals(PaymentType.PurchaseAfter) ? (int)InvoiceStatus.Pending : (int)InvoiceStatus.Done,
                         InvoiceType = (int)InvoiceType.Normal,
                         Note = invoiceInfo.Note,
@@ -173,7 +173,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         // get total cart 
                         SalePrice = (decimal)storeInvoice.TotalStoreAmount,
                         TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
-                        Discount = invoiceInfo.Discount !=  null ? invoiceInfo.Discount : 0,
+                        Discount = invoiceInfo.Discount != null ? invoiceInfo.Discount : 0,
                         SellPlace = (int)SellPlace.Website,
                         // create group invoice
                         GroupId = groupInvoiceId
@@ -213,7 +213,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         var transaction = new Transaction();
                         transaction.Id = "DH" + invoiceCode;
                         transaction.TransactionType = (int)TransactionType.SaleItem;
-                        transaction.TransactionDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss"));
+                        transaction.TransactionDate = TimeConverter.GetVietNamTime();
                         transaction.CustomerId = invoiceInfo.CustomerId;
                         transaction.InvoiceId = invoice.Id;
                         transaction.Amount = (decimal)storeInvoice.FinalPrice;
@@ -225,7 +225,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         shippingDetail.Id = "GH" + invoiceCode;
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                        shippingDetail.EstimatedArrival = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")).AddDays(3);
+                        shippingDetail.EstimatedArrival = TimeConverter.GetVietNamTime().AddDays(3);
                         shippingDetail.Address = customerAddress;
                         shippingDetail.ShippingFee = storeInvoice.ShippngFree;
                         await _shippingDetailService.AddAsync(shippingDetail);
@@ -255,7 +255,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 var transaction = new Transaction();
                 transaction.Id = Guid.NewGuid().ToString();
                 transaction.TransactionType = (int)TransactionType.PurchaseCustomerDebt;
-                transaction.TransactionDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss"));
+                transaction.TransactionDate = TimeConverter.GetVietNamTime();
                 transaction.CustomerId = customerBalance.Customer.Id;
                 transaction.Amount = (decimal)invoiceInfo.TotalAmount;
 
@@ -306,7 +306,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 vnp_TmnCode = _configuration["Vnpay:TmnCode"],
                 vnp_Command = "pay",
                 vnp_Amount = (int)totalAmount * 100,
-                vnp_CreateDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")).ToString("yyyyMMddHHmmss"),
+                vnp_CreateDate = TimeConverter.GetVietNamTime().ToString("yyyyMMddHHmmss"),
                 vnp_IpAddr = ClientHelper.GetIpAddress(_httpContextAccessor.HttpContext),
                 vnp_Locale = "vn",
                 vnp_OrderInfo = orderInfo,
@@ -349,7 +349,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                     {
                                         Id = invoiceCode,
                                         CustomerId = paymentRequestData.CustomerId,
-                                        InvoiceDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")),
+                                        InvoiceDate = TimeConverter.GetVietNamTime(),
                                         InvoiceStatus = (int)InvoiceStatus.Pending,
                                         InvoiceType = (int)InvoiceType.Normal,
                                         Note = paymentRequestData.Note,
@@ -393,7 +393,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                         var transaction = new Transaction();
                                         transaction.Id = "DH" + invoiceCode;
                                         transaction.TransactionType = (int)TransactionType.SaleItem;
-                                        transaction.TransactionDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss"));
+                                        transaction.TransactionDate = TimeConverter.GetVietNamTime();
                                         transaction.CustomerId = paymentRequestData.CustomerId;
                                         transaction.InvoiceId = invoice.Id;
                                         transaction.Amount = (decimal)storeInvoice.FinalPrice;
@@ -404,7 +404,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                         shippingDetail.Id = "GH" + invoiceCode;
                                         shippingDetail.Invoice = invoice;
                                         shippingDetail.PhoneReceive = paymentRequestData.PhoneReceive;
-                                        shippingDetail.EstimatedArrival = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")).AddDays(3);
+                                        shippingDetail.EstimatedArrival = TimeConverter.GetVietNamTime().AddDays(3);
                                         shippingDetail.Address = customerAddress;
                                         shippingDetail.ShippingFee = storeInvoice.ShippngFree;
                                         await _shippingDetailRepositoryScope.AddAsync(shippingDetail);
@@ -415,13 +415,12 @@ namespace CMMS.Infrastructure.Services.Payment
                                     {
                                         Id = Guid.NewGuid().ToString(),
                                         AmountPaid = (decimal)invoice.SalePrice,
-                                        PaymentDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss")),
+                                        PaymentDate = TimeConverter.GetVietNamTime(),
                                         PaymentDescription = orderInfo,
                                         PaymentStatus = 0,
                                         PaymentMethod = "pay",
                                         InvoiceId = invoice.Id,
                                         BankCode = vnpayPaymentRequest.vnp_BankCode,
-
                                     };
                                     await _paymentRepositoryscoped.AddAsync(payment);
                                 }
@@ -498,7 +497,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         var transaction = new Transaction();
                         transaction.Id = "TT" + invoice.Id;
                         transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
-                        transaction.TransactionDate = DateTime.Parse(TimeConverter.GetVietNamTime().AddMinutes(5).ToString("yyyyMMddHHmmss"));
+                        transaction.TransactionDate = TimeConverter.GetVietNamTime();
                         transaction.CustomerId = invoice.CustomerId;
                         transaction.InvoiceId = invoice.Id;
                         transaction.Amount = (decimal)invoice.SalePrice;
