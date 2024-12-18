@@ -105,6 +105,10 @@ namespace CMMS.API.Controllers
                     }
                     if (!fromStoreId.IsNullOrEmpty())
                     {
+                        if (fromStoreId == request.StoreId)
+                        {
+                            return BadRequest("From store id can not be store id!");
+                        }
                         var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, fromStoreId);
                         if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - (storeInventoryItem.InOrderQuantity ?? 0) < importQuantity)
                             return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
@@ -165,6 +169,7 @@ namespace CMMS.API.Controllers
                             await _storeInventoryService.AddAsync(new StoreInventory()
                             {
                                 Id = Guid.NewGuid(),
+                                StoreId = request.StoreId,
                                 MaterialId = request.MaterialId,
                                 VariantId = request.Id,
                                 TotalQuantity = request.Quantity,
@@ -270,6 +275,7 @@ namespace CMMS.API.Controllers
                                     await _storeInventoryService.AddAsync(new StoreInventory()
                                     {
                                         Id = Guid.NewGuid(),
+                                        StoreId = request.StoreId,
                                         MaterialId = variant.MaterialId,
                                         VariantId = variant.Id,
                                         TotalQuantity = request.Quantity,
@@ -375,11 +381,12 @@ namespace CMMS.API.Controllers
                                         storeInventory.TotalQuantity += request.Quantity * variant.ConversionUnit.ConversionRate;
                                         storeInventory.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                     }
-                                    else
+                                    if (storeInventory == null)
                                     {
                                         await _storeInventoryService.AddAsync(new StoreInventory()
                                         {
                                             Id = Guid.NewGuid(),
+                                            StoreId = request.StoreId,
                                             MaterialId = rootVariant.MaterialId,
                                             VariantId = rootVariant.Id,
                                             TotalQuantity = request.Quantity * variant.ConversionUnit.ConversionRate,
@@ -388,6 +395,7 @@ namespace CMMS.API.Controllers
                                             LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
                                         });
                                     }
+
                                     //var warehouse = _warehouseService
                                     //    .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
                                     //if (warehouse != null)
@@ -401,11 +409,11 @@ namespace CMMS.API.Controllers
                                         var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                             .FirstOrDefaultAsync();
                                         var storeInventoryItem = _storeInventoryService
-                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
+                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == variant.AttributeVariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
                                         if (storeInventoryItem != null)
                                         {
-                                            storeInventoryItem.TotalQuantity -= request.Quantity;
-                                            storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
+                                            storeInventoryItem.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
+                                            storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - (request.Quantity * variant.ConversionUnit.ConversionRate);
                                             storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
@@ -437,13 +445,13 @@ namespace CMMS.API.Controllers
                                     else
                                     {
                                         var warehouse = _warehouseService
-                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == variant.AttributeVariantId).FirstOrDefault();
                                         var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                             .FirstOrDefaultAsync();
                                         if (warehouse != null)
                                         {
-                                            warehouse.TotalQuantity -= request.Quantity;
-                                            warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
+                                            warehouse.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
+                                            warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - (request.Quantity * variant.ConversionUnit.ConversionRate);
                                             warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                                             var goodsNote = new GoodsDeliveryNote()
                                             {
