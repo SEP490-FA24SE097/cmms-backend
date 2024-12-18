@@ -268,6 +268,18 @@ namespace CMMS.API.Controllers
 
             string userName = _userService.GenerateCustomerCode();
             model.UserName = userName;
+
+            var emailExist = await _userService.FindbyEmail(model.Email);
+            var userNameExist = await _userService.FindByUserName(model.UserName);
+            if (emailExist != null)
+            {
+                return BadRequest("Email đã được sử dụng");
+            }
+            else if (userNameExist != null)
+            {
+                return BadRequest("User đã được sử dụng");
+            }
+
             if (model.TaxCode != null)
             {
                 var taxCode = model.TaxCode;

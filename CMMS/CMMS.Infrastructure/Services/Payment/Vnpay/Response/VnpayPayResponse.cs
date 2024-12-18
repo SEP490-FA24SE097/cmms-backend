@@ -75,5 +75,6 @@ namespace CMMS.Infrastructure.Services.Payment.Vnpay.Response
 	{
 		public string PaymentStatus { get; set; }
 		public string PaymentMessage { get; set; }
-	}
+		public string? RedirectUrl { get; set; }
+    }
 }

@@ -476,9 +476,11 @@ namespace CMMS.Infrastructure.Services.Payment
                     {
                         case "00":
                             resultData.PaymentMessage = "Payment succesfully";
+                            resultData.RedirectUrl = _configuration["Vnpay:PaymentSuccessed"].ToString();
                             break;
                         case "10":
                             resultData.PaymentMessage = "Payment process failed";
+                            resultData.RedirectUrl = _configuration["Vnpay:PaymentFailed"].ToString();
                             break;
                     }
 
