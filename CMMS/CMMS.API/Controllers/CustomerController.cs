@@ -354,11 +354,12 @@ namespace CMMS.API.Controllers
                             invoiceDetail.ItemName += $" | {variantAttribute.Value}";
                             invoiceDetail.SalePrice = variant.Price;
                             invoiceDetail.ImageUrl = variant.VariantImageUrl;
-                            invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                    
                         }
                     }
                 }
-                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+                invoice.SalePrice += (shippingDetail.ShippingFee != null ? (decimal)shippingDetail.ShippingFee : 0);
+                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
 
             return Ok(new

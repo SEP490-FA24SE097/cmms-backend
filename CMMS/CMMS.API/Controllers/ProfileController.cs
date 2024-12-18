@@ -173,8 +173,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-
-                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoicelVM>(shippingDetail);
+                invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
 
 

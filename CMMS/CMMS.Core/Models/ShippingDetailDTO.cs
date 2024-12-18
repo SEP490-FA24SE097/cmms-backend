@@ -57,6 +57,21 @@ namespace CMMS.Core.Models
         public DateTime EstimatedArrival { get; set; }
     }
 
+    public class ShippingDetaiInvoiceResponseVM
+    {
+        public string? Id { get; set; }
+        public string Address { get; set; }
+        public string? PhoneReceive { get; set; }
+        public string? ShipperName { get; set; }
+        public decimal? ShippingFee { get; set; }
+        public string? ShipperCode { get; set; }
+        public string? Note { get; set; }
+        public DateTime? ShippingDate { get; set; }
+        public DateTime EstimatedArrival { get; set; }
+    }
+
+
+
     public class ShippingDetailFilterModel
     {
         public string? InvoiceId { get; set; }

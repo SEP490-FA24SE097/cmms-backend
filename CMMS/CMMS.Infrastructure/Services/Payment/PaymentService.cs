@@ -96,6 +96,7 @@ namespace CMMS.Infrastructure.Services.Payment
                     InvoiceType = (int)InvoiceType.Debt,
                     Note = invoiceInfo.Note,
                     TotalAmount = (decimal)invoiceInfo.TotalAmount,
+                    SalePrice = (decimal)invoiceInfo.SalePrice,
                 };
                 await _invoiceService.AddAsync(invoice);
                 await _invoiceService.SaveChangeAsync();
@@ -110,7 +111,7 @@ namespace CMMS.Infrastructure.Services.Payment
                 transaction.CustomerId = invoice.CustomerId;
                 transaction.InvoiceId = invoice.Id;
                 transaction.TransactionPaymentType = 1;
-                transaction.Amount = (decimal)invoiceInfo.TotalAmount;
+                transaction.Amount = (decimal)invoiceInfo.SalePrice;
                 await _transactionService.AddAsync(transaction);
 
                 // insert invoice detail
@@ -136,21 +137,6 @@ namespace CMMS.Infrastructure.Services.Payment
                 if(customer == null) return false;
                 var customerAddress = $"{customer.Address}, {customer.Ward}, {customer.District}, {customer.Province}";
 
-                //  chỗ này đem qua bên phần xử lý hóa đơn.
-                //if (invoiceInfo.Address != null)
-                //{
-                //    var customerDeliveryPostition = (await _shippingService.ResponseLatitueLongtitueValue(customerAddress)).Split(",");
-                //    var newAddress = $"{invoiceInfo.Address}, {invoiceInfo.Ward}, {invoiceInfo.District}, {invoiceInfo.Province}";
-                //    var newDeliveryPostition = (await _shippingService.ResponseLatitueLongtitueValue(newAddress)).Split(",");
-
-                //    var distanceBetween = _shippingService.CalculateDistanceBetweenPostionLatLon(double.Parse(customerDeliveryPostition[0]), double.Parse(customerDeliveryPostition[1]),
-                //        double.Parse(newDeliveryPostition[0]), double.Parse(newDeliveryPostition[1]));
-                //    // nếu khoảng cách lớn hơn 1 thì tính thêm tiền ship
-                //    if (distanceBetween > 1)
-                //    {
-
-                //    }
-                //}
                 var storeInvoices = invoiceInfo.PreCheckOutItemCartModel;
                 var groupInvoiceId = Guid.NewGuid().ToString();
                 foreach (var storeInvoice in storeInvoices)
@@ -354,7 +340,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                         InvoiceType = (int)InvoiceType.Normal,
                                         Note = paymentRequestData.Note,
                                         StoreId = storeId,
-                                        SalePrice = (decimal)storeInvoice.TotalStoreAmount,
+                                        SalePrice = (decimal)storeInvoice.FinalPrice,
                                         TotalAmount = (decimal)storeInvoice.TotalStoreAmount,
                                         Discount = paymentRequestData.Discount != null ? paymentRequestData.Discount : 0,
                                         SellPlace = (int)SellPlace.Website,

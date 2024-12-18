@@ -51,7 +51,7 @@ namespace CMMS.Core.Models
             }
         }
         public List<InvoiceDetailVM>? InvoiceDetails { get; set; }
-        public ShippingDetaiInvoicelVM? shippingDetailVM { get; set; }
+        public ShippingDetaiInvoiceResponseVM? shippingDetailVM { get; set; }
     }
 
     public class InvoiceShippingDetailsVM
