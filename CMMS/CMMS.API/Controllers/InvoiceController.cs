@@ -134,7 +134,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-
+                invoice.SalePrice += (decimal)shippingDetail.ShippingFee;
                 invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
             }
 
@@ -227,9 +227,9 @@ namespace CMMS.API.Controllers
                                 invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
                             }
                         }
-                        invoiceDetail.ItemTotalPrice += (decimal)shippingDetail.ShippingFee;
                     }
 
+                    invoice.SalePrice += (decimal)shippingDetail.ShippingFee;
                     invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
                 }
 
