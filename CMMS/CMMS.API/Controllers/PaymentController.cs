@@ -156,7 +156,7 @@ namespace CMMS.API.Controllers
                 else
                 {
                     var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                    decimal roundedAmount = Math.Floor(shippingFee / 10) * 10;
+                    decimal roundedAmount = Math.Floor(shippingFee / 10);
                     result.ShippngFree = roundedAmount;
                     result.FinalPrice = shippingFee + result.TotalStoreAmount;
                 }
