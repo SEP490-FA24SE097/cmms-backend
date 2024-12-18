@@ -14,10 +14,10 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 
 # Install dependencies for wkhtmltopdf
-RUN apk add --no-cache \
+RUN apk update && apk add --no-cache \
     libxrender \
     libxext \
-    libfontconfig \
+    fontconfig \
     libjpeg-turbo \
     libpng \
     ttf-freefont \
