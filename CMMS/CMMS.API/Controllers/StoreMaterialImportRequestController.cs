@@ -67,14 +67,14 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost("cancel-processing-request")]
-        public async Task<IActionResult> Create([FromQuery] Guid requestId)
+        public async Task<IActionResult> Create([FromBody] CancelDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
                 if (request.Status != "Processing")
                 {
-                    return BadRequest("The request status must be 'Processing'");
+                    return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                 }
                 request.Status = "Canceled";
                 request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
@@ -89,31 +89,31 @@ namespace CMMS.API.Controllers
 
 
         [HttpPost("approve-or-cancel-store-material-import-request")]
-        public async Task<IActionResult> Create([FromQuery] string? fromStoreId, [FromQuery] Guid requestId, [FromQuery] bool isApproved)
+        public async Task<IActionResult> Create([FromBody] ApproveDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
                 var item = await GetWarehouseItem(request.MaterialId, request.VariantId);
                 var conversionRate = await GetConversionRate(request.MaterialId, request.VariantId);
                 var importQuantity = conversionRate > 0 ? request.Quantity * conversionRate : request.Quantity;
-                if (isApproved)
+                if (dto.IsApproved)
                 {
                     if (request.Status != "Processing")
                     {
-                        return BadRequest("The request status must be 'Processing'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                     }
-                    if (!fromStoreId.IsNullOrEmpty())
+                    if (!dto.FromStoreId.IsNullOrEmpty())
                     {
-                        if (fromStoreId == request.StoreId)
+                        if (dto.FromStoreId == request.StoreId)
                         {
                             return BadRequest("From store id can not be store id!");
                         }
-                        var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, fromStoreId);
+                        var storeInventoryItem = await GetStoreInventoryItem(request.MaterialId, request.VariantId, dto.FromStoreId);
                         if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - (storeInventoryItem.InOrderQuantity ?? 0) < importQuantity)
                             return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
                         storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) + importQuantity;
-                        request.FromStoreId = fromStoreId;
+                        request.FromStoreId =dto.FromStoreId ;
                         request.Status = "Approved";
                         request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                         await _requestService.SaveChangeAsync();
@@ -128,7 +128,7 @@ namespace CMMS.API.Controllers
                 {
                     if (request.Status != "Processing")
                     {
-                        return BadRequest("The request status must be 'Processing'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Processing'");
                     }
                     request.Status = "Canceled";
                 }
@@ -142,17 +142,17 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpPost("confirm-or-cancel-store-material-import-request")]
-        public async Task<IActionResult> Confirm([FromQuery] Guid requestId, [FromQuery] bool isConfirmed)
+        public async Task<IActionResult> Confirm([FromBody] ConfirmDTO dto)
         {
             try
             {
-                var request = await _requestService.FindAsync(requestId);
+                var request = await _requestService.FindAsync(dto.RequestId);
 
-                if (isConfirmed)
+                if (dto.IsConfirmed)
                 {
                     if (request.Status != "Approved")
                     {
-                        return BadRequest("The request status must be 'Approved'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Approved'");
                     }
                     request.Status = "Confirmed";
                     if (request.VariantId == null)
@@ -488,7 +488,7 @@ namespace CMMS.API.Controllers
                 else
                 {
                     if (request.Status != "Approved")
-                        return BadRequest("The request status must be 'Approved'");
+                        return BadRequest("Trạng thái yêu cầu phải là 'Approved'");
                     request.Status = "Canceled";
                     var item = await GetWarehouseItem(request.MaterialId, request.VariantId);
                     var conversionRate = await GetConversionRate(request.MaterialId, request.VariantId);
@@ -505,13 +505,14 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("get-request-list-by-storeId-and-status")]
-        public async Task<IActionResult> Get([FromQuery] string? storeId, [FromQuery] string? status)
+        public async Task<IActionResult> Get([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] string? storeId, [FromQuery] string? status)
         {
             try
             {
                 var list = _requestService.Get(x => (storeId == null || x.StoreId.Equals(storeId)) && (status == null || x.Status.ToLower().Equals(status.ToLower()))).Include(x => x.Material).Include(x => x.Variant).Include(x => x.Store).Select(x => new
                 {
                     x.Id,
+                    requestCode = "REQ-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     store = x.Store.Name,
                     x.StoreId,
                     material = x.Material.Name,
@@ -523,8 +524,19 @@ namespace CMMS.API.Controllers
                     x.Quantity,
                     x.LastUpdateTime
 
-                }).ToList();
-                return Ok(new { data = list });
+                }).OrderByDescending(x => x.LastUpdateTime).ToList();
+                var secondResult = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1,
+                    itemPerPage == null ? 12 : (int)itemPerPage);
+                return Ok(new
+                {
+                    data = secondResult,
+                    pagination = new
+                    {
+                        total = list.Count,
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
+                    }
+                });
             }
             catch (Exception e)
             {
