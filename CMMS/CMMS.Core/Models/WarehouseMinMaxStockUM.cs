@@ -17,7 +17,7 @@ namespace CMMS.Core.Models
     {
         public string StoreId { get; set; }
     }
-    public class AutoImportQuantityUM : WarehouseMinMaxStockUM
+    public class AutoImportQuantityUM 
     {
         public string StoreId { get; set; }
         public Guid MaterialId { get; set; }
