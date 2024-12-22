@@ -9,6 +9,7 @@ using CMMS.Core.Models;
 using static CMMS.API.TimeConverter.TimeConverter;
 using CMMS.API.TimeConverter;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NuGet.Packaging.Signing;
@@ -444,12 +445,17 @@ namespace CMMS.API.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var existImp = await _importService.FindAsync(import.ImportId);
-                if (existImp.Status == "Đã nhập hàng")
-                    return BadRequest(ModelState);
+                var existImp = await _importService.Get(x => x.Id == import.ImportId).Include(x => x.ImportDetails)
+                    .FirstOrDefaultAsync();
+                if (existImp == null)
+                {
+                    return BadRequest("Phiếu nhập không tồn tại!!");
+                }
+
+                if (existImp != null && existImp.Status == "Đã nhập hàng")
+                    return BadRequest("Không thể cập nhật phiếu đã nhập hàng!");
                 if (existImp != null)
                 {
-
                     existImp.Quantity = import.Quantity;
                     existImp.TotalPrice = import.TotalPrice;
                     existImp.TimeStamp = GetVietNamTime();
@@ -458,120 +464,97 @@ namespace CMMS.API.Controllers
                     existImp.TotalDue = import.TotalDue;
                     existImp.Note = import.Note;
                     existImp.Status = import.Status;
-                    existImp.ImportDetails = import.ImportDetails.Select(x => new ImportDetail()
+                    var updatedDetails = import.ImportDetails;
+                    foreach (var updatedDetail in updatedDetails)
                     {
-                        Id = x.Id,
-                        ImportId = existImp.Id,
-                        VariantId = x.VariantId,
-                        MaterialId = x.MaterialId,
-                        PriceAfterDiscount = x.PriceAfterDiscount,
-                        UnitDiscount = x.UnitDiscount,
-                        UnitPrice = x.UnitPrice,
-                        Quantity = x.Quantity,
-                        Note = x.Note
-                    }).ToList();
-
-                }
-                await _importService.SaveChangeAsync();
-                await _importDetailService.AddRange(import.ImportDetails.Select(x => new ImportDetail()
-                {
-                    Id = Guid.NewGuid(),
-                    ImportId = existImp.Id,
-                    VariantId = x.VariantId,
-                    MaterialId = x.MaterialId,
-                    PriceAfterDiscount = x.PriceAfterDiscount,
-                    UnitDiscount = x.UnitDiscount,
-                    UnitPrice = x.UnitPrice,
-                    Quantity = x.Quantity,
-                    Note = x.Note
-                }));
-                await _importDetailService.SaveChangeAsync();
-                if (!existImp.StoreId.IsNullOrEmpty())
-                {
-                    if (import.Status == "Đã nhập hàng")
-                    {
-                        var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
-                            .Select(x => x.ImportDetails).FirstOrDefault();
-                        foreach (var item in list)
+                        var existingDetail = existImp.ImportDetails.FirstOrDefault(x => x.Id == updatedDetail.Id);
+                        if (existingDetail == null)
                         {
-                            if (item.VariantId == null)
+                            existImp.ImportDetails.Add(new ImportDetail()
                             {
-                                var storeInventory = _storeInventoryService
-                                    .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
-                                    .FirstOrDefault();
-                                if (storeInventory != null)
-                                {
-                                    storeInventory.TotalQuantity += item.Quantity;
-                                    storeInventory.LastUpdateTime = GetVietNamTime();
-                                }
-                                else
-                                {
-                                    await _storeInventoryService.AddAsync(new StoreInventory()
-                                    {
-                                        Id = Guid.NewGuid(),
-                                        StoreId = existImp.StoreId,
-                                        MaterialId = item.MaterialId,
-                                        VariantId = item.VariantId,
-                                        TotalQuantity = item.Quantity,
-                                        MinStock = 10,
-                                        MaxStock = 1000,
-                                        InOrderQuantity = 0,
-                                        ImportQuantity = 0,
-                                        LastUpdateTime = GetVietNamTime()
-                                    });
-                                }
+                                Id = Guid.NewGuid(),
+                                VariantId = updatedDetail.VariantId,
+                                MaterialId = updatedDetail.MaterialId,
+                                PriceAfterDiscount = updatedDetail.PriceAfterDiscount,
+                                UnitDiscount = updatedDetail.UnitDiscount,
+                                UnitPrice = updatedDetail.UnitPrice,
+                                Quantity = updatedDetail.Quantity,
+                                Note = updatedDetail.Note
+                            });
+                        }
+                        else
+                        {
+                            existingDetail.VariantId = updatedDetail.VariantId;
+                            existingDetail.MaterialId = updatedDetail.MaterialId;
+                            existingDetail.PriceAfterDiscount = updatedDetail.PriceAfterDiscount;
+                            existingDetail.UnitDiscount = updatedDetail.UnitDiscount;
+                            existingDetail.UnitPrice = updatedDetail.UnitPrice;
+                            existingDetail.Quantity = updatedDetail.Quantity;
+                            existingDetail.Note = updatedDetail.Note;
+                        }
+                    }
 
-                                await _storeInventoryService.SaveChangeAsync();
+                    var detailIdsToKeep = updatedDetails.Select(x => x.Id).ToList();
+                    var detailsToRemove = existImp.ImportDetails.Where(x => !detailIdsToKeep.Contains(x.Id)).ToList();
 
-                            }
-                            else
+                    foreach (var detailToRemove in detailsToRemove)
+                    {
+                        existImp.ImportDetails.Remove(detailToRemove);
+                    }
+
+                    await _importService.SaveChangeAsync();
+                    if (!existImp.StoreId.IsNullOrEmpty())
+                    {
+                        if (import.Status == "Đã nhập hàng")
+                        {
+                            var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
+                                .Select(x => x.ImportDetails).FirstOrDefault();
+                            foreach (var item in list)
                             {
-                                var variant = _variantService.Get(x => x.Id == item.VariantId)
-                                    .Include(x => x.ConversionUnit).FirstOrDefault();
-                                if (variant != null)
+                                if (item.VariantId == null)
                                 {
-                                    if (variant.ConversionUnitId == null)
+                                    var storeInventory = _storeInventoryService
+                                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
+                                        .FirstOrDefault();
+                                    if (storeInventory != null)
                                     {
-                                        var storeInventory = _storeInventoryService
-                                            .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id)
-                                            .FirstOrDefault();
-                                        if (storeInventory != null)
-                                        {
-                                            storeInventory.TotalQuantity += item.Quantity;
-                                            storeInventory.LastUpdateTime = GetVietNamTime();
-                                        }
-                                        else
-                                        {
-                                            await _storeInventoryService.AddAsync(new StoreInventory()
-                                            {
-                                                Id = Guid.NewGuid(),
-                                                StoreId = existImp.StoreId,
-                                                MaterialId = item.MaterialId,
-                                                VariantId = item.VariantId,
-                                                TotalQuantity = item.Quantity,
-                                                MinStock = 10,
-                                                MaxStock = 1000,
-                                                InOrderQuantity = 0,
-                                                ImportQuantity = 0,
-                                                LastUpdateTime = GetVietNamTime()
-                                            });
-                                        }
-
-                                        await _storeInventoryService.SaveChangeAsync();
+                                        storeInventory.TotalQuantity += item.Quantity;
+                                        storeInventory.LastUpdateTime = GetVietNamTime();
                                     }
                                     else
                                     {
-                                        var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
-                                            .FirstOrDefault();
-                                        if (rootVariant != null)
+                                        await _storeInventoryService.AddAsync(new StoreInventory()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            StoreId = existImp.StoreId,
+                                            MaterialId = item.MaterialId,
+                                            VariantId = item.VariantId,
+                                            TotalQuantity = item.Quantity,
+                                            MinStock = 10,
+                                            MaxStock = 1000,
+                                            InOrderQuantity = 0,
+                                            ImportQuantity = 0,
+                                            LastUpdateTime = GetVietNamTime()
+                                        });
+                                    }
+
+                                    await _storeInventoryService.SaveChangeAsync();
+
+                                }
+                                else
+                                {
+                                    var variant = _variantService.Get(x => x.Id == item.VariantId)
+                                        .Include(x => x.ConversionUnit).FirstOrDefault();
+                                    if (variant != null)
+                                    {
+                                        if (variant.ConversionUnitId == null)
                                         {
                                             var storeInventory = _storeInventoryService
-                                                .Get(x => x.MaterialId == rootVariant.MaterialId &&
-                                                          x.VariantId == rootVariant.Id).FirstOrDefault();
+                                                .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id)
+                                                .FirstOrDefault();
                                             if (storeInventory != null)
                                             {
-                                                storeInventory.TotalQuantity +=
-                                                    item.Quantity * variant.ConversionUnit.ConversionRate;
+                                                storeInventory.TotalQuantity += item.Quantity;
                                                 storeInventory.LastUpdateTime = GetVietNamTime();
                                             }
                                             else
@@ -593,89 +576,94 @@ namespace CMMS.API.Controllers
 
                                             await _storeInventoryService.SaveChangeAsync();
                                         }
-                                    }
-                                }
+                                        else
+                                        {
+                                            var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                                .FirstOrDefault();
+                                            if (rootVariant != null)
+                                            {
+                                                var storeInventory = _storeInventoryService
+                                                    .Get(x => x.MaterialId == rootVariant.MaterialId &&
+                                                              x.VariantId == rootVariant.Id).FirstOrDefault();
+                                                if (storeInventory != null)
+                                                {
+                                                    storeInventory.TotalQuantity +=
+                                                        item.Quantity * variant.ConversionUnit.ConversionRate;
+                                                    storeInventory.LastUpdateTime = GetVietNamTime();
+                                                }
+                                                else
+                                                {
+                                                    await _storeInventoryService.AddAsync(new StoreInventory()
+                                                    {
+                                                        Id = Guid.NewGuid(),
+                                                        StoreId = existImp.StoreId,
+                                                        MaterialId = item.MaterialId,
+                                                        VariantId = item.VariantId,
+                                                        TotalQuantity = item.Quantity,
+                                                        MinStock = 10,
+                                                        MaxStock = 1000,
+                                                        InOrderQuantity = 0,
+                                                        ImportQuantity = 0,
+                                                        LastUpdateTime = GetVietNamTime()
+                                                    });
+                                                }
 
+                                                await _storeInventoryService.SaveChangeAsync();
+                                            }
+                                        }
+                                    }
+
+                                }
                             }
                         }
                     }
-                }
-                else
-                {
-                    if (import.Status == "Đã nhập hàng")
+                    else
                     {
-                        var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
-                            .Select(x => x.ImportDetails).FirstOrDefault();
-                        foreach (var item in list)
+                        if (import.Status == "Đã nhập hàng")
                         {
-                            if (item.VariantId == null)
+                            var list = _importService.Get(x => x.Id == existImp.Id).Include(x => x.ImportDetails)
+                                .Select(x => x.ImportDetails).FirstOrDefault();
+                            foreach (var item in list)
                             {
-                                var warehouse = _warehouseService
-                                    .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
-                                    .FirstOrDefault();
-                                if (warehouse != null)
+                                if (item.VariantId == null)
                                 {
-                                    warehouse.TotalQuantity += item.Quantity;
-                                    warehouse.LastUpdateTime = GetVietNamTime();
-                                }
-                                else
-                                {
-                                    await _warehouseService.AddAsync(new Warehouse
+                                    var warehouse = _warehouseService
+                                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
+                                        .FirstOrDefault();
+                                    if (warehouse != null)
                                     {
-                                        Id = Guid.NewGuid(),
-                                        MaterialId = item.MaterialId,
-                                        VariantId = item.VariantId,
-                                        TotalQuantity = item.Quantity,
-                                        LastUpdateTime = GetVietNamTime()
-                                    });
-                                }
-
-                                await _warehouseService.SaveChangeAsync();
-
-                            }
-                            else
-                            {
-                                var variant = _variantService.Get(x => x.Id == item.VariantId)
-                                    .Include(x => x.ConversionUnit).FirstOrDefault();
-                                if (variant != null)
-                                {
-                                    if (variant.ConversionUnitId == null)
-                                    {
-                                        var warehouse = _warehouseService
-                                            .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id)
-                                            .FirstOrDefault();
-                                        if (warehouse != null)
-                                        {
-                                            warehouse.TotalQuantity += item.Quantity;
-                                            warehouse.LastUpdateTime = GetVietNamTime();
-                                        }
-                                        else
-                                        {
-                                            await _warehouseService.AddAsync(new Warehouse
-                                            {
-                                                Id = Guid.NewGuid(),
-                                                MaterialId = variant.MaterialId,
-                                                VariantId = variant.Id,
-                                                TotalQuantity = item.Quantity,
-                                                LastUpdateTime = GetVietNamTime()
-                                            });
-                                        }
-
-                                        await _warehouseService.SaveChangeAsync();
+                                        warehouse.TotalQuantity += item.Quantity;
+                                        warehouse.LastUpdateTime = GetVietNamTime();
                                     }
                                     else
                                     {
-                                        var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
-                                            .FirstOrDefault();
-                                        if (rootVariant != null)
+                                        await _warehouseService.AddAsync(new Warehouse
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            MaterialId = item.MaterialId,
+                                            VariantId = item.VariantId,
+                                            TotalQuantity = item.Quantity,
+                                            LastUpdateTime = GetVietNamTime()
+                                        });
+                                    }
+
+                                    await _warehouseService.SaveChangeAsync();
+
+                                }
+                                else
+                                {
+                                    var variant = _variantService.Get(x => x.Id == item.VariantId)
+                                        .Include(x => x.ConversionUnit).FirstOrDefault();
+                                    if (variant != null)
+                                    {
+                                        if (variant.ConversionUnitId == null)
                                         {
                                             var warehouse = _warehouseService
-                                                .Get(x => x.MaterialId == rootVariant.MaterialId &&
-                                                          x.VariantId == rootVariant.Id).FirstOrDefault();
+                                                .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id)
+                                                .FirstOrDefault();
                                             if (warehouse != null)
                                             {
-                                                warehouse.TotalQuantity +=
-                                                    item.Quantity * variant.ConversionUnit.ConversionRate;
+                                                warehouse.TotalQuantity += item.Quantity;
                                                 warehouse.LastUpdateTime = GetVietNamTime();
                                             }
                                             else
@@ -683,24 +671,56 @@ namespace CMMS.API.Controllers
                                                 await _warehouseService.AddAsync(new Warehouse
                                                 {
                                                     Id = Guid.NewGuid(),
-                                                    MaterialId = rootVariant.MaterialId,
-                                                    VariantId = rootVariant.Id,
-                                                    TotalQuantity = item.Quantity *
-                                                                    variant.ConversionUnit.ConversionRate,
+                                                    MaterialId = variant.MaterialId,
+                                                    VariantId = variant.Id,
+                                                    TotalQuantity = item.Quantity,
                                                     LastUpdateTime = GetVietNamTime()
                                                 });
                                             }
 
                                             await _warehouseService.SaveChangeAsync();
                                         }
-                                    }
-                                }
+                                        else
+                                        {
+                                            var rootVariant = _variantService.Get(x => x.Id == variant.AttributeVariantId)
+                                                .FirstOrDefault();
+                                            if (rootVariant != null)
+                                            {
+                                                var warehouse = _warehouseService
+                                                    .Get(x => x.MaterialId == rootVariant.MaterialId &&
+                                                              x.VariantId == rootVariant.Id).FirstOrDefault();
+                                                if (warehouse != null)
+                                                {
+                                                    warehouse.TotalQuantity +=
+                                                        item.Quantity * variant.ConversionUnit.ConversionRate;
+                                                    warehouse.LastUpdateTime = GetVietNamTime();
+                                                }
+                                                else
+                                                {
+                                                    await _warehouseService.AddAsync(new Warehouse
+                                                    {
+                                                        Id = Guid.NewGuid(),
+                                                        MaterialId = rootVariant.MaterialId,
+                                                        VariantId = rootVariant.Id,
+                                                        TotalQuantity = item.Quantity *
+                                                                        variant.ConversionUnit.ConversionRate,
+                                                        LastUpdateTime = GetVietNamTime()
+                                                    });
+                                                }
 
+                                                await _warehouseService.SaveChangeAsync();
+                                            }
+                                        }
+                                    }
+
+                                }
                             }
                         }
                     }
+                    return Ok();
                 }
-                return Ok();
+
+                return BadRequest();
             }
             catch (Exception ex)
             {

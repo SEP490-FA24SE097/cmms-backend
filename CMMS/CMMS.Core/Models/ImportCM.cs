@@ -30,7 +30,7 @@ namespace CMMS.Core.Models
         public string? Note { get; set; }
     }
     public class ImportDetailUM
-    {   public Guid Id { get; set; }
+    {   public Guid? Id { get; set; }
         public Guid MaterialId { get; set; }
         public Guid? VariantId { get; set; }
         public decimal Quantity { get; set; }

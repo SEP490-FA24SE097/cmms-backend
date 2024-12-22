@@ -1,4 +1,5 @@
-﻿using CMMS.Core.Entities;
+﻿using System.Xml.XPath;
+using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,12 +20,14 @@ namespace CMMS.API.Controllers
         private readonly IVariantService _variantService;
         private readonly IConversionUnitService _conversionUnitService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
-        public WarehouseController(IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
+        private readonly IMaterialService _materialService;
+        public WarehouseController(IMaterialService materialService, IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _warehouseService = warehouseService;
             _conversionUnitService = conversionUnitService;
             _variantService = variantService;
             _materialVariantAttributeService = materialVariantAttributeService;
+            _materialService = materialService;
         }
         [HttpGet("get-warehouse-products")]
         public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
@@ -63,26 +66,6 @@ namespace CMMS.API.Controllers
                          }).ToList(),
                          LastUpdateTime = x.LastUpdateTime
                      }).ToListAsync();
-                switch (quantityStatus)
-                {
-                    case 1:
-                        //con hang
-                        items = items.Where(x => x.Quantity > 0).ToList();
-                        break;
-                    case 2:
-                        //het hang
-                        items = items.Where(x => x.Quantity <= 0).ToList();
-                        break;
-                    case 3:
-                        //tren min stock
-                        items = items.Where(x => x.Quantity >= x.MinStock).ToList();
-                        break;
-                    case 4:
-                        //duoi min stock
-                        items = items.Where(x => x.Quantity < x.MinStock).ToList();
-                        break;
-
-                }
                 List<WarehouseDTO> list = [];
                 foreach (var item in items)
                 {
@@ -129,7 +112,89 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
+                var extendedItems = _materialService.Get(x => !items.Select(x => x.MaterialId).Contains(x.Id)).
+                    Include(x => x.Variants).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                    Include(x => x.Variants).ThenInclude(x => x.ConversionUnit)
+                    .ToList();
+                List<WarehouseDTO> extendedList = [];
+                if (extendedItems.Count > 0)
+                {
+                    foreach (var item in extendedItems)
+                    {
+                        if (item.Variants.Count > 0)
+                        {
+                            extendedList.AddRange(item.Variants.Select(x => new WarehouseDTO()
+                            {
+                                Id = Guid.NewGuid(),
+                                MaterialId = x.MaterialId,
+                                MaterialCode = x.Material.MaterialCode,
+                                MaterialName = x.Material.Name,
+                                MaterialImage = x.Material.ImageUrl,
+                                MaterialPrice = x.Material.SalePrice,
+                                MaterialCostPrice = x.Material.CostPrice,
+                                VariantId = x.Id,
+                                VariantName = x.SKU,
+                                VariantImage = x.VariantImageUrl,
+                                Quantity = 0,
+                                MinStock = x.ConversionUnitId == null ? x.Material.MinStock : x.Material.MinStock / x.ConversionUnit.ConversionRate,
+                                MaxStock = x.ConversionUnitId == null ? x.Material.MaxStock : x.Material.MaxStock / x.ConversionUnit.ConversionRate,
+                                InOrderQuantity = 0,
+                                VariantPrice = x.Price,
+                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                {
+                                    Name = x.Attribute.Name,
+                                    Value = x.Value
+                                }).ToList(),
+                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                            }));
 
+                        }
+                        else
+                        {
+                            extendedList.Add(new WarehouseDTO()
+                            {
+                                Id = Guid.NewGuid(),
+                                MaterialId = item.Id,
+                                MaterialCode = item.MaterialCode,
+                                MaterialName = item.Name,
+                                MaterialImage = item.ImageUrl,
+                                MaterialPrice = item.SalePrice,
+                                MaterialCostPrice = item.CostPrice,
+                                VariantId = null,
+                                VariantName = null,
+                                VariantImage = null,
+                                Quantity = 0,
+                                MinStock = item.MinStock,
+                                MaxStock = item.MaxStock,
+                                InOrderQuantity = 0,
+                                VariantPrice = null,
+                                Attributes = null,
+                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                            });
+                        }
+                    }
+                }
+                items.AddRange(extendedList);
+                switch (quantityStatus)
+                {
+                    case 1:
+                        //con hang
+                        items = items.Where(x => x.Quantity > 0).ToList();
+                        break;
+                    case 2:
+                        //het hang
+                        items = items.Where(x => x.Quantity <= 0).ToList();
+                        break;
+                    case 3:
+                        //tren min stock
+                        items = items.Where(x => x.Quantity >= x.MinStock).ToList();
+                        break;
+                    case 4:
+                        //duoi min stock
+                        items = items.Where(x => x.Quantity < x.MinStock).ToList();
+                        break;
+
+                }
                 var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
@@ -141,8 +206,6 @@ namespace CMMS.API.Controllers
                         perPage = itemPerPage == null ? 12 : itemPerPage,
                         currentPage = page == null ? 1 : page
                     }
-
-
                 });
             }
             catch (Exception ex)
