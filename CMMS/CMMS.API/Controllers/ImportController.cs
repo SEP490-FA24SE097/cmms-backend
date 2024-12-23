@@ -473,6 +473,7 @@ namespace CMMS.API.Controllers
                             existImp.ImportDetails.Add(new ImportDetail()
                             {
                                 Id = Guid.NewGuid(),
+                                ImportId = existImp.Id,
                                 VariantId = updatedDetail.VariantId,
                                 MaterialId = updatedDetail.MaterialId,
                                 PriceAfterDiscount = updatedDetail.PriceAfterDiscount,
