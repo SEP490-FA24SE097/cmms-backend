@@ -34,8 +34,8 @@ namespace CMMS.Infrastructure.Data
         public DbSet<ImportDetail> ImportDetails { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<StoreInventory> StoreInventories { get; set; }
-        public DbSet<GoodsDeliveryNote> GoodsDeliveryNotes { get; set; }
-        public DbSet<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
+        public DbSet<GoodsNote> GoodsNotes { get; set; }
+        public DbSet<GoodsNoteDetail> GoodsNoteDetails { get; set; }
         public DbSet<SubImage> SubImages { get; set; }
         public DbSet<StoreMaterialImportRequest> StoreMaterialImportRequests { get; set; }
         public DbSet<ConversionUnit> ConversionUnits { get; set; }

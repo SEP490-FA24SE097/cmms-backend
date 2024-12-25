@@ -12,16 +12,16 @@ using Microsoft.IdentityModel.Tokens;
 namespace CMMS.API.Controllers
 {
     [AllowAnonymous]
-    [Route("api/goods-delivery-notes")]
+    [Route("api/goods-notes")]
     [ApiController]
-    public class GoodsDeliveryNoteController : ControllerBase
+    public class GoodsNoteController : ControllerBase
     {
-        private readonly IGoodsDeliveryNoteService _goodsDeliveryNoteService;
-        private readonly IGoodsDeliveryNoteDetailService _goodsDeliveryNoteDetailService;
+        private readonly IGoodsNoteService _goodsDeliveryNoteService;
+        private readonly IGoodsNoteDetailService _goodsDeliveryNoteDetailService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IWarehouseService _warehouseService;
 
-        public GoodsDeliveryNoteController(IGoodsDeliveryNoteService goodsDeliveryNoteService, IGoodsDeliveryNoteDetailService goodsDeliveryNoteDetailService, IStoreInventoryService storeInventoryService, IWarehouseService warehouseService)
+        public GoodsNoteController(IGoodsNoteService goodsDeliveryNoteService, IGoodsNoteDetailService goodsDeliveryNoteDetailService, IStoreInventoryService storeInventoryService, IWarehouseService warehouseService)
         {
             _goodsDeliveryNoteDetailService = goodsDeliveryNoteDetailService;
             _goodsDeliveryNoteService = goodsDeliveryNoteService;
@@ -30,20 +30,32 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage)
+        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? itemPerPage, [FromQuery] string? storeId, [FromQuery] int? type, [FromQuery] bool? isDateDescending, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
             try
             {
-                var list = await _goodsDeliveryNoteService.GetAll().Include(x => x.Store).Select(x => new
+                var list = await _goodsDeliveryNoteService.Get(x => x.StoreId == storeId && (type == null || x.Type == type) && (from == null || x.TimeStamp >= from) && (to == null || x.TimeStamp <= to)).Include(x => x.Store).Select(x => new
                 {
                     id = x.Id,
-                    total = x.Total,
-                    totalByText = x.TotalByText,
+                    noteCode = "Note-" + x.Id.ToString().ToUpper().Substring(0, 4),
                     storeId = x.StoreId,
                     storeName = x.Store.Name,
-                    reason = x.ReasonDescription,
+                    reasonDescription = x.ReasonDescription,
                     timeStamp = x.TimeStamp
                 }).ToListAsync();
+                if (isDateDescending == null)
+                    list = list.OrderByDescending(x => x.timeStamp).ToList();
+                else
+                {
+                    if ((bool)isDateDescending)
+                    {
+                        list = list.OrderByDescending(x => x.timeStamp).ToList();
+                    }
+                    if (!(bool)isDateDescending)
+                    {
+                        list = list.OrderBy(x => x.timeStamp).ToList();
+                    }
+                }
                 var result = Helpers.LinqHelpers.ToPageList(list, page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
@@ -67,22 +79,18 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var details = _goodsDeliveryNoteDetailService.Get(x => x.GoodsDeliveryNoteId == id).Include(x => x.Material).Include(x => x.Variant).Select(x => new
+                var details = _goodsDeliveryNoteDetailService.Get(x => x.GoodsNoteId == id).Include(x => x.Material).Include(x => x.Variant).Select(x => new
                 {
                     id = x.Id,
                     materialId = x.MaterialId,
                     materialName = x.Material.Name,
                     variantId = x.VariantId,
                     sku = x.Variant == null ? null : x.Variant.SKU,
-                    total = x.Total,
                     quantity = x.Quantity,
-                    unitPrice = x.UnitPrice,
                 }).ToList();
-                var result = await _goodsDeliveryNoteService.Get(x => x.Id == id).Include(x => x.Store).Include(x => x.GoodsDeliveryNoteDetails).Select(x => new
+                var result = await _goodsDeliveryNoteService.Get(x => x.Id == id).Include(x => x.Store).Include(x => x.GoodsNoteDetails).Select(x => new
                 {
                     id = x.Id,
-                    total = x.Total,
-                    totalByText = x.TotalByText,
                     storeId = x.StoreId,
                     storeName = x.Store.Name,
                     reason = x.ReasonDescription,
@@ -105,11 +113,9 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var goodsDeliveryNote = new GoodsDeliveryNote
+                var goodsDeliveryNote = new GoodsNote
                 {
                     Id = Guid.NewGuid(),
-                    Total = goodsDeliveryNoteCm.Total,
-                    TotalByText = goodsDeliveryNoteCm.TotalByText,
                     StoreId = goodsDeliveryNoteCm.StoreId,
                     ReasonDescription = goodsDeliveryNoteCm.ReasonDescription,
                     TimeStamp = TimeConverter.TimeConverter.GetVietNamTime()
@@ -117,15 +123,14 @@ namespace CMMS.API.Controllers
                 };
                 await _goodsDeliveryNoteService.AddAsync(goodsDeliveryNote);
                 await _goodsDeliveryNoteService.SaveChangeAsync();
-                await _goodsDeliveryNoteDetailService.AddRangeAsync(goodsDeliveryNoteCm.Details.Select(x => new GoodsDeliveryNoteDetail
+                await _goodsDeliveryNoteDetailService.AddRangeAsync(goodsDeliveryNoteCm.Details.Select(x => new GoodsNoteDetail
                 {
                     Id = Guid.NewGuid(),
-                    GoodsDeliveryNoteId = goodsDeliveryNote.Id,
+                    GoodsNoteId = goodsDeliveryNote.Id,
                     MaterialId = x.MaterialId,
                     VariantId = x.VariantId,
-                    Total = x.Total,
                     Quantity = x.Quantity,
-                    UnitPrice = x.UnitPrice,
+
 
                 }));
                 await _goodsDeliveryNoteDetailService.SaveChangeAsync();

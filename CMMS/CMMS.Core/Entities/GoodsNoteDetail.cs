@@ -8,18 +8,16 @@ using System.Threading.Tasks;
 
 namespace CMMS.Core.Entities
 {
-    public class GoodsDeliveryNoteDetail
+    public class GoodsNoteDetail
     {
         [Key]
         public Guid Id { get; set; }
-        public Guid GoodsDeliveryNoteId { get; set; }
+        public Guid GoodsNoteId { get; set; }
         public Guid MaterialId { get; set; }
         public Guid? VariantId { get; set; }
         public Decimal Quantity { get; set; }
-        public Decimal UnitPrice { get; set; }
-        public Decimal Total { get; set; }
         public virtual Material  Material { get; set; }
         public virtual Variant? Variant { get; set; }
-        public virtual GoodsDeliveryNote GoodsDeliveryNote { get; set; }
+        public virtual GoodsNote GoodsNote { get; set; }
     }
 }

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography.X509Certificates;
+using CMMS.Core.Enums;
 
 namespace CMMS.API.Controllers
 {
@@ -20,11 +21,11 @@ namespace CMMS.API.Controllers
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IWarehouseService _warehouseService;
         private readonly IVariantService _variantService;
-        private readonly IGoodsDeliveryNoteService _goodsDeliveryNoteService;
-        private readonly IGoodsDeliveryNoteDetailService _goodsDeliveryNoteDetailService;
+        private readonly IGoodsNoteService _goodsDeliveryNoteService;
+        private readonly IGoodsNoteDetailService _goodsDeliveryNoteDetailService;
         private readonly IStoreService _storeService;
 
-        public StoreMaterialImportRequestController(IStoreService storeService, IGoodsDeliveryNoteService goodsDeliveryNoteService, IGoodsDeliveryNoteDetailService goodsDeliveryNoteDetailService, IWarehouseService warehouseService, IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService, IVariantService variantService)
+        public StoreMaterialImportRequestController(IStoreService storeService, IGoodsNoteService goodsDeliveryNoteService, IGoodsNoteDetailService goodsDeliveryNoteDetailService, IWarehouseService warehouseService, IStoreMaterialImportRequestService requestService, IStoreInventoryService storeInventoryService, IVariantService variantService)
         {
             _storeInventoryService = storeInventoryService;
             _requestService = requestService;
@@ -113,7 +114,7 @@ namespace CMMS.API.Controllers
                         if (storeInventoryItem == null || storeInventoryItem.TotalQuantity - (storeInventoryItem.InOrderQuantity ?? 0) < importQuantity)
                             return BadRequest("Không đủ sản phẩm trong kho cửa hàng để chuyển");
                         storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) + importQuantity;
-                        request.FromStoreId =dto.FromStoreId ;
+                        request.FromStoreId = dto.FromStoreId;
                         request.Status = "Approved";
                         request.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
                         await _requestService.SaveChangeAsync();
@@ -183,6 +184,8 @@ namespace CMMS.API.Controllers
                         {
                             var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                 .FirstOrDefaultAsync();
+                            var fromStoreName = await _storeService.Get(x => x.Id == request.FromStoreId).Select(x => x.Name)
+                                .FirstOrDefaultAsync();
                             var storeInventoryItem = _storeInventoryService
                                 .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
                             if (storeInventoryItem != null)
@@ -190,28 +193,44 @@ namespace CMMS.API.Controllers
                                 storeInventoryItem.TotalQuantity -= request.Quantity;
                                 storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
                                 storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                var goodsNote = new GoodsDeliveryNote()
+                                var goodsNote = new GoodsNote()
                                 {
                                     Id = Guid.NewGuid(),
                                     StoreId = request.FromStoreId,
-                                    ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                    Total = 0,
-                                    TotalByText = "Không đồng",
+                                    ReasonDescription = $"Chuyển hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                    TotalQuantity = request.Quantity,
+                                    Type = (int)GoodsNoteType.Delivery,
                                     TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                 };
                                 await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                var goodsNoteDetail = new GoodsNoteDetail()
                                 {
                                     Id = Guid.NewGuid(),
-                                    GoodsDeliveryNoteId = goodsNote.Id,
+                                    GoodsNoteId = goodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
                                     Quantity = request.Quantity,
-                                    UnitPrice = 0,
-                                    Total = 0
                                 };
                                 await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                var secondGoodsNote = new GoodsNote()
+                                {
+                                    Id = Guid.NewGuid(),
+                                    StoreId = request.StoreId,
+                                    ReasonDescription = $"Nhập hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                    TotalQuantity = request.Quantity,
+                                    Type = (int)GoodsNoteType.Receive,
+                                    TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                };
+                                await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                {
+                                    Id = Guid.NewGuid(),
+                                    GoodsNoteId = goodsNote.Id,
+                                    MaterialId = request.MaterialId,
+                                    VariantId = request.VariantId,
+                                    Quantity = request.Quantity,
+                                };
+                                await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                 await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                 return Ok();
                             }
@@ -223,33 +242,50 @@ namespace CMMS.API.Controllers
                                 .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
                             var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                 .FirstOrDefaultAsync();
+                            
                             if (warehouse != null)
                             {
                                 warehouse.TotalQuantity -= request.Quantity;
                                 warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
                                 warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                var goodsNote = new GoodsDeliveryNote()
+                                var goodsNote = new GoodsNote()
                                 {
                                     Id = Guid.NewGuid(),
-                                    StoreId = null,
-                                    ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                    Total = 0,
-                                    TotalByText = "Không đồng",
+                                    StoreId = request.FromStoreId,
+                                    ReasonDescription = $"Chuyển hàng từ kho tổng tới kho {toStoreName}",
+                                    TotalQuantity = request.Quantity,
+                                    Type = (int)GoodsNoteType.Delivery,
                                     TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                 };
                                 await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                var goodsNoteDetail = new GoodsNoteDetail()
                                 {
                                     Id = Guid.NewGuid(),
-                                    GoodsDeliveryNoteId = goodsNote.Id,
+                                    GoodsNoteId = goodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
                                     Quantity = request.Quantity,
-                                    UnitPrice = 0,
-                                    Total = 0
                                 };
                                 await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                var secondGoodsNote = new GoodsNote()
+                                {
+                                    Id = Guid.NewGuid(),
+                                    StoreId = request.StoreId,
+                                    ReasonDescription = $"Nhập hàng từ kho tổng tới kho {toStoreName}",
+                                    TotalQuantity = request.Quantity,
+                                    Type = (int)GoodsNoteType.Receive,
+                                    TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                };
+                                await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                {
+                                    Id = Guid.NewGuid(),
+                                    GoodsNoteId = goodsNote.Id,
+                                    MaterialId = request.MaterialId,
+                                    VariantId = request.VariantId,
+                                    Quantity = request.Quantity,
+                                };
+                                await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                 await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                             }
                         }
@@ -296,6 +332,8 @@ namespace CMMS.API.Controllers
                                 {
                                     var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                         .FirstOrDefaultAsync();
+                                    var fromStoreName = await _storeService.Get(x => x.Id == request.FromStoreId).Select(x => x.Name)
+                                        .FirstOrDefaultAsync();
                                     var storeInventoryItem = _storeInventoryService
                                         .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
                                     if (storeInventoryItem != null)
@@ -303,28 +341,44 @@ namespace CMMS.API.Controllers
                                         storeInventoryItem.TotalQuantity -= request.Quantity;
                                         storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - request.Quantity;
                                         storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                        var goodsNote = new GoodsDeliveryNote()
+                                        var goodsNote = new GoodsNote()
                                         {
                                             Id = Guid.NewGuid(),
                                             StoreId = request.FromStoreId,
-                                            ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                            Total = 0,
-                                            TotalByText = "Không đồng",
+                                            ReasonDescription = $"Chuyển hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                            TotalQuantity = request.Quantity,
+                                            Type = (int)GoodsNoteType.Delivery,
                                             TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                         };
                                         await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                        var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                        var goodsNoteDetail = new GoodsNoteDetail()
                                         {
                                             Id = Guid.NewGuid(),
-                                            GoodsDeliveryNoteId = goodsNote.Id,
+                                            GoodsNoteId = goodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
                                             Quantity = request.Quantity,
-                                            UnitPrice = 0,
-                                            Total = 0
                                         };
                                         await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                        var secondGoodsNote = new GoodsNote()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            StoreId = request.StoreId,
+                                            ReasonDescription = $"Nhập hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                            TotalQuantity = request.Quantity,
+                                            Type = (int)GoodsNoteType.Receive,
+                                            TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                        };
+                                        await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                        var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            GoodsNoteId = goodsNote.Id,
+                                            MaterialId = request.MaterialId,
+                                            VariantId = request.VariantId,
+                                            Quantity = request.Quantity,
+                                        };
+                                        await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                         await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                         return Ok();
                                     }
@@ -341,28 +395,44 @@ namespace CMMS.API.Controllers
                                         warehouse.TotalQuantity -= request.Quantity;
                                         warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - request.Quantity;
                                         warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                        var goodsNote = new GoodsDeliveryNote()
+                                        var goodsNote = new GoodsNote()
                                         {
                                             Id = Guid.NewGuid(),
-                                            StoreId = null,
-                                            ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                            Total = 0,
-                                            TotalByText = "Không đồng",
+                                            StoreId = request.FromStoreId,
+                                            ReasonDescription = $"Chuyển hàng từ kho tổng tới kho {toStoreName}",
+                                            TotalQuantity = request.Quantity,
+                                            Type = (int)GoodsNoteType.Delivery,
                                             TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                         };
                                         await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                        var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                        var goodsNoteDetail = new GoodsNoteDetail()
                                         {
                                             Id = Guid.NewGuid(),
-                                            GoodsDeliveryNoteId = goodsNote.Id,
+                                            GoodsNoteId = goodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
                                             Quantity = request.Quantity,
-                                            UnitPrice = 0,
-                                            Total = 0
                                         };
                                         await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                        var secondGoodsNote = new GoodsNote()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            StoreId = request.StoreId,
+                                            ReasonDescription = $"Nhập hàng từ kho tổng tới kho {toStoreName}",
+                                            TotalQuantity = request.Quantity,
+                                            Type = (int)GoodsNoteType.Receive,
+                                            TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                        };
+                                        await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                        var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            GoodsNoteId = goodsNote.Id,
+                                            MaterialId = request.MaterialId,
+                                            VariantId = request.VariantId,
+                                            Quantity = request.Quantity,
+                                        };
+                                        await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                         await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                     }
                                 }
@@ -408,6 +478,8 @@ namespace CMMS.API.Controllers
                                     {
                                         var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                             .FirstOrDefaultAsync();
+                                        var fromStoreName = await _storeService.Get(x => x.Id == request.FromStoreId).Select(x => x.Name)
+                                            .FirstOrDefaultAsync();
                                         var storeInventoryItem = _storeInventoryService
                                             .Get(x => x.MaterialId == request.MaterialId && x.VariantId == variant.AttributeVariantId && x.StoreId == request.FromStoreId).FirstOrDefault();
                                         if (storeInventoryItem != null)
@@ -415,28 +487,44 @@ namespace CMMS.API.Controllers
                                             storeInventoryItem.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
                                             storeInventoryItem.InOrderQuantity = (storeInventoryItem.InOrderQuantity ?? 0) - (request.Quantity * variant.ConversionUnit.ConversionRate);
                                             storeInventoryItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                            var goodsNote = new GoodsDeliveryNote()
+                                            var goodsNote = new GoodsNote()
                                             {
                                                 Id = Guid.NewGuid(),
                                                 StoreId = request.FromStoreId,
-                                                ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                                Total = 0,
-                                                TotalByText = "Không đồng",
+                                                ReasonDescription = $"Chuyển hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                                TotalQuantity = request.Quantity,
+                                                Type = (int)GoodsNoteType.Delivery,
                                                 TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                             };
                                             await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                            var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                            var goodsNoteDetail = new GoodsNoteDetail()
                                             {
                                                 Id = Guid.NewGuid(),
-                                                GoodsDeliveryNoteId = goodsNote.Id,
+                                                GoodsNoteId = goodsNote.Id,
                                                 MaterialId = request.MaterialId,
                                                 VariantId = request.VariantId,
                                                 Quantity = request.Quantity,
-                                                UnitPrice = 0,
-                                                Total = 0
                                             };
                                             await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                            var secondGoodsNote = new GoodsNote()
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                StoreId = request.StoreId,
+                                                ReasonDescription = $"Nhập hàng từ kho {fromStoreName} tới kho {toStoreName}",
+                                                TotalQuantity = request.Quantity,
+                                                Type = (int)GoodsNoteType.Receive,
+                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                            };
+                                            await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                            var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                GoodsNoteId = goodsNote.Id,
+                                                MaterialId = request.MaterialId,
+                                                VariantId = request.VariantId,
+                                                Quantity = request.Quantity,
+                                            };
+                                            await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                             await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                             return Ok();
                                         }
@@ -448,33 +536,50 @@ namespace CMMS.API.Controllers
                                             .Get(x => x.MaterialId == request.MaterialId && x.VariantId == variant.AttributeVariantId).FirstOrDefault();
                                         var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                             .FirstOrDefaultAsync();
+                                       
                                         if (warehouse != null)
                                         {
                                             warehouse.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
                                             warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - (request.Quantity * variant.ConversionUnit.ConversionRate);
                                             warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
-                                            var goodsNote = new GoodsDeliveryNote()
+                                            var goodsNote = new GoodsNote()
                                             {
                                                 Id = Guid.NewGuid(),
-                                                StoreId = null,
-                                                ReasonDescription = $"Chuyển hàng tới kho {toStoreName}",
-                                                Total = 0,
-                                                TotalByText = "Không đồng",
+                                                StoreId = request.FromStoreId,
+                                                ReasonDescription = $"Chuyển hàng từ kho tổng tới kho {toStoreName}",
+                                                TotalQuantity = request.Quantity,
+                                                Type = (int)GoodsNoteType.Delivery,
                                                 TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
-
                                             };
                                             await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                            var goodsNoteDetail = new GoodsDeliveryNoteDetail()
+                                            var goodsNoteDetail = new GoodsNoteDetail()
                                             {
                                                 Id = Guid.NewGuid(),
-                                                GoodsDeliveryNoteId = goodsNote.Id,
+                                                GoodsNoteId = goodsNote.Id,
                                                 MaterialId = request.MaterialId,
                                                 VariantId = request.VariantId,
                                                 Quantity = request.Quantity,
-                                                UnitPrice = 0,
-                                                Total = 0
                                             };
                                             await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                            var secondGoodsNote = new GoodsNote()
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                StoreId = request.StoreId,
+                                                ReasonDescription = $"Nhập hàng từ kho tổng tới kho {toStoreName}",
+                                                TotalQuantity = request.Quantity,
+                                                Type = (int)GoodsNoteType.Receive,
+                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                            };
+                                            await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
+                                            var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                GoodsNoteId = goodsNote.Id,
+                                                MaterialId = request.MaterialId,
+                                                VariantId = request.VariantId,
+                                                Quantity = request.Quantity,
+                                            };
+                                            await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
                                             await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                         }
                                     }

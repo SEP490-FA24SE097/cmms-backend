@@ -13,6 +13,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NuGet.Packaging.Signing;
+using CMMS.Core.Enums;
+using System.Security.Cryptography.X509Certificates;
 
 namespace CMMS.API.Controllers
 {
@@ -29,7 +31,9 @@ namespace CMMS.API.Controllers
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IStoreInventoryService _storeInventoryService;
         private readonly IStoreService _storeService;
-        public ImportController(IStoreService storeService, IStoreInventoryService storeInventoryService, IImportService importService, IWarehouseService warehouseService, IImportDetailService importDetailService, IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService, IMaterialService materialService)
+        private readonly IGoodsNoteService _goodsNoteService;
+        private readonly IGoodsNoteDetailService _goodsNoteDetailService;
+        public ImportController(IGoodsNoteDetailService goodsNoteDetailService, IGoodsNoteService goodsNoteService, IStoreService storeService, IStoreInventoryService storeInventoryService, IImportService importService, IWarehouseService warehouseService, IImportDetailService importDetailService, IVariantService variantService, IMaterialVariantAttributeService materialVariantAttributeService, IMaterialService materialService)
         {
             _importService = importService;
             _warehouseService = warehouseService;
@@ -39,6 +43,8 @@ namespace CMMS.API.Controllers
             _materialService = materialService;
             _storeInventoryService = storeInventoryService;
             _storeService = storeService;
+            _goodsNoteService = goodsNoteService;
+            _goodsNoteDetailService = goodsNoteDetailService;
         }
 
         // GET: api/imports
@@ -311,7 +317,27 @@ namespace CMMS.API.Controllers
 
                             }
                         }
-
+                        var toStoreName = await _storeService.Get(x => x.Id == import.StoreId).Select(x => x.Name)
+                            .FirstOrDefaultAsync();
+                        var goodsNote = new GoodsNote()
+                        {
+                            Id = Guid.NewGuid(),
+                            StoreId = import.StoreId,
+                            ReasonDescription = $"Nhập hàng từ nhà cung cấp tới kho {toStoreName}",
+                            TotalQuantity = import.Quantity,
+                            Type = (int)GoodsNoteType.Receive,
+                            TimeStamp = GetVietNamTime(),
+                        };
+                        await _goodsNoteService.AddAsync(goodsNote);
+                        await _goodsNoteDetailService.AddRangeAsync(list.Select(x=>new GoodsNoteDetail()
+                        {
+                            Id = Guid.NewGuid(),
+                            GoodsNoteId = goodsNote.Id,
+                            MaterialId =x.MaterialId,
+                            VariantId = x.VariantId,
+                            Quantity = x.Quantity,
+                        }));
+                        await _goodsNoteDetailService.SaveChangeAsync();
                         if (await _storeInventoryService.SaveChangeAsync())
                         {
                             var store = _storeService.Get(x => x.Id == import.StoreId).Select(x => new
@@ -425,6 +451,25 @@ namespace CMMS.API.Controllers
 
                             }
                         }
+                        var goodsNote = new GoodsNote()
+                        {
+                            Id = Guid.NewGuid(),
+                            StoreId = null,
+                            ReasonDescription = $"Nhập hàng từ nhà cung cấp tới kho tổng",
+                            TotalQuantity = import.Quantity,
+                            Type = (int)GoodsNoteType.Receive,
+                            TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                        };
+                        await _goodsNoteService.AddAsync(goodsNote);
+                        await _goodsNoteDetailService.AddRangeAsync(list.Select(x => new GoodsNoteDetail()
+                        {
+                            Id = Guid.NewGuid(),
+                            GoodsNoteId = goodsNote.Id,
+                            MaterialId = x.MaterialId,
+                            VariantId = x.VariantId,
+                            Quantity = x.Quantity,
+                        }));
+                        await _goodsNoteDetailService.SaveChangeAsync();
                     }
                 }
                 return Ok();
@@ -616,6 +661,27 @@ namespace CMMS.API.Controllers
 
                                 }
                             }
+                            var toStoreName = await _storeService.Get(x => x.Id == existImp.StoreId).Select(x => x.Name)
+                                .FirstOrDefaultAsync();
+                            var goodsNote = new GoodsNote()
+                            {
+                                Id = Guid.NewGuid(),
+                                StoreId = existImp.StoreId,
+                                ReasonDescription = $"Nhập hàng từ nhà cung cấp tới kho {toStoreName}",
+                                TotalQuantity = import.Quantity,
+                                Type = (int)GoodsNoteType.Receive,
+                                TimeStamp = GetVietNamTime(),
+                            };
+                            await _goodsNoteService.AddAsync(goodsNote);
+                            await _goodsNoteDetailService.AddRangeAsync(list.Select(x => new GoodsNoteDetail()
+                            {
+                                Id = Guid.NewGuid(),
+                                GoodsNoteId = goodsNote.Id,
+                                MaterialId = x.MaterialId,
+                                VariantId = x.VariantId,
+                                Quantity = x.Quantity,
+                            }));
+                            await _goodsNoteDetailService.SaveChangeAsync();
                         }
                     }
                     else

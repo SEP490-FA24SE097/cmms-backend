@@ -9,16 +9,16 @@ using Microsoft.Identity.Client;
 
 namespace CMMS.Core.Entities
 {
-    public class GoodsDeliveryNote
+    public class GoodsNote
     {
         [Key]
         public Guid Id { get; set; }
         public string? StoreId { get; set; }
         public string ReasonDescription { get; set; }
-        public Decimal Total { get; set; }
-        public string TotalByText { get; set; }
+        public Decimal TotalQuantity { get; set; }
         public DateTime TimeStamp { get; set; }
+        public int Type { get; set; }
         public virtual Store Store { get; set; }
-        public virtual ICollection<GoodsDeliveryNoteDetail> GoodsDeliveryNoteDetails { get; set; }
+        public virtual ICollection<GoodsNoteDetail> GoodsNoteDetails { get; set; }
     }
 }
