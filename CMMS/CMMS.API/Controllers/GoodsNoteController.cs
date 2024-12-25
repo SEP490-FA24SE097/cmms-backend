@@ -41,6 +41,7 @@ namespace CMMS.API.Controllers
                     storeId = x.StoreId,
                     storeName = x.Store.Name,
                     reasonDescription = x.ReasonDescription,
+                    type = x.Type == 1 ? "Nhập hàng" : "Xuất hàng",
                     timeStamp = x.TimeStamp
                 }).ToListAsync();
                 if (isDateDescending == null)
@@ -94,6 +95,7 @@ namespace CMMS.API.Controllers
                     storeId = x.StoreId,
                     storeName = x.Store.Name,
                     reason = x.ReasonDescription,
+                    type = x.Type == 1 ? "Nhập hàng" : "Xuất hàng",
                     timeStamp = x.TimeStamp,
                     details = details
                 }).ToListAsync();
