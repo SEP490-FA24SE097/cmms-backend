@@ -80,7 +80,7 @@ namespace CMMS.API.Controllers
                         {
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                                Include(x => x.Material).ThenInclude(x=>x.Brand).Include(x => x.ConversionUnit).ToList();
+                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ToList();
                             if (subVariants.Count > 0)
                             {
                                 list.AddRange(subVariants.Select(x => new WarehouseDTO()
@@ -116,13 +116,13 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
-                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderByDescending(x => x.Import.TimeStamp)
-                    .ToList().DistinctBy(x => x.MaterialId);
+                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderBy(x => x.Import.TimeStamp)
+                    .ToList();
                 foreach (var item in items)
                 {
                     foreach (var supplier in suppliers)
                     {
-                        if (item.MaterialId == supplier.MaterialId)
+                        if (item.MaterialId == supplier.MaterialId && item.VariantId == supplier.VariantId)
                         {
                             item.Supplier = supplier.Import.SupplierId == null ? null : supplier.Import.Supplier.Name;
                         }

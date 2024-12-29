@@ -272,13 +272,13 @@ namespace CMMS.API.Controllers
                     }
                 }
                 secondItems.AddRange(secondList);
-                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderByDescending(x => x.Import.TimeStamp)
-                    .ToList().DistinctBy(x => x.MaterialId);
+                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderBy(x => x.Import.TimeStamp)
+                    .ToList();
                 foreach (var item in secondItems)
                 {
                     foreach (var supplier in suppliers)
                     {
-                        if (item.MaterialId == supplier.MaterialId)
+                        if (item.MaterialId == supplier.MaterialId && item.VariantId == supplier.VariantId)
                         {
                             item.Supplier = supplier.Import.SupplierId == null ? null : supplier.Import.Supplier.Name;
                         }
