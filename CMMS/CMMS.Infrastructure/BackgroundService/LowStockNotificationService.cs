@@ -48,7 +48,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             var storeMaterialImportRequestService = scope.ServiceProvider.GetRequiredService<IStoreMaterialImportRequestService>();
             var storeIds = await storeInventoryService.GetAll().Select(x => x.StoreId).Distinct().ToListAsync(stoppingToken);
             var lowStockWarehouseProducts = await warehouseService.GetAll().Include(x => x.Material).Include(x => x.Variant)
-                .Where(p => p.TotalQuantity <= p.Material.MinStock)
+                .Where(p => p.TotalQuantity - (p.InRequestQuantity ?? 0) <= p.Material.MinStock)
                 .ToListAsync(stoppingToken);
             foreach (var warehouseProduct in lowStockWarehouseProducts)
             {
@@ -83,7 +83,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             foreach (var storeId in storeIds)
             {
                 var lowStockStoreProducts = await storeInventoryService.GetAll().Include(x => x.Material)
-                    .Where(p => p.TotalQuantity <= p.MinStock && p.StoreId == storeId)
+                    .Where(p => p.TotalQuantity - (p.InOrderQuantity ?? 0) <= p.MinStock && p.StoreId == storeId)
                     .ToListAsync(stoppingToken);
                 foreach (var product in lowStockStoreProducts)
                 {

@@ -21,13 +21,15 @@ namespace CMMS.API.Controllers
         private readonly IConversionUnitService _conversionUnitService;
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IMaterialService _materialService;
-        public WarehouseController(IMaterialService materialService, IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
+        private readonly IImportDetailService _importDetailService;
+        public WarehouseController(IImportDetailService importDetailService, IMaterialService materialService, IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _warehouseService = warehouseService;
             _conversionUnitService = conversionUnitService;
             _variantService = variantService;
             _materialVariantAttributeService = materialVariantAttributeService;
             _materialService = materialService;
+            _importDetailService = importDetailService;
         }
         [HttpGet("get-warehouse-products")]
         public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
@@ -40,7 +42,7 @@ namespace CMMS.API.Controllers
                 var items = await _warehouseService
                      .Get(x => (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
-                     Include(x => x.Material).
+                     Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                      Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
                      {
@@ -49,6 +51,7 @@ namespace CMMS.API.Controllers
                          MaterialCode = x.Material.MaterialCode,
                          MaterialName = x.Material.Name,
                          MaterialImage = x.Material.ImageUrl,
+                         Brand = x.Material.Brand.Name,
                          MaterialPrice = x.Material.SalePrice,
                          MaterialCostPrice = x.Material.CostPrice,
                          VariantId = x.VariantId,
@@ -77,7 +80,7 @@ namespace CMMS.API.Controllers
                         {
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                                Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
+                                Include(x => x.Material).ThenInclude(x=>x.Brand).Include(x => x.ConversionUnit).ToList();
                             if (subVariants.Count > 0)
                             {
                                 list.AddRange(subVariants.Select(x => new WarehouseDTO()
@@ -88,6 +91,7 @@ namespace CMMS.API.Controllers
                                     MaterialCode = x.Material.MaterialCode,
                                     MaterialImage = x.Material.ImageUrl,
                                     MaterialPrice = x.Material.SalePrice,
+                                    Brand = x.Material.Brand.Name,
                                     MaterialCostPrice = x.Material.CostPrice,
                                     VariantId = x.Id,
                                     VariantName = x.SKU,
@@ -112,9 +116,21 @@ namespace CMMS.API.Controllers
                     }
                 }
                 items.AddRange(list);
+                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderByDescending(x => x.Import.TimeStamp)
+                    .ToList().DistinctBy(x => x.MaterialId);
+                foreach (var item in items)
+                {
+                    foreach (var supplier in suppliers)
+                    {
+                        if (item.MaterialId == supplier.MaterialId)
+                        {
+                            item.Supplier = supplier.Import.SupplierId == null ? null : supplier.Import.Supplier.Name;
+                        }
+                    }
+                }
                 var extendedItems = _materialService.Get(x => !items.Select(x => x.MaterialId).Contains(x.Id)).
                     Include(x => x.Variants).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                    Include(x => x.Variants).ThenInclude(x => x.ConversionUnit)
+                    Include(x => x.Variants).ThenInclude(x => x.ConversionUnit).Include(x => x.Brand)
                     .ToList();
                 List<WarehouseDTO> extendedList = [];
                 if (extendedItems.Count > 0)
@@ -130,6 +146,7 @@ namespace CMMS.API.Controllers
                                 MaterialCode = x.Material.MaterialCode,
                                 MaterialName = x.Material.Name,
                                 MaterialImage = x.Material.ImageUrl,
+                                Brand = x.Material.Brand.Name,
                                 MaterialPrice = x.Material.SalePrice,
                                 MaterialCostPrice = x.Material.CostPrice,
                                 VariantId = x.Id,
@@ -264,7 +281,7 @@ namespace CMMS.API.Controllers
                 }
             }
         }
-        private async Task<decimal?> GetConversionRate(Guid materialId, Guid? variantId)
+        private async Task<decimal> GetConversionRate(Guid materialId, Guid? variantId)
         {
             if (variantId == null)
                 return 0;

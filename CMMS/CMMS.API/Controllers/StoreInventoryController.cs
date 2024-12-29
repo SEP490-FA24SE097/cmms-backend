@@ -30,9 +30,10 @@ namespace CMMS.API.Controllers
         private readonly IVariantService _variantService;
         private readonly IMaterialService _materialService;
         private readonly IMapper _mapper;
+        private readonly IImportDetailService _importDetailService;
         private ICurrentUserService _currentUserService;
 
-        public StoreInventoryController(IStoreInventoryService storeInventoryService,
+        public StoreInventoryController(IImportDetailService importDetailService, IStoreInventoryService storeInventoryService,
             ICurrentUserService currentUserService,
             IVariantService variantService,
             IMaterialService materialService,
@@ -45,6 +46,7 @@ namespace CMMS.API.Controllers
             _materialService = materialService;
             _mapper = mapper;
             _currentUserService = currentUserService;
+            _importDetailService = importDetailService;
         }
 
 
@@ -116,7 +118,7 @@ namespace CMMS.API.Controllers
                 {
                     return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
                 }
-                if (item.TotalQuantity == 0)
+                if (item.TotalQuantity <= 0)
                 {
                     return Ok(new { success = true, message = "Hết hàng" });
                 }
@@ -180,7 +182,7 @@ namespace CMMS.API.Controllers
                 var secondItems = await _storeInventoryService
                     .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
-                    Include(x => x.Material).
+                    Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                     Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
                     {
@@ -190,6 +192,7 @@ namespace CMMS.API.Controllers
                         MaterialName = x.Material.Name,
                         MaterialImage = x.Material.ImageUrl,
                         MaterialPrice = x.Material.SalePrice,
+                        Brand = x.Material.Brand.Name,
                         MinStock = x.MinStock,
                         MaxStock = x.MaxStock,
                         VariantId = x.VariantId,
@@ -237,7 +240,8 @@ namespace CMMS.API.Controllers
                         {
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                                Include(x => x.Material).Include(x => x.ConversionUnit).ToList();
+                                Include(x => x.ConversionUnit).
+                                Include(x => x.Material).ThenInclude(x => x.Brand).ToList();
                             secondList.AddRange(subVariants.Select(x => new WarehouseDTO()
                             {
                                 Id = item.Id,
@@ -245,6 +249,7 @@ namespace CMMS.API.Controllers
                                 MaterialName = x.Material.Name,
                                 MaterialCode = x.Material.MaterialCode,
                                 MaterialImage = x.Material.ImageUrl,
+                                Brand = x.Material.Brand.Name,
                                 MaterialPrice = x.Material.SalePrice,
                                 MaterialCostPrice = x.Material.CostPrice,
                                 MinStock = item.MinStock / x.ConversionUnit.ConversionRate,
@@ -267,6 +272,18 @@ namespace CMMS.API.Controllers
                     }
                 }
                 secondItems.AddRange(secondList);
+                var suppliers = _importDetailService.GetAll().Include(x => x.Import).ThenInclude(x => x.Supplier).OrderByDescending(x => x.Import.TimeStamp)
+                    .ToList().DistinctBy(x => x.MaterialId);
+                foreach (var item in secondItems)
+                {
+                    foreach (var supplier in suppliers)
+                    {
+                        if (item.MaterialId == supplier.MaterialId)
+                        {
+                            item.Supplier = supplier.Import.SupplierId == null ? null : supplier.Import.Supplier.Name;
+                        }
+                    }
+                }
                 var secondResult = Helpers.LinqHelpers.ToPageList(secondItems, page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
