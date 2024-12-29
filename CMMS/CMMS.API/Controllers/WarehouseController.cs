@@ -128,70 +128,77 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                var extendedItems = _materialService.Get(x => !items.Select(x => x.MaterialId).Contains(x.Id)).
-                    Include(x => x.Variants).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                    Include(x => x.Variants).ThenInclude(x => x.ConversionUnit).Include(x => x.Brand)
-                    .ToList();
-                List<WarehouseDTO> extendedList = [];
-                if (extendedItems.Count > 0)
-                {
-                    foreach (var item in extendedItems)
-                    {
-                        if (item.Variants.Count > 0)
-                        {
-                            extendedList.AddRange(item.Variants.Select(x => new WarehouseDTO()
-                            {
-                                Id = Guid.NewGuid(),
-                                MaterialId = x.MaterialId,
-                                MaterialCode = x.Material.MaterialCode,
-                                MaterialName = x.Material.Name,
-                                MaterialImage = x.Material.ImageUrl,
-                                Brand = x.Material.Brand.Name,
-                                MaterialPrice = x.Material.SalePrice,
-                                MaterialCostPrice = x.Material.CostPrice,
-                                VariantId = x.Id,
-                                VariantName = x.SKU,
-                                VariantImage = x.VariantImageUrl,
-                                Quantity = 0,
-                                MinStock = x.ConversionUnitId == null ? x.Material.MinStock : x.Material.MinStock / x.ConversionUnit.ConversionRate,
-                                MaxStock = x.ConversionUnitId == null ? x.Material.MaxStock : x.Material.MaxStock / x.ConversionUnit.ConversionRate,
-                                InOrderQuantity = 0,
-                                VariantPrice = x.Price,
-                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
-                                {
-                                    Name = x.Attribute.Name,
-                                    Value = x.Value
-                                }).ToList(),
-                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                            }));
 
-                        }
-                        else
-                        {
-                            extendedList.Add(new WarehouseDTO()
-                            {
-                                Id = Guid.NewGuid(),
-                                MaterialId = item.Id,
-                                MaterialCode = item.MaterialCode,
-                                MaterialName = item.Name,
-                                MaterialImage = item.ImageUrl,
-                                MaterialPrice = item.SalePrice,
-                                MaterialCostPrice = item.CostPrice,
-                                VariantId = null,
-                                VariantName = null,
-                                VariantImage = null,
-                                Quantity = 0,
-                                MinStock = item.MinStock,
-                                MaxStock = item.MaxStock,
-                                InOrderQuantity = 0,
-                                VariantPrice = null,
-                                Attributes = null,
-                                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                            });
-                        }
-                    }
-                }
-                items.AddRange(extendedList);
+                #region MyRegion
+
+                //var extendedItems = _materialService.Get(x => !items.Select(x => x.MaterialId).Contains(x.Id)).
+                //    Include(x => x.Variants).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                //    Include(x => x.Variants).ThenInclude(x => x.ConversionUnit).Include(x => x.Brand)
+                //    .ToList();
+                //List<WarehouseDTO> extendedList = [];
+                //if (extendedItems.Count > 0)
+                //{
+                //    foreach (var item in extendedItems)
+                //    {
+                //        if (item.Variants.Count > 0)
+                //        {
+                //            extendedList.AddRange(item.Variants.Select(x => new WarehouseDTO()
+                //            {
+                //                Id = Guid.NewGuid(),
+                //                MaterialId = x.MaterialId,
+                //                MaterialCode = x.Material.MaterialCode,
+                //                MaterialName = x.Material.Name,
+                //                MaterialImage = x.Material.ImageUrl,
+                //                Brand = x.Material.Brand.Name,
+                //                MaterialPrice = x.Material.SalePrice,
+                //                MaterialCostPrice = x.Material.CostPrice,
+                //                VariantId = x.Id,
+                //                VariantName = x.SKU,
+                //                VariantImage = x.VariantImageUrl,
+                //                Quantity = 0,
+                //                MinStock = x.ConversionUnitId == null ? x.Material.MinStock : x.Material.MinStock / x.ConversionUnit.ConversionRate,
+                //                MaxStock = x.ConversionUnitId == null ? x.Material.MaxStock : x.Material.MaxStock / x.ConversionUnit.ConversionRate,
+                //                InOrderQuantity = 0,
+                //                VariantPrice = x.Price,
+                //                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                //                {
+                //                    Name = x.Attribute.Name,
+                //                    Value = x.Value
+                //                }).ToList(),
+                //                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                //            }));
+
+                //        }
+                //        else
+                //        {
+                //            extendedList.Add(new WarehouseDTO()
+                //            {
+                //                Id = Guid.NewGuid(),
+                //                MaterialId = item.Id,
+                //                MaterialCode = item.MaterialCode,
+                //                MaterialName = item.Name,
+                //                Brand = item.Brand.Name,
+                //                MaterialImage = item.ImageUrl,
+                //                MaterialPrice = item.SalePrice,
+                //                MaterialCostPrice = item.CostPrice,
+                //                VariantId = null,
+                //                VariantName = null,
+                //                VariantImage = null,
+                //                Quantity = 0,
+                //                MinStock = item.MinStock,
+                //                MaxStock = item.MaxStock,
+                //                InOrderQuantity = 0,
+                //                VariantPrice = null,
+                //                Attributes = null,
+                //                LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                //            });
+                //        }
+                //    }
+                //}
+                //items.AddRange(extendedList);
+
+                #endregion
+
                 switch (quantityStatus)
                 {
                     case 1:
