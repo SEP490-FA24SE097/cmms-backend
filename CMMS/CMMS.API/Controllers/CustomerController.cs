@@ -109,14 +109,14 @@ namespace CMMS.API.Controllers
                     currentDebtTotal,
                     totalSale,
                     totalSaleAfterRefund,
-                    result
+                    result,
+                    pagination = new
+                    {
+                        total,
+                        perPage = filterModel.defaultSearch.perPage,
+                        currentPage = filterModel.defaultSearch.currentPage,
+                    }
                 },
-                pagination = new
-                {
-                    total,
-                    perPage = filterModel.defaultSearch.perPage,
-                    currentPage = filterModel.defaultSearch.currentPage,
-                }
             });
         }
         [HttpGet("get-in-store")]
