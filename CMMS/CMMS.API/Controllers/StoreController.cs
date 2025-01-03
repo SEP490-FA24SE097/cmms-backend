@@ -1,14 +1,20 @@
 ﻿using AutoMapper;
 using CMMS.API.Constant;
 using CMMS.API.Helpers;
+using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
+using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
 {
@@ -18,23 +24,33 @@ namespace CMMS.API.Controllers
     public class StoreController : ControllerBase
     {
         private IStoreService _storeService;
+        private IMailService _mailService;
+        private ITransaction _efTransaction;
+        private ICurrentUserService _currentUserService;
         private readonly HttpClient _httpClient;
         private readonly IMapper _mapper;
+        private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
 
         public StoreController(IStoreService storeService, HttpClient httpClient,
-            IConfiguration configuration, IMapper mapper)
+            IConfiguration configuration, IMapper mapper, IUserService userService,
+            IMailService mailService, ITransaction efTransaction, ICurrentUserService currentUserService)
         {
             _storeService = storeService;
             _configuration = configuration;
             _httpClient = httpClient;
             _mapper = mapper;
+            _userService = userService;
+            _mailService = mailService;
+            _efTransaction = efTransaction;
+            _currentUserService = currentUserService;
 
         }
 
-    #region CURD Store 
-    [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType) {
+        #region CURD Store 
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] DefaultSearch defaultSearch, StoreType storeType)
+        {
             var result = _storeService.GetAllStore(storeType);
             var data = result.Sort(string.IsNullOrEmpty(defaultSearch.sortBy) ? "Name" : defaultSearch.sortBy
                       , defaultSearch.isAscending)
@@ -46,7 +62,7 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> GetStoreById(string storeId)
         {
             var result = await _storeService.GetStoreById(storeId);
-            if(result == null) return NotFound("Store not found");
+            if (result == null) return NotFound("Store not found");
             return Ok(result);
         }
 
@@ -123,5 +139,108 @@ namespace CMMS.API.Controllers
         }
 
         #endregion
+        [HttpPut("get-store-manager")]
+        public async Task<IActionResult> GéttoreManager(StoreDTO storeDTO)
+        {
+            var result = await _storeService.UpdateStore(storeDTO);
+            return Ok(result);
+        }
+
+        [HttpPut("add-store-manager")]
+        public async Task<IActionResult> AddStoreManager(StoreDTO storeDTO)
+        {
+            var result = await _storeService.UpdateStore(storeDTO);
+            return Ok(result);
+        }
+
+
+        [HttpPost("add-staff")]
+        public async Task<IActionResult> AddNewStaff(UserDTO model)
+        {
+            var currentUserId = _currentUserService.GetUserId();
+            model.CreatedById = currentUserId;
+            var result = new Core.Constant.Message();
+            if (model.StaffRole == (int)Role.Sale_Staff)
+            {
+                result = await _storeService.AddNewSaleStaffAsync(model);
+            }
+            else if (model.StaffRole == (int)Role.Store_Manager)
+            {
+                result = await _storeService.AddNewStoreManagerAsync(model);
+            }
+            else if (model.StaffRole == (int)Role.Shipper_Store)
+            {
+                result = await _storeService.AddNewShipperAsync(model);
+            }
+            if (result.StatusCode == 200)
+            {
+                await _mailService.SendEmailAsyncStaff(model.Email, "Tài khoản cho hệ thống CMMS", null, model.UserName, model.Password);
+                await _efTransaction.CommitAsync();
+                return Ok(result.Content);
+            }
+                return BadRequest(result.Content);
+            
+        }
+
+        [HttpGet("get-staff")]
+        public async Task<IActionResult> GetStaff([FromQuery] StaffFilterModel filterModel)
+        {
+            var fitlerList = _userService
+            .Get(_ =>
+            (string.IsNullOrEmpty(filterModel.Name) || _.FullName.Contains(filterModel.Name)) &&
+            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
+            (string.IsNullOrEmpty(filterModel.Email) || _.Email.Equals(filterModel.Email)) &&
+            _.StoreId != null);
+
+            if (filterModel.RoleStaff == (int)Role.Sale_Staff)
+            {
+                fitlerList = fitlerList.Where(_ => _.Id.Contains("NVBH"));
+            }
+            else if (filterModel.RoleStaff == (int)Role.Store_Manager)
+            {
+                fitlerList = fitlerList.Where(_ => _.Id.Contains("STM"));
+            }
+            else if (filterModel.RoleStaff == (int)Role.Shipper_Store)
+            {
+                fitlerList = fitlerList.Where(_ => _.Id.Contains("NVVC"));
+            }
+
+            var total = fitlerList.Count();
+            var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
+               .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
+
+            var result = new List<StoreStaffVM>();
+            foreach (var staff in filterListPaged)
+            {
+                var storesStaffVM = new StoreStaffVM();
+                var createBy = _userService.Get(_ => _.Id.Equals(staff.CreatedById)).FirstOrDefault();
+                var store = await _storeService.GetStoreById(staff.StoreId);
+                storesStaffVM.StoreName = store.Name;
+                storesStaffVM.Id = staff.Id;
+                storesStaffVM.Email = staff.Email;
+                storesStaffVM.RoleName = (await _userService.GetRolesAsync(staff)).FirstOrDefault();
+                storesStaffVM.FullName = staff.FullName;
+                storesStaffVM.DOB = staff.DOB.ToString();
+                storesStaffVM.CreateById = staff.CreatedById;
+                storesStaffVM.CreateBy = createBy.FullName;
+                storesStaffVM.StoreId = store.Id;
+
+                result.Add(storesStaffVM);
+            }
+            return Ok(new
+            {
+                data = result,
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
+
+        }
+
+
+
     }
 }

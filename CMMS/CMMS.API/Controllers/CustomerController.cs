@@ -239,25 +239,27 @@ namespace CMMS.API.Controllers
         [HttpPut("update-customer")]
         public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
-            var user = _mapper.Map<ApplicationUser>(model);
-            _userService.Update(user);
+            var user = await _userService.FindAsync(model.Id);
+            var updateUser = _mapper.Map<ApplicationUser>(model);
+            var updatedUser =  _mapper.Map(updateUser, user);
+            _userService.Update(updatedUser);
             var result = await _userService.SaveChangeAsync();
-            return Ok(new
-            {
-                data = result
-            });
+            return Ok("Cập nhật thông tin user thành công");
         }
-        [HttpPost("disable-customer/{id}")]
+        [HttpPost("update-customer-status/{id}")]
         public async Task<ActionResult> DisableCustomerAsync(string id)
         {
             var user = await _userService.FindAsync(id);
-            user.Status = (int)CustomerStatus.Disable;
+            if(user.Status == (int)CustomerStatus.Disable)
+            {
+                user.Status = (int)CustomerStatus.Active;
+            } else if (user.Status == (int)CustomerStatus.Active)
+            {
+                user.Status = (int)CustomerStatus.Disable;
+            }
             _userService.Update(user);
             var result = await _userService.SaveChangeAsync();
-            return Ok(new
-            {
-                data = result
-            });
+            return Ok("Cập nhật trạng thái người dùng thành công");
         }
         [HttpPost]
         public async Task<ActionResult> AddCustomerInStoreAsync(UserDTO model)

@@ -30,6 +30,7 @@ namespace CMMS.Core.Models
         public decimal? CreditLimit { get; set; }
         public decimal? CurrentDebt { get; set; }
         public string? CreatedById { get; set; }
+        public int? StaffRole{ get; set; }
 
     }
     public class UserStoreVM : UserDTO
@@ -163,6 +164,19 @@ namespace CMMS.Core.Models
         }
     }
 
+    public class StaffFilterModel
+    {
+        public string? Email { get; set; }
+        public string? Name { get; set; }
+        public int? RoleStaff { get; set; }
+        public string? StoreId { get; set; }
+        public DefaultSearch defaultSearch { get; set; }
+        public StaffFilterModel()
+        {
+            defaultSearch = new DefaultSearch();
+        }
+    }
+
 
     public class CustomerAddressModel
     {
@@ -182,4 +196,20 @@ namespace CMMS.Core.Models
             defaultSearch = new DefaultSearch();
         }
     }
+
+    public class StoreStaffVM
+    {
+        public string? Id { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
+        public string? RoleName{ get; set; }
+        public string? DOB{ get; set; }
+        public string? StoreId { get; set; }
+        public string? StoreName { get; set; }
+        public string? CreateById { get; set; }
+        public string? CreateBy { get; set; }
+        //public string? CreateAt { get; set; }
+    }
+
+
 }

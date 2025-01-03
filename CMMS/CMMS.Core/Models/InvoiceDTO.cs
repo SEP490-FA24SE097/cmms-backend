@@ -92,6 +92,7 @@ namespace CMMS.Core.Models
         public string? CustomerId { get; set; }
         public string? InvoiceId { get; set; }
         public string? StoreId { get; set; }
+        public string? StaffId { get; set; }
         public int? InvoiceType { get; set; }
         public int? InvoiceStatus { get; set; }
         public DateTime? FromDate { get; set; }

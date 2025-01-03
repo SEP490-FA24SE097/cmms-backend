@@ -21,7 +21,6 @@ namespace CMMS.Infrastructure.Services
     {
         #region CRUD
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
-        Task<IdentityResult> ShipperSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
         Task<Message> AddAsync(UserCM user);
         Task<IList<String>> GetRolesAsync(ApplicationUser user);
@@ -52,6 +51,9 @@ namespace CMMS.Infrastructure.Services
         decimal GetAllCustomerTotalSaleAfterRefund();
         decimal GetCustomerTotalSaleAfterRefund(string userId);
         decimal GetCustomerCurrentDeftAtTheLastTransaction(string transactionId, string userId);
+
+
+
     }
 
     public class UserService : IUserService
@@ -101,28 +103,6 @@ namespace CMMS.Infrastructure.Services
             return null;
         }
 
-        public async Task<IdentityResult> ShipperSignUpAsync(UserDTO model)
-        {
-
-            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
-            if (isDupplicate != null)
-            {
-                return null;
-            }
-            var userList = _userRepository.Get(_ => _.Id.Contains("NVVC"));
-            string userId = $"NVVC{(userList.Count() + 1):D6}";
-            var user = _mapper.Map<ApplicationUser>(model);
-            user.EmailConfirmed = true;
-            user.Id = userId;
-            IdentityResult result = null;
-            result = await _userManager.CreateAsync(user, model.Password);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
-            }
-            
-            return result;
-        }
 
 
         public async Task<IdentityResult> CustomerSignUpAsync(UserDTO model)

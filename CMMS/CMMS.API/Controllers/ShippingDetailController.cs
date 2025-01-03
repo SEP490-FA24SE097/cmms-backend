@@ -207,36 +207,7 @@ namespace CMMS.API.Controllers
             return Ok(new { success = false, message = "Không tìm thấy shipping detail" });
         }
 
-        [HttpPost("add-shipper")]
-        public async Task<IActionResult> AddNewShipper(UserDTO model)
-        {
-            var emailExist = await _userService.FindbyEmail(model.Email);
-            var userNameExist = await _userService.FindByUserName(model.UserName);
-            if (emailExist != null)
-            {
-                return BadRequest("Email đã được sử dụng");
-            }
-            else if (userNameExist != null)
-            {
-                return BadRequest("User đã được sử dụng");
-            }
-            var result = await _userService.ShipperSignUpAsync(model);
 
-            if (result.Succeeded)
-                await _mailService.SendEmailAsyncStaff(model.Email, "Tài khoản shipper cho hệ thống CMMS",null, model.UserName, model.Password);
-
-            await _efTransaction.CommitAsync();
-            return Ok(new
-            {
-                data = result.Succeeded,
-                pagination = new
-                {
-                    total = 0,
-                    perPage = 0,
-                    currentPage = 0,
-                },
-            });
-        }
 
         [HttpGet("get-shipper")]
         public async Task<IActionResult> GetShipper([FromQuery] ShipperFilterModel filterModel)

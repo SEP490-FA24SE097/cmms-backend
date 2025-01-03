@@ -29,6 +29,8 @@ using CMMS.Infrastructure.SignalRHub;
 using DinkToPdf.Contracts;
 using DinkToPdf;
 using CMMS.Infrastructure.InvoicePdf;
+using Microsoft.Extensions.FileProviders;
+using System;
 
 namespace CMMS.API
 {
@@ -37,7 +39,7 @@ namespace CMMS.API
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+            var env = builder.Environment;
             // Add CORS services
             builder.Services.AddCors(options =>
             {
@@ -59,7 +61,7 @@ namespace CMMS.API
             builder.Services.AddScoped<NewRequestNotificationService>();
             builder.Services.AddHttpClient();
             builder.Services.AddDistributedMemoryCache();
-   
+
             // Add services to the container.
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -126,11 +128,11 @@ namespace CMMS.API
                 .RequireAuthenticatedUser()
                 .Build();
             });
-		
 
 
-			// DI 
-			builder.Services.AddInfrastructureServices(builder.Configuration);
+
+            // DI 
+            builder.Services.AddInfrastructureServices(builder.Configuration);
 
             builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -154,7 +156,7 @@ namespace CMMS.API
             {
                 SwaggerConfigOptionsSetup.SwaggerConfigOptions(option);
             });
-             
+
             // auto mapper
             builder.Services.AddAutoMapper(typeof(Program));
             FirebaseApp.Create(new AppOptions
@@ -170,6 +172,13 @@ namespace CMMS.API
             app.MapHub<WarehouseNotificationHub>("/warehouse-notification-hub");
             app.UseSwagger();
             app.UseSwaggerUI();
+
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(env.ContentRootPath, "Exports", "Invoices")),
+                RequestPath = "/Files"
+            });
 
             app.UseRouting();
 
