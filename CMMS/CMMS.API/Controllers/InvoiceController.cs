@@ -748,7 +748,7 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> GetInvoicePdf(string invoiceId)
         {
             var htmlContent = await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
-            var pdfBytes = _generateInvoicePdf.GeneratePdf(htmlContent);
+            var pdfBytes = await _generateInvoicePdf.GeneratePdf(htmlContent);
             return File(pdfBytes, "application/pdf", "Invoice.pdf");
         }
 

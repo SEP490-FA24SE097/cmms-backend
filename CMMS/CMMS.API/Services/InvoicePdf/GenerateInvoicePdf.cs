@@ -17,7 +17,7 @@ namespace CMMS.Infrastructure.InvoicePdf
     public interface IGenerateInvoicePdf
     {
         Task<string> GenerateHtmlFromInvoiceAsync(string invoiceId);
-        byte[] GeneratePdf(string htmlContent);
+        Task<byte[]> GeneratePdf(string htmlContent);
     }
 
     public class GenerateInvoicePdf : IGenerateInvoicePdf
@@ -32,6 +32,7 @@ namespace CMMS.Infrastructure.InvoicePdf
         private IStoreService _storeService;
         private IStoreInventoryService _storeInventoryService;
         private IConverter _converter;
+        private HttpClient _httpClient;
         private IMapper _mapper;
         private IShippingDetailService _shippingDetailService;
 
@@ -45,7 +46,7 @@ namespace CMMS.Infrastructure.InvoicePdf
             IMapper mapper, IUserService userService,
             IStoreService storeService,
             IStoreInventoryService storeInventoryService,
-            IConverter converter
+            IConverter converter, HttpClient httpClient
             )
         {
             _mapper = mapper;
@@ -60,6 +61,8 @@ namespace CMMS.Infrastructure.InvoicePdf
             _storeService = storeService;
             _storeInventoryService = storeInventoryService;
             _converter = converter;
+            _httpClient = httpClient;
+            _httpClient.BaseAddress = new Uri("http://wkhtmltopdf:80");
         }
         public async Task<string> GenerateHtmlFromInvoiceAsync(string invoiceId)
         {
@@ -206,43 +209,43 @@ namespace CMMS.Infrastructure.InvoicePdf
     </html>";
 
             return html;
-
-
-
-
-            return html;
         }
 
-        public byte[] GeneratePdf(string htmlContent)
+        public async Task<byte[]> GeneratePdf(string htmlContent)
         {
-            var globalSettings = new GlobalSettings
-            {
-                ColorMode = ColorMode.Color,
-                Orientation = Orientation.Portrait,
-                PaperSize = PaperKind.A4,
-                Margins = new MarginSettings { Top = 18, Bottom = 18 },
-            };
+            // var globalSettings = new GlobalSettings
+            // {
+            //     ColorMode = ColorMode.Color,
+            //     Orientation = Orientation.Portrait,
+            //     PaperSize = PaperKind.A4,
+            //     Margins = new MarginSettings { Top = 18, Bottom = 18 },
+            // };
 
-            var objectSettings = new ObjectSettings
-            {
-                HtmlContent = htmlContent,
-                WebSettings = { DefaultEncoding = "utf-8" },
-                HeaderSettings = { FontSize = 10, Right = "Page [page] of [toPage]", Line = true },
-                FooterSettings = { FontSize = 8, Center = "PDF demo", Line = true },
-            };
+            // var objectSettings = new ObjectSettings
+            // {
+            //     HtmlContent = htmlContent,
+            //     WebSettings = { DefaultEncoding = "utf-8" },
+            //     HeaderSettings = { FontSize = 10, Right = "Page [page] of [toPage]", Line = true },
+            //     FooterSettings = { FontSize = 8, Center = "PDF demo", Line = true },
+            // };
 
-            var htmlToPdfDocument = new HtmlToPdfDocument
-            {
-                GlobalSettings = globalSettings,
-                Objects = { objectSettings },
-            };
+            // var htmlToPdfDocument = new HtmlToPdfDocument
+            // {
+            //     GlobalSettings = globalSettings,
+            //     Objects = { objectSettings },
+            // };
 
-            return _converter.Convert(htmlToPdfDocument);
+            // return _converter.Convert(htmlToPdfDocument);
+            var content = new StringContent(htmlContent, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("/api/convert", content);
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsByteArrayAsync();
         }
 
-   
+
     }
 }
-    
+
 
 
