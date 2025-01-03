@@ -284,7 +284,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems, page == null ? 0 : (int)page - 1,
+                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems.OrderByDescending(x=>x.LastUpdateTime), page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {

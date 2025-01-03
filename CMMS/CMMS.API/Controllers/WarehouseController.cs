@@ -219,7 +219,7 @@ namespace CMMS.API.Controllers
                         break;
 
                 }
-                var result = Helpers.LinqHelpers.ToPageList(items, page == null ? 0 : (int)page - 1,
+                var result = Helpers.LinqHelpers.ToPageList(items.OrderByDescending(x=>x.LastUpdateTime), page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
