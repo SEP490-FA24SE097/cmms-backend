@@ -7,6 +7,7 @@ using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
@@ -37,6 +38,8 @@ namespace CMMS.Infrastructure.Services
         #endregion
         Task<bool> ConfirmAccount(string email);
         Task<ApplicationUser> FindAsync(string customerId);
+        ApplicationUser FindWithNoTracking(string customerId);
+        Task<IdentityResult> UpdateAnsyc(ApplicationUser updateUser);
         Task<bool> IsEmailConfirmedAsync(ApplicationUser user);
         Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
         Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
@@ -437,6 +440,15 @@ namespace CMMS.Infrastructure.Services
             return customerDebt;
         }
 
+        public ApplicationUser FindWithNoTracking(string customerId)
+        {
+            return _userRepository.Get(_ => _.Id.Equals(customerId)).AsNoTracking().FirstOrDefault();
+        }
+
+        public async Task<IdentityResult> UpdateAnsyc(ApplicationUser updateUser)
+        {
+            return await _userManager.UpdateAsync(updateUser);
+        }
 
         #endregion
     }
