@@ -184,7 +184,7 @@ namespace CMMS.API.Controllers
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                    Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
+                    Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new InventoryDTO()
                     {
                         Id = x.Id,
                         MaterialId = x.MaterialId,
@@ -195,6 +195,7 @@ namespace CMMS.API.Controllers
                         Brand = x.Material.Brand.Name,
                         MinStock = x.MinStock,
                         MaxStock = x.MaxStock,
+                        AutoImportQuantity = x.ImportQuantity,
                         VariantId = x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
                         VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
@@ -229,7 +230,7 @@ namespace CMMS.API.Controllers
                         break;
 
                 }
-                List<WarehouseDTO> secondList = [];
+                List<InventoryDTO> secondList = [];
                 foreach (var item in secondItems)
                 {
                     if (item.VariantId != null)
@@ -242,7 +243,7 @@ namespace CMMS.API.Controllers
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                                 Include(x => x.ConversionUnit).
                                 Include(x => x.Material).ThenInclude(x => x.Brand).ToList();
-                            secondList.AddRange(subVariants.Select(x => new WarehouseDTO()
+                            secondList.AddRange(subVariants.Select(x => new InventoryDTO()
                             {
                                 Id = item.Id,
                                 MaterialId = x.MaterialId,
@@ -254,6 +255,7 @@ namespace CMMS.API.Controllers
                                 MaterialCostPrice = x.Material.CostPrice,
                                 MinStock = item.MinStock / x.ConversionUnit.ConversionRate,
                                 MaxStock = x.Material.MaxStock / x.ConversionUnit.ConversionRate,
+                                AutoImportQuantity = item.AutoImportQuantity/x.ConversionUnit.ConversionRate,
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,

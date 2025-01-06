@@ -29,8 +29,14 @@ namespace CMMS.Core.Models
         public decimal? MaterialCostPrice { get; set; }
         public decimal? VariantPrice { get; set; }
         public decimal? VariantCostPrice { get; set; }
+        public string? Discount { get; set; }
+        public decimal? AfterDiscountPrice { get; set; }
         public List<AttributeDTO>? Attributes { get; set; }
         public DateTime LastUpdateTime { get; set; }
     }
-    
+
+    public class InventoryDTO : WarehouseDTO
+    {
+        public decimal? AutoImportQuantity { get; set; }
+    }
 }

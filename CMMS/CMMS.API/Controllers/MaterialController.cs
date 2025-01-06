@@ -109,9 +109,29 @@ namespace CMMS.API.Controllers
                     Unit = x.Unit.Name,
                     Category = x.Category.Name,
                     MinStock = (decimal)x.MinStock,
-                    ImageUrl = x.ImageUrl
+                    ImageUrl = x.ImageUrl,
+                    Discount = x.Discount
 
                 }).ToList();
+                foreach (var material in list)
+                {
+                    decimal? afterDiscountPrice;
+                    if (!material.Discount.IsNullOrEmpty())
+                    {
+                        var trimDiscount = material.Discount.Trim();
+
+                        if (trimDiscount.Contains('%'))
+                        {
+                            afterDiscountPrice = material.SalePrice - material.SalePrice * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                        }
+                        else
+                        {
+                            afterDiscountPrice = material.SalePrice - decimal.Parse(trimDiscount);
+                        }
+
+                        material.AfterDiscountPrice = afterDiscountPrice;
+                    }
+                }
                 List<MaterialVariantDTO> newList = [];
                 foreach (var material in list)
                 {
@@ -127,28 +147,91 @@ namespace CMMS.API.Controllers
                             Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
                             CostPrice = x.Select(x => x.Variant.CostPrice).FirstOrDefault(),
+                            Discount = x.Select(x => x.Variant.Discount).FirstOrDefault(),
                             Attributes = x.Select(x => new AttributeDTO()
                             {
                                 Name = x.Attribute.Name,
                                 Value = x.Value
                             }).ToList()
                         }).ToList();
+                    if (variants.Count > 0)
+                    {
+                        foreach (var variant in variants)
+                        {
+                            decimal? afterDiscountPrice;
+                            if (!variant.Discount.IsNullOrEmpty())
+                            {
+                                var trimDiscount = variant.Discount.Trim();
+
+                                if (trimDiscount.Contains('%'))
+                                {
+                                    afterDiscountPrice = variant.Price - variant.Price *
+                                        decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+
+                                }
+                                else
+                                {
+                                    afterDiscountPrice = variant.Price - decimal.Parse(trimDiscount);
+                                }
+                                variant.AfterDiscountPrice = afterDiscountPrice;
+                            }
+
+                        }
+                    }
+
 
                     if (variants.Count <= 0)
                     {
                         var unitVariants = _variantService.Get(x => x.MaterialId == material.Id)
-                            .Include(x => x.ConversionUnit);
-                        variants.AddRange(unitVariants.Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
+                            .Include(x => x.ConversionUnit).ThenInclude(x => x.Unit);
+                        if (unitVariants.Any())
                         {
-                            VariantId = x.Id,
-                            ConversionUnitId = x.ConversionUnitId,
-                            ConversionUnitName = x.ConversionUnit.Unit.Name,
-                            Sku = x.SKU,
-                            Image = x.VariantImageUrl,
-                            Price = x.Price,
-                            CostPrice = x.CostPrice,
-                            Attributes = null
-                        }));
+                            foreach (var unitVariant in unitVariants)
+                            {
+                                decimal? afterDiscountPrice = null;
+                                if (!unitVariant.Discount.IsNullOrEmpty())
+                                {
+                                    var trimDiscount = unitVariant.Discount.Trim();
+
+                                    if (trimDiscount.Contains('%'))
+                                    {
+                                        afterDiscountPrice = unitVariant.Price - unitVariant.Price *
+                                            decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+
+                                    }
+                                    else
+                                    {
+                                        afterDiscountPrice = unitVariant.Price - decimal.Parse(trimDiscount);
+                                    }
+                                }
+                                variants.Add(new VariantDTO()
+                                {
+                                    VariantId = unitVariant.Id,
+                                    ConversionUnitId = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnitId,
+                                    ConversionUnitName = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnit.Unit.Name,
+                                    Sku = unitVariant.SKU,
+                                    Image = unitVariant.VariantImageUrl,
+                                    Price = unitVariant.Price,
+                                    CostPrice = unitVariant.CostPrice,
+                                    Discount = unitVariant.Discount,
+                                    AfterDiscountPrice = afterDiscountPrice,
+                                    Attributes = null
+                                });
+                            }
+                        }
+
+                        //variants.AddRange(unitVariants.Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
+                        //{
+                        //    VariantId = x.Id,
+                        //    ConversionUnitId = x.ConversionUnitId,
+                        //    ConversionUnitName = x.ConversionUnit.Unit.Name,
+                        //    Sku = x.SKU,
+                        //    Image = x.VariantImageUrl,
+                        //    Price = x.Price,
+                        //    CostPrice = x.CostPrice,
+                        //    Discount = x.Discount,
+                        //    Attributes = null
+                        //}));
                     }
 
                     newList.Add(new MaterialVariantDTO()
@@ -1066,112 +1149,151 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [AllowAnonymous]
-        [HttpGet("get-material-prices-list")]
-        public async Task<IActionResult> GetMaterialsWithPrices([FromQuery] int page, [FromQuery] int itemPerPage)
+        [HttpPost("update-material-discount")]
+        public async Task<IActionResult> Update([FromBody] MaterialDiscountUM dto)
         {
             try
             {
-                var pricedMaterialList = new List<PricedMaterialDto>();
-                var materialIdList = _materialService.Get(x => !x.Variants.Any()).Select(x => x.Id).ToList();
-                foreach (var id in materialIdList)
+                if (dto.VariantId != null)
                 {
-                    var materials = _importDetailService.Get(x => x.MaterialId == id).Include(x => x.Material).ToList();
-                    if (materials.Any())
+                    var variant = _variantService.Get(x => x.MaterialId
+                        == dto.MaterialId && x.Id == dto.VariantId).FirstOrDefault();
+                    if (variant != null)
                     {
-                        var latestImportPrice =
-                            materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
-                                .FirstOrDefault();
-
-                        var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
-                        PricedMaterialDto pricedMaterial = new()
-                        {
-                            MaterialId = materials.FirstOrDefault().MaterialId,
-                            MaterialName = materials.FirstOrDefault().Material.Name,
-                            MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
-                            VariantId = null,
-                            VariantName = null,
-                            VariantImage = null,
-                            LastImportPrice = latestImportPrice,
-                            AverageImportPrice = averagePrice,
-                            CostPrice = materials.FirstOrDefault().Material.CostPrice,
-                            SellPrice = materials.FirstOrDefault().Material.SalePrice,
-                        };
-                        pricedMaterialList.Add(pricedMaterial);
+                        variant.Discount = dto.Discount.Trim();
                     }
 
                 }
-                var variantIdList =
-                    _materialService.GetAll()
-                        .Include(x => x.Variants).Where(x => x.Variants.Any()).Select(x => x.Variants.Select(x => x.Id)).ToList();
-                foreach (var mId in variantIdList)
+                else
                 {
-                    foreach (var id in mId)
+                    var material = _materialService.Get(x =>
+                        x.Id == dto.MaterialId).FirstOrDefault();
+                    if (material != null)
                     {
-                        var materials = _importDetailService.Get(x => x.VariantId == id)
-                            .Include(x => x.Material).Include(x => x.Variant).ToList();
-                        if (materials.Any())
-                        {
-                            var latestImportPrice =
-                                materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
-                                    .FirstOrDefault();
-                            var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
-                            PricedMaterialDto pricedMaterial = new()
-                            {
-                                MaterialId = materials.FirstOrDefault().MaterialId,
-                                MaterialName = materials.FirstOrDefault().Material.Name,
-                                MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
-                                VariantId = materials.FirstOrDefault().VariantId,
-                                VariantName = materials.FirstOrDefault().Variant.SKU,
-                                VariantImage = materials.FirstOrDefault().Variant.VariantImageUrl,
-                                LastImportPrice = latestImportPrice,
-                                AverageImportPrice = averagePrice,
-                                CostPrice = materials.FirstOrDefault().Variant.CostPrice,
-                                SellPrice = materials.FirstOrDefault().Variant.Price,
-                            };
-                            pricedMaterialList.Add(pricedMaterial);
-                        }
+                        material.Discount = dto.Discount.Trim();
                     }
                 }
-                var result = Helpers.LinqHelpers.ToPageList(pricedMaterialList, page - 1, itemPerPage);
-                return Ok(new
-                {
-                    data = result,
-                    pagination = new
-                    {
-                        total = pricedMaterialList.Count,
-                        perPage = itemPerPage,
-                        currentPage = page
-                    }
-                });
+
+                await _materialService.SaveChangeAsync();
+                return Ok();
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpPost("upload")]
-        public async Task<IActionResult> UploadFile(List<IFormFile> file)
-        {
-            var bucketName = "ccms-d6bf2.firebasestorage.app";
-            GoogleCredential credential =
-                GoogleCredential.FromFile("firebase.json");
-            var storage = StorageClient.Create(credential);
-            List<string> images = [];
-            foreach (var item in file)
-            {
-                var objectName = $"{Path.GetRandomFileName()}_{item.FileName}";
 
-                using (var stream = item.OpenReadStream())
-                {
-                    await storage.UploadObjectAsync(bucketName, objectName, null, stream);
-                }
-                var publicUrl = $"https://firebasestorage.googleapis.com/v0/b/{bucketName}/o/{objectName}?alt=media";
-                images.Add(publicUrl);
-            }
+        #region MyRegion
 
-            return Ok(images);
-        }
+        //[AllowAnonymous]
+        //[HttpGet("get-material-prices-list")]
+        //public async Task<IActionResult> GetMaterialsWithPrices([FromQuery] int page, [FromQuery] int itemPerPage)
+        //{
+        //    try
+        //    {
+        //        var pricedMaterialList = new List<PricedMaterialDto>();
+        //        var materialIdList = _materialService.Get(x => !x.Variants.Any()).Select(x => x.Id).ToList();
+        //        foreach (var id in materialIdList)
+        //        {
+        //            var materials = _importDetailService.Get(x => x.MaterialId == id).Include(x => x.Material).ToList();
+        //            if (materials.Any())
+        //            {
+        //                var latestImportPrice =
+        //                    materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
+        //                        .FirstOrDefault();
+
+        //                var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
+        //                PricedMaterialDto pricedMaterial = new()
+        //                {
+        //                    MaterialId = materials.FirstOrDefault().MaterialId,
+        //                    MaterialName = materials.FirstOrDefault().Material.Name,
+        //                    MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
+        //                    VariantId = null,
+        //                    VariantName = null,
+        //                    VariantImage = null,
+        //                    LastImportPrice = latestImportPrice,
+        //                    AverageImportPrice = averagePrice,
+        //                    CostPrice = materials.FirstOrDefault().Material.CostPrice,
+        //                    SellPrice = materials.FirstOrDefault().Material.SalePrice,
+        //                };
+        //                pricedMaterialList.Add(pricedMaterial);
+        //            }
+
+        //        }
+        //        var variantIdList =
+        //            _materialService.GetAll()
+        //                .Include(x => x.Variants).Where(x => x.Variants.Any()).Select(x => x.Variants.Select(x => x.Id)).ToList();
+        //        foreach (var mId in variantIdList)
+        //        {
+        //            foreach (var id in mId)
+        //            {
+        //                var materials = _importDetailService.Get(x => x.VariantId == id)
+        //                    .Include(x => x.Material).Include(x => x.Variant).ToList();
+        //                if (materials.Any())
+        //                {
+        //                    var latestImportPrice =
+        //                        materials.AsQueryable().Include(x => x.Import).OrderByDescending(x => x.Import.TimeStamp).Select(x => x.PriceAfterDiscount / x.Quantity)
+        //                            .FirstOrDefault();
+        //                    var averagePrice = materials.Average(x => x.PriceAfterDiscount / x.Quantity);
+        //                    PricedMaterialDto pricedMaterial = new()
+        //                    {
+        //                        MaterialId = materials.FirstOrDefault().MaterialId,
+        //                        MaterialName = materials.FirstOrDefault().Material.Name,
+        //                        MaterialImage = materials.FirstOrDefault().Material.ImageUrl,
+        //                        VariantId = materials.FirstOrDefault().VariantId,
+        //                        VariantName = materials.FirstOrDefault().Variant.SKU,
+        //                        VariantImage = materials.FirstOrDefault().Variant.VariantImageUrl,
+        //                        LastImportPrice = latestImportPrice,
+        //                        AverageImportPrice = averagePrice,
+        //                        CostPrice = materials.FirstOrDefault().Variant.CostPrice,
+        //                        SellPrice = materials.FirstOrDefault().Variant.Price,
+        //                    };
+        //                    pricedMaterialList.Add(pricedMaterial);
+        //                }
+        //            }
+        //        }
+        //        var result = Helpers.LinqHelpers.ToPageList(pricedMaterialList, page - 1, itemPerPage);
+        //        return Ok(new
+        //        {
+        //            data = result,
+        //            pagination = new
+        //            {
+        //                total = pricedMaterialList.Count,
+        //                perPage = itemPerPage,
+        //                currentPage = page
+        //            }
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        //    }
+        //}
+        //[HttpPost("upload")]
+        //public async Task<IActionResult> UploadFile(List<IFormFile> file)
+        //{
+        //    var bucketName = "ccms-d6bf2.firebasestorage.app";
+        //    GoogleCredential credential =
+        //        GoogleCredential.FromFile("firebase.json");
+        //    var storage = StorageClient.Create(credential);
+        //    List<string> images = [];
+        //    foreach (var item in file)
+        //    {
+        //        var objectName = $"{Path.GetRandomFileName()}_{item.FileName}";
+
+        //        using (var stream = item.OpenReadStream())
+        //        {
+        //            await storage.UploadObjectAsync(bucketName, objectName, null, stream);
+        //        }
+        //        var publicUrl = $"https://firebasestorage.googleapis.com/v0/b/{bucketName}/o/{objectName}?alt=media";
+        //        images.Add(publicUrl);
+        //    }
+
+        //    return Ok(images);
+        //}
+
+        #endregion
+
 
     }
 }
