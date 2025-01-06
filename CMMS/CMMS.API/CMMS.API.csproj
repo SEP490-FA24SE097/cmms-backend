@@ -60,6 +60,10 @@
     </None>
   </ItemGroup>
 	
+  <ItemGroup>
+    <Folder Include="Exports\Invoices\" />
+  </ItemGroup>
+	
   <ProjectExtensions><VisualStudio><UserProperties firebase_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

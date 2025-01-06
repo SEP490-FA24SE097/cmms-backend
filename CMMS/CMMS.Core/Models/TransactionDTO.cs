@@ -84,7 +84,8 @@ namespace CMMS.Core.Models
                 return "";
             } 
         }
-        public InvoiceTransactionVM? InvoiceVM{ get; set; }
+
+        public InvoiceVM? InvoiceVM{ get; set; }
     }
 
     public class InvoiceTransactionVM

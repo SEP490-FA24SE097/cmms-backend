@@ -2,11 +2,20 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 
 COPY . /source
+# COPY /CMMS/CMMS.API/libwkhtmltox.so .
+# COPY /CMMS/CMMS.API/libwkhtmltox.dylib .
+# COPY /CMMS/CMMS.API/libwkhtmltox.dll .
+
+
+RUN apk update && apk add libxrender
+
+RUN mkdir -p /app/Exports/Invoices
 
 WORKDIR /source/CMMS/CMMS.API
 
 
 ARG TARGETARCH
+
 
 
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
@@ -17,11 +26,14 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 
 RUN apk add icu-libs
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+# ENV LD_LIBRARY_PATH=/app
 
 WORKDIR /app
 
 # Copy everything needed to run the app from the "build" stage.
 COPY --from=build /app .
+
+
 
 # Switch to a non-privileged user (defined in the base image) that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/

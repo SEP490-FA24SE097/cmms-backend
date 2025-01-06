@@ -7,6 +7,7 @@ using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using System;
@@ -46,6 +47,12 @@ namespace CMMS.Infrastructure.Services
         #endregion
         string GenerateStoreId();
 
+        Task<Message> AddNewStoreManagerAsync(UserDTO user);
+        Task<Message> AddNewSaleStaffAsync(UserDTO user);
+        Task<Message> AddNewShipperAsync(UserDTO user);
+        Task<UserVM> GetSaleStaffInStore(string storeId);
+        Task<UserVM> GetStoreManagerInStore(string storeId);
+
     }
 
     public class StoreService : IStoreService
@@ -54,15 +61,17 @@ namespace CMMS.Infrastructure.Services
         private IStoreRepository _storeRepository;
         private IMapper _mapper;
         private IUserRepository _userRepository;
+        private UserManager<ApplicationUser> _userManager;
 
         public StoreService(IUnitOfWork unitOfWork,
             IStoreRepository storeRepository, IMapper mapper, 
-            IUserRepository userRepository)
+            IUserRepository userRepository, UserManager<ApplicationUser> userManager)
         {
             _unitOfWork = unitOfWork;
             _storeRepository = storeRepository;
             _mapper = mapper;
             _userRepository = userRepository;
+            _userManager = userManager;
         }
 
         public Task<Message> CloseStore(string storeId)
@@ -299,6 +308,117 @@ namespace CMMS.Infrastructure.Services
             string invoiceCode = $"CH{(transactionTotal.Count() + 1):D6}";
             return invoiceCode;
         }
+
         #endregion
+
+
+        public async Task<Message> AddNewStoreManagerAsync(UserDTO model)
+        {
+            var message = new Message();
+            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
+            if (isDupplicate != null)
+            {
+                message.Content = "Tên email đã bị được sử dụng";
+                message.StatusCode = 500;
+                return message;
+            } else if (model.StoreId == null)
+            {
+                message.Content = "Store Manager phải quản lí 1 cửa hàng";
+                message.StatusCode = 500;
+                return message;
+            }
+            var userList = _userRepository.Get(_ => _.Id.Contains("STM"));
+            string userId = $"STM{(userList.Count() + 1):D6}";
+            var user = _mapper.Map<ApplicationUser>(model);
+            user.EmailConfirmed = true;
+            user.Id = userId;
+            IdentityResult result = null;
+            message.Content = "Thất bại";
+            message.StatusCode = 500;
+            result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                message.Content = "Thêm mới quản lí cửa hàng thành công.";
+                message.StatusCode = 200;
+                await _userManager.AddToRoleAsync(user, Role.Store_Manager.ToString());
+            }
+       
+
+            return message;
+        }
+
+        public async Task<Message> AddNewSaleStaffAsync(UserDTO model)
+        {
+            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
+            var message = new Message();
+            if(isDupplicate != null)
+            {
+                message.Content = "Tên email đã bị được sử dụng";
+                message.StatusCode = 500;
+                return message;
+            } else if (model.StoreId == null)
+            {
+                message.Content = "Sale staff phải trực thuộc 1 cửa hàng";
+                message.StatusCode = 500;
+                return message;
+            }
+            var userList = _userRepository.Get(_ => _.Id.Contains("NVBH"));
+            string userId = $"NVBH{(userList.Count() + 1):D6}";
+            var user = _mapper.Map<ApplicationUser>(model);
+            user.EmailConfirmed = true;
+            user.Id = userId;
+            IdentityResult result = null;
+            result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                message.Content = "Thêm mới nhân viên bán hàng thành công.";
+                message.StatusCode = 200;
+                await _userManager.AddToRoleAsync(user, Role.Sale_Staff.ToString());
+            }
+            return message;
+        }
+
+        public async Task<Message> AddNewShipperAsync(UserDTO model)
+        {
+
+            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
+            var message = new Message();
+            if (isDupplicate != null)
+            {
+                message.Content = "Tên email đã bị được sử dụng";
+                message.StatusCode = 500;
+                return message;
+            }
+            else if (model.StoreId == null)
+            {
+                message.Content = "Store Shipper phải trực thuộc 1 cửa hàng";
+                message.StatusCode = 500;
+                return message;
+            }
+            var userList = _userRepository.Get(_ => _.Id.Contains("NVVC"));
+            string userId = $"NVVC{(userList.Count() + 1):D6}";
+            var user = _mapper.Map<ApplicationUser>(model);
+            user.EmailConfirmed = true;
+            user.Id = userId;
+            IdentityResult result = null;
+            result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                message.Content = "Thêm mới store shipper thành công.";
+                message.StatusCode = 200;
+                await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
+            }
+            return message;
+        }
+
+        public Task<UserVM> GetSaleStaffInStore(string storeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<UserVM> GetStoreManagerInStore(string storeId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

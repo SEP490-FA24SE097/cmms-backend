@@ -77,6 +77,7 @@ namespace CMMS.API.Controllers
               (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
               (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
               (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
+              (string.IsNullOrEmpty(filterModel.StaffId) || _.StaffId.Equals(filterModel.StaffId)) &&
               (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
               (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
               , _ => _.Customer);
@@ -747,9 +748,11 @@ namespace CMMS.API.Controllers
         [HttpGet("{invoiceId}")]
         public async Task<IActionResult> GetInvoicePdf(string invoiceId)
         {
-            var htmlContent = await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
-            var pdfBytes = await _generateInvoicePdf.GeneratePdf(htmlContent);
-            return File(pdfBytes, "application/pdf", "Invoice.pdf");
+            var fileName = $"{invoiceId}.pdf";
+            var htmlContent =  await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
+            //var pdfBytes = await _generateInvoicePdf.GeneratePdf(htmlContent);
+            var pdfBytes =  _generateInvoicePdf.GeneratePdf(htmlContent, fileName);
+            return File(pdfBytes, "application/pdf", fileName);
         }
 
 

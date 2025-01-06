@@ -7,6 +7,7 @@ using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
@@ -21,7 +22,6 @@ namespace CMMS.Infrastructure.Services
     {
         #region CRUD
         Task<IdentityResult> CustomerSignUpAsync(UserDTO model);
-        Task<IdentityResult> ShipperSignUpAsync(UserDTO model);
         Task<ApplicationUser> SignInAsync(UserSignIn model);
         Task<Message> AddAsync(UserCM user);
         Task<IList<String>> GetRolesAsync(ApplicationUser user);
@@ -38,6 +38,8 @@ namespace CMMS.Infrastructure.Services
         #endregion
         Task<bool> ConfirmAccount(string email);
         Task<ApplicationUser> FindAsync(string customerId);
+        ApplicationUser FindWithNoTracking(string customerId);
+        Task<IdentityResult> UpdateAnsyc(ApplicationUser updateUser);
         Task<bool> IsEmailConfirmedAsync(ApplicationUser user);
         Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
         Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
@@ -52,6 +54,9 @@ namespace CMMS.Infrastructure.Services
         decimal GetAllCustomerTotalSaleAfterRefund();
         decimal GetCustomerTotalSaleAfterRefund(string userId);
         decimal GetCustomerCurrentDeftAtTheLastTransaction(string transactionId, string userId);
+
+
+
     }
 
     public class UserService : IUserService
@@ -101,28 +106,6 @@ namespace CMMS.Infrastructure.Services
             return null;
         }
 
-        public async Task<IdentityResult> ShipperSignUpAsync(UserDTO model)
-        {
-
-            var isDupplicate = await _userManager.FindByEmailAsync(model.Email);
-            if (isDupplicate != null)
-            {
-                return null;
-            }
-            var userList = _userRepository.Get(_ => _.Id.Contains("NVVC"));
-            string userId = $"NVVC{(userList.Count() + 1):D6}";
-            var user = _mapper.Map<ApplicationUser>(model);
-            user.EmailConfirmed = true;
-            user.Id = userId;
-            IdentityResult result = null;
-            result = await _userManager.CreateAsync(user, model.Password);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, Role.Shipper_Store.ToString());
-            }
-            
-            return result;
-        }
 
 
         public async Task<IdentityResult> CustomerSignUpAsync(UserDTO model)
@@ -457,6 +440,15 @@ namespace CMMS.Infrastructure.Services
             return customerDebt;
         }
 
+        public ApplicationUser FindWithNoTracking(string customerId)
+        {
+            return _userRepository.Get(_ => _.Id.Equals(customerId)).AsNoTracking().FirstOrDefault();
+        }
+
+        public async Task<IdentityResult> UpdateAnsyc(ApplicationUser updateUser)
+        {
+            return await _userManager.UpdateAsync(updateUser);
+        }
 
         #endregion
     }

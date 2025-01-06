@@ -239,25 +239,33 @@ namespace CMMS.API.Controllers
         [HttpPut("update-customer")]
         public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
-            var user = _mapper.Map<ApplicationUser>(model);
-            _userService.Update(user);
-            var result = await _userService.SaveChangeAsync();
-            return Ok(new
-            {
-                data = result
-            });
+            var updateUser = await _userService.FindAsync(model.Id);
+            updateUser.PhoneNumber = model.PhoneNumber;
+            updateUser.FullName = model.FullName;
+            updateUser.Email = model.Email;
+            updateUser.Province = model.Province;
+            updateUser.District = model.District;
+            updateUser.Ward = model.Ward;
+            updateUser.Address = model.Address;
+            updateUser.TaxCode = model.TaxCode;
+            updateUser.Note = model.Note;
+            var result = await _userService.UpdateAnsyc(updateUser);
+            return Ok(result.Succeeded);
         }
-        [HttpPost("disable-customer/{id}")]
+        [HttpPost("update-customer-status/{id}")]
         public async Task<ActionResult> DisableCustomerAsync(string id)
         {
             var user = await _userService.FindAsync(id);
-            user.Status = (int)CustomerStatus.Disable;
+            if(user.Status == (int)CustomerStatus.Disable)
+            {
+                user.Status = (int)CustomerStatus.Active;
+            } else if (user.Status == (int)CustomerStatus.Active)
+            {
+                user.Status = (int)CustomerStatus.Disable;
+            }
             _userService.Update(user);
             var result = await _userService.SaveChangeAsync();
-            return Ok(new
-            {
-                data = result
-            });
+            return Ok("Cập nhật trạng thái người dùng thành công");
         }
         [HttpPost]
         public async Task<ActionResult> AddCustomerInStoreAsync(UserDTO model)
@@ -388,12 +396,14 @@ namespace CMMS.API.Controllers
         public async Task<ActionResult> GetDebtCustomerAsync([FromQuery] TransactionFilterModel filterModel)
         {
             var filterList = _transactionService.Get(_ =>
-            (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
-            (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
-            (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
-            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)),
-            _ => _.Invoice);
+                 (!filterModel.FromDate.HasValue || _.TransactionDate >= filterModel.FromDate) &&
+                 (!filterModel.ToDate.HasValue || _.TransactionDate <= filterModel.ToDate) &&
+                 (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
+                 (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
+                 (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
+                 (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Equals(filterModel.CustomerName)) &&
+                 (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId))
+                 , _ => _.Customer, _ => _.Invoice);
 
             var total = filterList.Count();
             var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
@@ -406,7 +416,7 @@ namespace CMMS.API.Controllers
                 {
                     var invoice = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
                     var invoiceDetailVM = _mapper.Map<List<InvoiceDetailVM>>(invoice.InvoiceDetails.ToList());
-                    transaction.InvoiceVM = _mapper.Map<InvoiceTransactionVM>(invoice);
+                    transaction.InvoiceVM = _mapper.Map<InvoiceVM>(invoice);
                     var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
                     var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
                     transaction.InvoiceVM.StaffName = staff != null ? staff.FullName : store.Name;

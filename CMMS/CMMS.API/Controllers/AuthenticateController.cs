@@ -59,36 +59,6 @@ namespace CMMS.API.Controllers
 
         }
 
-        [AllowAnonymous]
-        [HttpGet("GetLo-Lag")]
-        public async Task<IActionResult> GetLongtitute()
-        {
-            var address = "Hẻm 218 Đ. Số 11, P, Thủ Đức, Hồ Chí Minh, Vietnam";
-            var baseUrl = _configuration["GeoCodingAPI:BaseUrlGet"]; 
-            var apiKey = _configuration["GeoCodingAPI:APIKey"];
-            var apiUrl = $"{baseUrl}?q={address}&apiKey={apiKey}";
-            var response = await _httpClient.GetAsync(apiUrl);
-            if (!response.IsSuccessStatusCode)
-            {
-                return BadRequest("Failed to fetch taxCode api checking");
-            }
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var jsonDocument = JsonDocument.Parse(responseContent);
-            var position = jsonDocument.RootElement.GetProperty("items")[0].GetProperty("position");
-            double lat = position.GetProperty("lat").GetDouble();
-            double lng = position.GetProperty("lng").GetDouble();
-            return Ok(new { lat, lng });
-        }
-
-        [AllowAnonymous]
-        [HttpGet("GetNearestStore")]
-        public async Task<IActionResult> Nearestores()
-        {
-            var address = "Hẻm 218 Đ. Số 11, P, Thủ Đức, Hồ Chí Minh, Vietnam";
-            var stores = _storeService.GetAll().ToList();
-            var result = await _shippingService.GetListStoreOrderbyDeliveryDistance(address, stores);
-            return Ok(result);
-        }
 
         [AllowAnonymous]
         [HttpPost("signUp")]
