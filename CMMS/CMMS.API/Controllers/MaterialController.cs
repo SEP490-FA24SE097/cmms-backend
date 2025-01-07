@@ -1076,7 +1076,7 @@ namespace CMMS.API.Controllers
                     : materialUM.Description;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
-                material.MinStock = materialUM.MinStock == 0 ? material.MinStock : materialUM.MinStock;
+               
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty()
                     ? material.BrandId
                     : Guid.Parse(materialUM.BrandId);
@@ -1086,7 +1086,7 @@ namespace CMMS.API.Controllers
                 material.IsRewardEligible = materialUM.isPoint == null
                     ? material.IsRewardEligible
                     : (bool)materialUM.isPoint;
-                material.MaxStock = materialUM.MaxStock == 0 ? material.MaxStock : materialUM.MaxStock;
+               
 
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
                 await _materialService.SaveChangeAsync();

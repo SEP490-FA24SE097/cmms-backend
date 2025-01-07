@@ -17,8 +17,6 @@ namespace CMMS.Core.Models
         public string? Description { get; set; }
         public decimal SalePrice { get; set; }
         public decimal CostPrice { get; set; }
-        public decimal MinStock { get; set; }
-        public decimal MaxStock { get; set; }
         public List<string>? ImageFiles { get; set; }
         public bool? isPoint { get; set; }
     }
