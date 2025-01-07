@@ -1083,9 +1083,6 @@ namespace CMMS.API.Controllers
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty()
                     ? material.CategoryId
                     : Guid.Parse(materialUM.CategoryId);
-                material.IsRewardEligible = materialUM.isPoint == null
-                    ? material.IsRewardEligible
-                    : (bool)materialUM.isPoint;
                
 
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
