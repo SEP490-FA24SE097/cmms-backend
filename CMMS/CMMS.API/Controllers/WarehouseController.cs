@@ -22,7 +22,8 @@ namespace CMMS.API.Controllers
         private readonly IMaterialVariantAttributeService _materialVariantAttributeService;
         private readonly IMaterialService _materialService;
         private readonly IImportDetailService _importDetailService;
-        public WarehouseController(IImportDetailService importDetailService, IMaterialService materialService, IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
+        private readonly ICategoryService _categoryService;
+        public WarehouseController(ICategoryService categoryService, IImportDetailService importDetailService, IMaterialService materialService, IWarehouseService warehouseService, IVariantService variantService, IConversionUnitService conversionUnitService, IMaterialVariantAttributeService materialVariantAttributeService)
         {
             _warehouseService = warehouseService;
             _conversionUnitService = conversionUnitService;
@@ -30,19 +31,21 @@ namespace CMMS.API.Controllers
             _materialVariantAttributeService = materialVariantAttributeService;
             _materialService = materialService;
             _importDetailService = importDetailService;
+            _categoryService = categoryService;
         }
         [HttpGet("get-warehouse-products")]
         public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
-            [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId)
+            [FromQuery] Guid? categoryId, [FromQuery] Guid? parentCategoryId, [FromQuery] Guid? brandId)
         {
             try
             {
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
+                     Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
                      Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                      Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
                      {
@@ -52,8 +55,11 @@ namespace CMMS.API.Controllers
                          MaterialName = x.Material.Name,
                          MaterialImage = x.Material.ImageUrl,
                          Brand = x.Material.Brand.Name,
-                         MaterialPrice = x.Material.SalePrice,
-                         MaterialCostPrice = x.Material.CostPrice,
+                         ParentCategory = x.Material.Category.ParentCategory.Name,
+                         Category = x.Material.Category.Name,
+                         Weight = x.Material.WeightValue,
+                         MaterialPrice = x.Variant == null ? x.Material.SalePrice : null,
+                         MaterialCostPrice = x.Variant == null ? x.Material.CostPrice : null,
                          VariantId = x.VariantId,
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
@@ -63,6 +69,7 @@ namespace CMMS.API.Controllers
                          Discount = x.VariantId == null ? x.Material.Discount : x.Variant.Discount,
                          InOrderQuantity = x.InRequestQuantity,
                          VariantPrice = x.Variant == null ? null : x.Variant.Price,
+                         VariantCostPrice = x.Variant == null ? null : x.Variant.CostPrice,
                          Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
                          {
                              Name = x.Attribute.Name,
@@ -93,6 +100,7 @@ namespace CMMS.API.Controllers
                         }
                         item.AfterDiscountPrice = afterDiscountPrice;
                     }
+
                 }
                 List<WarehouseDTO> list = [];
                 foreach (var item in items)
@@ -105,6 +113,7 @@ namespace CMMS.API.Controllers
                         {
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
+                                Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
                                 Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ToList();
                             if (subVariants.Count > 0)
                             {
@@ -158,9 +167,12 @@ namespace CMMS.API.Controllers
                                         MaterialName = subVariant.Material.Name,
                                         MaterialCode = subVariant.Material.MaterialCode,
                                         MaterialImage = subVariant.Material.ImageUrl,
-                                        MaterialPrice = subVariant.Material.SalePrice,
                                         Brand = subVariant.Material.Brand.Name,
-                                        MaterialCostPrice = subVariant.Material.CostPrice,
+                                        ParentCategory = subVariant.Material.Category.ParentCategory.Name,
+                                        Category = subVariant.Material.Category.Name,
+                                        Weight = subVariant.Material.WeightValue,
+                                        MaterialPrice = null,
+                                        MaterialCostPrice = null,
                                         VariantId = subVariant.Id,
                                         VariantName = subVariant.SKU,
                                         VariantImage = subVariant.VariantImageUrl,
@@ -340,7 +352,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        
+
         #region Conversion
 
         private async Task<Warehouse?> GetWarehouseItem(Guid materialId, Guid? variantId)

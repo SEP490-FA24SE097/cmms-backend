@@ -19,6 +19,9 @@ namespace CMMS.Core.Models
         public string VariantName { get; set; }
         public string VariantImage { get; set; }
         public string Brand { get; set; }
+        public float? Weight { get; set; }
+        public string ParentCategory { get; set; }
+        public string Category { get; set; }
         public string? Supplier { get; set; }
         public decimal Quantity { get; set; }
         public decimal? MinStock { get; set; }
