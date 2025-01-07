@@ -10,7 +10,6 @@ namespace CMMS.Core.Models
     {
         public Guid Id { get; set; }
         public string? Name { get; set; }
-        public string? WeightUnit { get; set; }
         public float? WeightValue { get; set; }
         public string? BarCode { get; set; }
         public string? CategoryId { get; set; }
