@@ -134,11 +134,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
-                var material = _materialService.Get(x => x.Id == materialId).FirstOrDefault();
-                if (!(bool)material.IsActive)
-                {
-                    return BadRequest();
-                }
+               
                 if (variantId != null)
                 {
                     var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
@@ -183,9 +179,8 @@ namespace CMMS.API.Controllers
         {
             try
             {
-
                 var secondItems = await _storeInventoryService
-                    .Get(x => x.Material.IsActive != false && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).

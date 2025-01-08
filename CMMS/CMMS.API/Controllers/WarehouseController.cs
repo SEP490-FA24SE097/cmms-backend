@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => x.Material.IsActive != false && (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).

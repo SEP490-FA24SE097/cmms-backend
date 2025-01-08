@@ -631,7 +631,7 @@ namespace CMMS.API.Controllers
             {
 
                 var secondItems = await _variantService
-                    .Get(x => x.Material.IsActive != false && x.ConversionUnitId == null && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => x.ConversionUnitId == null && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                     Include(x => x.ConversionUnit).Select(x => new WarehouseDTO()
