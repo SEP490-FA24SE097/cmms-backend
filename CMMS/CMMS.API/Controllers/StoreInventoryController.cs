@@ -134,6 +134,11 @@ namespace CMMS.API.Controllers
         {
             try
             {
+                var material = _materialService.Get(x => x.Id == materialId).FirstOrDefault();
+                if (!(bool)material.IsActive)
+                {
+                    return BadRequest();
+                }
                 if (variantId != null)
                 {
                     var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
@@ -180,7 +185,7 @@ namespace CMMS.API.Controllers
             {
 
                 var secondItems = await _storeInventoryService
-                    .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => x.Material.IsActive != false && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
@@ -255,7 +260,7 @@ namespace CMMS.API.Controllers
                                 MaterialCostPrice = x.Material.CostPrice,
                                 MinStock = item.MinStock / x.ConversionUnit.ConversionRate,
                                 MaxStock = x.Material.MaxStock / x.ConversionUnit.ConversionRate,
-                                AutoImportQuantity = item.AutoImportQuantity/x.ConversionUnit.ConversionRate,
+                                AutoImportQuantity = item.AutoImportQuantity / x.ConversionUnit.ConversionRate,
                                 VariantId = x.Id,
                                 VariantName = x.SKU,
                                 VariantImage = x.VariantImageUrl,
@@ -286,7 +291,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems.OrderByDescending(x=>x.LastUpdateTime), page == null ? 0 : (int)page - 1,
+                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems.OrderByDescending(x => x.LastUpdateTime), page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {

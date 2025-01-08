@@ -49,7 +49,7 @@ namespace CMMS.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetFilter([FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
+        public IActionResult GetFilter([FromQuery] bool? isActive, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] decimal? lowerPrice,
             [FromQuery] decimal? upperPrice, [FromQuery] bool? isPriceDescending,
             [FromQuery] bool? isCreatedDateDescending)
@@ -58,7 +58,7 @@ namespace CMMS.API.Controllers
             {
                 var materials = _materialService.GetAll().Include(x => x.Brand).Include(x => x.Category)
                     .Include(x => x.Unit)
-                    .Where(x => (materialName.IsNullOrEmpty() || x.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Where(x => (isActive == null || x.IsActive == isActive) && (materialName.IsNullOrEmpty() || x.Name.ToLower().Contains(materialName.ToLower())) &&
                         (categoryId == null || x.CategoryId == categoryId)
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
@@ -102,15 +102,18 @@ namespace CMMS.API.Controllers
                     Name = x.Name,
                     BarCode = x.BarCode,
                     Brand = x.Brand.Name,
+
                     IsRewardEligible = x.IsRewardEligible,
                     Description = x.Description,
+                    WeightValue = x.WeightValue,
                     MaterialCode = x.MaterialCode,
                     SalePrice = x.SalePrice,
                     Unit = x.Unit.Name,
                     Category = x.Category.Name,
                     MinStock = (decimal)x.MinStock,
                     ImageUrl = x.ImageUrl,
-                    Discount = x.Discount
+                    Discount = x.Discount,
+                    IsActive = x.IsActive
 
                 }).ToList();
                 foreach (var material in list)
@@ -628,7 +631,7 @@ namespace CMMS.API.Controllers
             {
 
                 var secondItems = await _variantService
-                    .Get(x => x.ConversionUnitId == null && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => x.Material.IsActive != false && x.ConversionUnitId == null && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                     Include(x => x.ConversionUnit).Select(x => new WarehouseDTO()
@@ -654,7 +657,7 @@ namespace CMMS.API.Controllers
                     }).ToListAsync();
                 List<WarehouseDTO> materials = [];
 
-                var check = _materialService.GetAll().ToList().ExceptBy(secondItems.Select(x => x.MaterialId), x => x.Id).ToList();
+                var check = _materialService.Get(x => x.IsActive != false).ToList().ExceptBy(secondItems.Select(x => x.MaterialId), x => x.Id).ToList();
                 materials.AddRange(check.Select(x => new WarehouseDTO()
                 {
                     Id = Guid.NewGuid(),
@@ -889,6 +892,7 @@ namespace CMMS.API.Controllers
                             Category = x.Category.Name,
                             MinStock = (decimal)x.MinStock,
                             ImageUrl = x.ImageUrl,
+                            IsActive = x.IsActive,
                             SubImages = x.SubImages.Select(x => new SubImageDTO()
                             {
                                 Id = x.Id,
@@ -1010,7 +1014,7 @@ namespace CMMS.API.Controllers
                     Name = materialCm.Name,
                     BarCode = materialCm.Barcode,
                     Description = materialCm.Description,
-
+                    IsActive = true,
                     WeightValue = materialCm.WeightValue,
                     ImageUrl = images.First(),
                     SalePrice = materialCm.SalePrice,
@@ -1154,13 +1158,19 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpDelete("delete-material")]
+        [HttpDelete("activate-or-deactivate-material")]
         public async Task<IActionResult> Delete([FromQuery] string materialId)
         {
             try
             {
-                await _materialService.Remove(Guid.Parse(materialId));
-                await _materialService.SaveChangeAsync();
+
+                var material = _materialService.Get(x => x.Id == Guid.Parse(materialId)).FirstOrDefault();
+                if ((bool)material.IsActive)
+                {
+                    material.IsActive = false;
+                }
+
+                material.IsActive = true;
                 return Ok();
             }
             catch (Exception ex)

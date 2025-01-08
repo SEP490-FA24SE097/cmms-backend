@@ -19,11 +19,13 @@ namespace CMMS.Core.Models
         public decimal SalePrice { get; set; }
         public decimal MinStock { get; set; }
         public string Brand { get; set; }
+        public float? WeightValue { get; set; }
         public bool IsRewardEligible { get; set; }
         public string ImageUrl { get; set; }
         public string? Discount { get; set; }
         public decimal? AfterDiscountPrice { get; set; }
         public List<SubImageDTO>? SubImages { get; set; }
+        public bool? IsActive { get; set; }
     }
 
     public class SubImageDTO
