@@ -895,6 +895,22 @@ namespace CMMS.API.Controllers
                                 SubImageUrl = x.SubImageUrl
                             }).ToList()
                         }).FirstOrDefault();
+                decimal? afterDiscountPrice = null;
+                if (!result.Discount.IsNullOrEmpty())
+                {
+                    var trimDiscount = result.Discount.Trim();
+
+                    if (trimDiscount.Contains('%'))
+                    {
+                        afterDiscountPrice = result.SalePrice - result.SalePrice *
+                            decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                    }
+                    else
+                    {
+                        afterDiscountPrice = result.SalePrice - decimal.Parse(trimDiscount);
+                    }
+                    result.AfterDiscountPrice = afterDiscountPrice;
+                }
                 var variants = _materialVariantAttributeService.GetAll()
                     .Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).ThenInclude(x => x.Unit)
                     .Include(x => x.Attribute).Where(x => x.Variant.MaterialId == result.Id).ToList()
@@ -917,18 +933,50 @@ namespace CMMS.API.Controllers
                 if (variants.Count <= 0)
                 {
                     var unitVariants = _variantService.Get(x => x.MaterialId == Guid.Parse(id))
-                        .Include(x => x.ConversionUnit);
-                    variants.AddRange(unitVariants.Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
+                        .Include(x => x.ConversionUnit).ThenInclude(x => x.Unit);
+                    //variants.AddRange(unitVariants.Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).Select(x => new VariantDTO()
+                    //{
+                    //    VariantId = x.Id,
+                    //    ConversionUnitId = x.ConversionUnitId,
+                    //    ConversionUnitName = x.ConversionUnit.Unit.Name,
+                    //    Sku = x.SKU,
+                    //    Image = x.VariantImageUrl,
+                    //    Price = x.Price,
+                    //    CostPrice = x.CostPrice,
+                    //    Attributes = null
+                    //}));
+
+                    foreach (var unitVariant in unitVariants)
                     {
-                        VariantId = x.Id,
-                        ConversionUnitId = x.ConversionUnitId,
-                        ConversionUnitName = x.ConversionUnit.Unit.Name,
-                        Sku = x.SKU,
-                        Image = x.VariantImageUrl,
-                        Price = x.Price,
-                        CostPrice = x.CostPrice,
-                        Attributes = null
-                    }));
+                        if (!unitVariant.Discount.IsNullOrEmpty())
+                        {
+                            var trimDiscount = unitVariant.Discount.Trim();
+
+                            if (trimDiscount.Contains('%'))
+                            {
+                                afterDiscountPrice = unitVariant.Price - unitVariant.Price *
+                                    decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+
+                            }
+                            else
+                            {
+                                afterDiscountPrice = unitVariant.Price - decimal.Parse(trimDiscount);
+                            }
+                        }
+                        variants.Add(new VariantDTO()
+                        {
+                            VariantId = unitVariant.Id,
+                            ConversionUnitId = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnitId,
+                            ConversionUnitName = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnit.Unit.Name,
+                            Sku = unitVariant.SKU,
+                            Image = unitVariant.VariantImageUrl,
+                            Price = unitVariant.Price,
+                            CostPrice = unitVariant.CostPrice,
+                            Discount = unitVariant.Discount,
+                            AfterDiscountPrice = afterDiscountPrice,
+                            Attributes = null
+                        });
+                    }
                 }
                 return Ok(new
                 {
@@ -1076,14 +1124,14 @@ namespace CMMS.API.Controllers
                     : materialUM.Description;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
-               
+
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty()
                     ? material.BrandId
                     : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty()
                     ? material.CategoryId
                     : Guid.Parse(materialUM.CategoryId);
-               
+
 
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
                 await _materialService.SaveChangeAsync();
