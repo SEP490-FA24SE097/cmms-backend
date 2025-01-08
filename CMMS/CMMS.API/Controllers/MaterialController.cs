@@ -1007,7 +1007,9 @@ namespace CMMS.API.Controllers
                 {
                     return BadRequest("Name can not be duplicated!");
                 }
-                var images = await UploadImages.UploadToFirebase(materialCm.ImagesFile);
+
+                var mainImage = await UploadImages.UploadToFirebase([materialCm.MainImage]);
+
                 var newGuid = Guid.NewGuid();
                 var material = new Material
                 {
@@ -1018,7 +1020,7 @@ namespace CMMS.API.Controllers
                     Description = materialCm.Description,
                     IsActive = true,
                     WeightValue = materialCm.WeightValue,
-                    ImageUrl = images.First(),
+                    ImageUrl = mainImage.First(),
                     SalePrice = materialCm.SalePrice,
                     CostPrice = materialCm.CostPrice,
                     MinStock = materialCm.MinStock,
@@ -1031,13 +1033,17 @@ namespace CMMS.API.Controllers
                 };
                 await _materialService.AddAsync(material);
                 await _materialService.SaveChangeAsync();
-                await _subImageService.AddRange(images.Select(x => new SubImage()
+                if (materialCm.SubImages.Any())
                 {
-                    Id = Guid.NewGuid(),
-                    SubImageUrl = x,
-                    MaterialId = material.Id
-                }));
-                await _subImageService.SaveChangeAsync();
+                    var images = await UploadImages.UploadToFirebase(materialCm.SubImages);
+                    await _subImageService.AddRange(images.Select(x => new SubImage()
+                    {
+                        Id = Guid.NewGuid(),
+                        SubImageUrl = x,
+                        MaterialId = material.Id
+                    }));
+                    await _subImageService.SaveChangeAsync();
+                }
                 if (materialCm.MaterialUnitDtoList != null && materialCm.MaterialUnitDtoList.Any())
                 {
                     var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
@@ -1138,12 +1144,17 @@ namespace CMMS.API.Controllers
                     ? material.CategoryId
                     : Guid.Parse(materialUM.CategoryId);
 
-
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
+                material.ImageUrl = materialUM.MainImage.IsNullOrEmpty() ? material.ImageUrl : materialUM.MainImage;
                 await _materialService.SaveChangeAsync();
-                if (!materialUM.ImageFiles.IsNullOrEmpty())
+                if (!materialUM.SubImages.IsNullOrEmpty())
                 {
-                    var images = await UploadImages.UploadToFirebase(materialUM.ImageFiles);
+                    var images = await UploadImages.UploadToFirebase(materialUM.SubImages);
+                    var existedImages = _subImageService.Get(x => x.MaterialId == materialUM.Id).ToList();
+                    foreach (var image in existedImages)
+                    {
+                        await _subImageService.Remove(image.Id);
+                    }
                     _subImageService.AddRange(images.Select(x => new SubImage()
                     {
                         Id = Guid.NewGuid(),
@@ -1152,7 +1163,7 @@ namespace CMMS.API.Controllers
                     }));
                     await _subImageService.SaveChangeAsync();
                 }
-                return Ok(material);
+                return Ok();
             }
             catch (Exception ex)
             {

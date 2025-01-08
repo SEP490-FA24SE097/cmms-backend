@@ -17,6 +17,7 @@ namespace CMMS.Core.Models
         public string? Description { get; set; }
         public decimal SalePrice { get; set; }
         public decimal CostPrice { get; set; }
-        public List<string>? ImageFiles { get; set; }
+        public string? MainImage { get; set; }
+        public List<string>? SubImages { get; set; }
     }
 }
