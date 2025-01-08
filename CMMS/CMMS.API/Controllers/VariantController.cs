@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/variants")]
     public class VariantController : ControllerBase

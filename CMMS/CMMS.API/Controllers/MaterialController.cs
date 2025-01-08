@@ -1161,7 +1161,7 @@ namespace CMMS.API.Controllers
                     {
                         await _subImageService.Remove(image.Id);
                     }
-                    _subImageService.AddRange(images.Select(x => new SubImage()
+                    await _subImageService.AddRange(images.Select(x => new SubImage()
                     {
                         Id = Guid.NewGuid(),
                         MaterialId = materialUM.Id,
