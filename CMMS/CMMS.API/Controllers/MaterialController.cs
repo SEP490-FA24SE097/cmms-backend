@@ -885,6 +885,7 @@ namespace CMMS.API.Controllers
                             BarCode = x.BarCode,
                             Brand = x.Brand.Name,
                             IsRewardEligible = x.IsRewardEligible,
+                            WeightValue = x.WeightValue,
                             Description = x.Description,
                             MaterialCode = x.MaterialCode,
                             SalePrice = x.SalePrice,
