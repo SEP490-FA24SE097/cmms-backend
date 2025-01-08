@@ -1145,7 +1145,13 @@ namespace CMMS.API.Controllers
                     : Guid.Parse(materialUM.CategoryId);
 
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
-                material.ImageUrl = materialUM.MainImage.IsNullOrEmpty() ? material.ImageUrl : materialUM.MainImage;
+
+                if (!materialUM.MainImage.IsNullOrEmpty())
+                {
+                    var mainImage = await UploadImages.UploadToFirebase([materialUM.MainImage]);
+                    material.ImageUrl = mainImage.First();
+                }
+
                 await _materialService.SaveChangeAsync();
                 if (!materialUM.SubImages.IsNullOrEmpty())
                 {
