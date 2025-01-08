@@ -17,6 +17,7 @@ namespace CMMS.Core.Models
         public string MaterialCode { get; set; }
         public string Description { get; set; }
         public decimal SalePrice { get; set; }
+        public decimal CostPrice { get; set; }
         public decimal MinStock { get; set; }
         public string Brand { get; set; }
         public float? WeightValue { get; set; }
