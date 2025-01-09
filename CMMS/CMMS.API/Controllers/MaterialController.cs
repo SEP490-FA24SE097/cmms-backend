@@ -658,25 +658,25 @@ namespace CMMS.API.Controllers
                     }).ToListAsync();
                 List<WarehouseDTO> materials = [];
 
-                var check = _materialService.Get(x => x.IsActive != false).ToList().ExceptBy(secondItems.Select(x => x.MaterialId), x => x.Id).ToList();
-                materials.AddRange(check.Select(x => new WarehouseDTO()
-                {
-                    Id = Guid.NewGuid(),
-                    MaterialId = x.Id,
-                    MaterialCode = x.MaterialCode,
-                    MaterialName = x.Name,
-                    MaterialImage = x.ImageUrl,
-                    MaterialPrice = x.SalePrice,
-                    VariantId = null,
-                    VariantName = null,
-                    VariantImage = null,
-                    Quantity = 0,
-                    InOrderQuantity = 0,
-                    VariantPrice = null,
-                    Attributes = null,
-                    LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
-                }));
-                secondItems.AddRange(materials);
+                //var check = _materialService.Get(x => x.IsActive != false).ToList().ExceptBy(secondItems.Select(x => x.MaterialId), x => x.Id).ToList();
+                //materials.AddRange(check.Select(x => new WarehouseDTO()
+                //{
+                //    Id = Guid.NewGuid(),
+                //    MaterialId = x.Id,
+                //    MaterialCode = x.MaterialCode,
+                //    MaterialName = x.Name,
+                //    MaterialImage = x.ImageUrl,
+                //    MaterialPrice = x.SalePrice,
+                //    VariantId = null,
+                //    VariantName = null,
+                //    VariantImage = null,
+                //    Quantity = 0,
+                //    InOrderQuantity = 0,
+                //    VariantPrice = null,
+                //    Attributes = null,
+                //    LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime()
+                //}));
+                //secondItems.AddRange(materials);
                 List<WarehouseDTO> secondList = [];
                 foreach (var item in secondItems)
                 {

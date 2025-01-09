@@ -406,13 +406,13 @@ namespace CMMS.API.Controllers
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock / conversionRate;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
+                        
                     }
                     else
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock;
-                        material.LastUpdateTime = GetVietNamTime();
+                        
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();
@@ -436,12 +436,11 @@ namespace CMMS.API.Controllers
                     if (conversionRate > 0)
                     {
                         material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
                     }
                     else
                     {
-                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
+                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity;
+                        
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();

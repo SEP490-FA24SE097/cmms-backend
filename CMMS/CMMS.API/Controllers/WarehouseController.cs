@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Trim().Contains(materialName.ToLower().Trim())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -116,7 +116,7 @@ namespace CMMS.API.Controllers
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                                 Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
-                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ThenInclude(x=>x.Unit).ToList();
+                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).ToList();
                             if (subVariants.Count > 0)
                             {
                                 //list.AddRange(subVariants.Select(x => new WarehouseDTO()
@@ -338,13 +338,13 @@ namespace CMMS.API.Controllers
                     {
                         material.Material.MinStock = dto.MinStock == null ? material.Material.MinStock : (decimal)dto.MinStock / conversionRate;
                         material.Material.MaxStock = dto.MaxStock == null ? material.Material.MaxStock : (decimal)dto.MaxStock / conversionRate;
-                        material.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+
                     }
                     else
                     {
                         material.Material.MinStock = dto.MinStock == null ? material.Material.MinStock : (decimal)dto.MinStock;
                         material.Material.MaxStock = dto.MaxStock == null ? material.Material.MaxStock : (decimal)dto.MaxStock;
-                        material.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+
                     }
                 }
                 await _warehouseService.SaveChangeAsync();
