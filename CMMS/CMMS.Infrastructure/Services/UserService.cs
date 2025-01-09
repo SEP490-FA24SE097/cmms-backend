@@ -380,8 +380,10 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.GetAll();
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                    || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSale += transaction.Amount;
+
             }
             return currentTotalSale;
         }
@@ -391,8 +393,10 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                    || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSale += transaction.Amount;
+
             }
             return currentTotalSale;
         }
@@ -404,7 +408,8 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.GetAll();
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                   || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSaleAfterRefund += transaction.Amount;
                 else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
                     currentTotalSaleAfterRefund -= transaction.Amount;
@@ -417,7 +422,8 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                       || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSaleAfterRefund += transaction.Amount;
                 else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
                     currentTotalSaleAfterRefund -= transaction.Amount;

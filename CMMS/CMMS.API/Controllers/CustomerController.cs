@@ -31,7 +31,7 @@ namespace CMMS.API.Controllers
         private HttpClient _httpClient;
         private ICurrentUserService _currentUserService;
         private IMapper _mapper;
-        private IStoreService _storeService;
+        private IStoreService _storeService; 
         private IStoreInventoryService _storeInventoryService;
         private IMaterialService _materialService;
         private IVariantService _variantService;
@@ -144,7 +144,6 @@ namespace CMMS.API.Controllers
                  (string.IsNullOrEmpty(filterModel.PhoneNumber) || _.PhoneNumber.Equals(filterModel.PhoneNumber)) &&
                  (string.IsNullOrEmpty(filterModel.Status) || _.Status.Equals(Int32.Parse(filterModel.Status)))
                  , _ => _.Invoices);
-
 
             decimal? currentDebtTotal = _userService.GetAllCustomerCurrentDebt();
             decimal? totalSale = _userService.GetAllCustomerTotalSale();

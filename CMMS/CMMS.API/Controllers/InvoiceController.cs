@@ -381,7 +381,7 @@ namespace CMMS.API.Controllers
                     Transaction transaction = new Transaction();
 
                     transaction.Id = "TT" + invoiceCode;
-                    transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
+                    transaction.TransactionType = (int)TransactionType.QuickSale;
                     transaction.TransactionDate = DateTime.Now;
                     transaction.CustomerId = customerId;
                     transaction.InvoiceId = invoice.Id;
@@ -616,7 +616,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost("update-invoice")]
-        public async Task<IActionResult> InvoiceFailed(InvoiceDataUpdateStatus model)
+        public async Task<IActionResult> UpdateInvoice(InvoiceDataUpdateStatus model)
         {
             try
             {
@@ -630,7 +630,7 @@ namespace CMMS.API.Controllers
                         _shippingDetailService.Update(shippingDetail);
 
                         var invoice = shippingDetail.Invoice;
-                        invoice.InvoiceStatus = (int)InvoiceStatus.NotReceived;
+                        //invoice.InvoiceStatus = (int)InvoiceStatus.NotReceived;
                         _invoiceService.Update(invoice);
 
                         // hoàn đơn hàng vào kho.
