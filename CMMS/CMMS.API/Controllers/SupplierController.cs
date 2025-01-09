@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/suppliers")]
     public class SupplierController : Controller

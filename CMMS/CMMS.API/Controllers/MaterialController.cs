@@ -1277,7 +1277,6 @@ namespace CMMS.API.Controllers
                         if (variant != null)
                         {
                             variant.Discount = dto.Discount.IsNullOrEmpty() ? variant.Discount : dto.Discount.Trim();
-
                         }
                     }
                 }
