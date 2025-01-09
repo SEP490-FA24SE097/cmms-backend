@@ -22,6 +22,7 @@ namespace CMMS.Core.Models
         public float? Weight { get; set; }
         public string ParentCategory { get; set; }
         public string Category { get; set; }
+        public string Unit { get; set; }
         public string? Supplier { get; set; }
         public decimal Quantity { get; set; }
         public decimal? MinStock { get; set; }

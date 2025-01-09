@@ -13,6 +13,7 @@ using CMMS.API.TimeConverter;
 using CMMS.Infrastructure.Services.Firebase;
 using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
+using Humanizer;
 namespace CMMS.API.Controllers
 {
     [AllowAnonymous]
@@ -145,7 +146,7 @@ namespace CMMS.API.Controllers
                         {
                             VariantId = x.Key,
                             ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault(),
+                            ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault() : material.Unit,
                             Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                             Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                             Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
@@ -211,7 +212,7 @@ namespace CMMS.API.Controllers
                                 {
                                     VariantId = unitVariant.Id,
                                     ConversionUnitId = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnitId,
-                                    ConversionUnitName = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnit.Unit.Name,
+                                    ConversionUnitName = unitVariant.ConversionUnitId == null ? material.Unit : unitVariant.ConversionUnit.Unit.Name,
                                     Sku = unitVariant.SKU,
                                     Image = unitVariant.VariantImageUrl,
                                     Price = unitVariant.Price,
@@ -890,6 +891,7 @@ namespace CMMS.API.Controllers
                             MaterialCode = x.MaterialCode,
                             SalePrice = x.SalePrice,
                             CostPrice = x.CostPrice,
+                            Discount = x.Discount,
                             Unit = x.Unit.Name,
                             Category = x.Category.Name,
                             MinStock = (decimal)x.MinStock,
@@ -924,7 +926,7 @@ namespace CMMS.API.Controllers
                     {
                         VariantId = x.Key,
                         ConversionUnitId = x.Select(x => x.Variant.ConversionUnitId).FirstOrDefault(),
-                        ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? null : x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault(),
+                        ConversionUnitName = x.Select(x => x.Variant.ConversionUnit).Any() ? x.Select(x => x.Variant.ConversionUnit.Unit.Name).FirstOrDefault() : result.Unit,
                         Sku = x.Select(x => x.Variant.SKU).FirstOrDefault(),
                         Image = x.Select(x => x.Variant.VariantImageUrl).FirstOrDefault(),
                         Price = x.Select(x => x.Variant.Price).FirstOrDefault(),
@@ -954,32 +956,33 @@ namespace CMMS.API.Controllers
 
                     foreach (var unitVariant in unitVariants)
                     {
+                        decimal? variantAfterDiscountPrice = null;
                         if (!unitVariant.Discount.IsNullOrEmpty())
                         {
                             var trimDiscount = unitVariant.Discount.Trim();
 
                             if (trimDiscount.Contains('%'))
                             {
-                                afterDiscountPrice = unitVariant.Price - unitVariant.Price *
+                                variantAfterDiscountPrice = unitVariant.Price - unitVariant.Price *
                                     decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
 
                             }
                             else
                             {
-                                afterDiscountPrice = unitVariant.Price - decimal.Parse(trimDiscount);
+                                variantAfterDiscountPrice = unitVariant.Price - decimal.Parse(trimDiscount);
                             }
                         }
                         variants.Add(new VariantDTO()
                         {
                             VariantId = unitVariant.Id,
                             ConversionUnitId = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnitId,
-                            ConversionUnitName = unitVariant.ConversionUnitId == null ? null : unitVariant.ConversionUnit.Unit.Name,
+                            ConversionUnitName = unitVariant.ConversionUnitId == null ? result.Unit : unitVariant.ConversionUnit.Unit.Name,
                             Sku = unitVariant.SKU,
                             Image = unitVariant.VariantImageUrl,
                             Price = unitVariant.Price,
                             CostPrice = unitVariant.CostPrice,
                             Discount = unitVariant.Discount,
-                            AfterDiscountPrice = afterDiscountPrice,
+                            AfterDiscountPrice = variantAfterDiscountPrice,
                             Attributes = null
                         });
                     }
@@ -1077,7 +1080,7 @@ namespace CMMS.API.Controllers
                             Id = Guid.NewGuid(),
                             VariantImageUrl = material.ImageUrl,
                             Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
-                            CostPrice = material.CostPrice * item.ConversionRate,
+                            CostPrice = 0,
                             ConversionUnitId = item.Id,
                             AttributeVariantId = newVariant.Id,
                             SKU = material.Name + " (" + unitName.Unit.Name + ")",
@@ -1136,7 +1139,12 @@ namespace CMMS.API.Controllers
                     : materialUM.Description;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
-
+                var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
+                if (variant != null)
+                {
+                    variant.Price = materialUM.SalePrice == 0 ? variant.Price : materialUM.SalePrice;
+                    variant.CostPrice = materialUM.CostPrice == 0 ? variant.CostPrice : materialUM.CostPrice;
+                }
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty()
                     ? material.BrandId
                     : Guid.Parse(materialUM.BrandId);
@@ -1203,16 +1211,29 @@ namespace CMMS.API.Controllers
         {
             try
             {
+
                 if (updatePriceCm.VariantId == null)
                 {
                     var material = await _materialService.FindAsync(updatePriceCm.MaterialId);
                     material.SalePrice = updatePriceCm.SellPrice;
+                    var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
+                    if (variant != null)
+                    {
+                        variant.Price = updatePriceCm.SellPrice <= 0 ? variant.Price : updatePriceCm.SellPrice;
+
+                    }
                     await _materialService.SaveChangeAsync();
                 }
                 else
                 {
                     var variant = await _variantService.FindAsync((Guid)updatePriceCm.VariantId);
                     variant.Price = updatePriceCm.SellPrice;
+                    if (variant.ConversionUnitId == null)
+                    {
+                        var material = _materialService.Get(x =>
+                            x.Id == updatePriceCm.MaterialId).FirstOrDefault();
+                        material.SalePrice = updatePriceCm.SellPrice;
+                    }
                     await _variantService.SaveChangeAsync();
                 }
 
@@ -1228,6 +1249,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
+
                 if (dto.VariantId != null)
                 {
                     var variant = _variantService.Get(x => x.MaterialId
@@ -1235,6 +1257,12 @@ namespace CMMS.API.Controllers
                     if (variant != null)
                     {
                         variant.Discount = dto.Discount.Trim();
+                    }
+                    if (variant.ConversionUnitId == null)
+                    {
+                        var material = _materialService.Get(x =>
+                            x.Id == dto.MaterialId).FirstOrDefault();
+                        material.Discount = dto.Discount.Trim();
                     }
 
                 }
@@ -1245,6 +1273,12 @@ namespace CMMS.API.Controllers
                     if (material != null)
                     {
                         material.Discount = dto.Discount.Trim();
+                        var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
+                        if (variant != null)
+                        {
+                            variant.Discount = dto.Discount.IsNullOrEmpty() ? variant.Discount : dto.Discount.Trim();
+
+                        }
                     }
                 }
 

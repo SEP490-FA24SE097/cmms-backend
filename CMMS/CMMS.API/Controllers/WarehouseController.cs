@@ -45,6 +45,7 @@ namespace CMMS.API.Controllers
                      .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
+                     Include(x => x.Material).ThenInclude(x => x.Unit).
                      Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
                      Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                      Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
@@ -55,6 +56,7 @@ namespace CMMS.API.Controllers
                          MaterialName = x.Material.Name,
                          MaterialImage = x.Material.ImageUrl,
                          Brand = x.Material.Brand.Name,
+                         Unit = x.Material.Unit.Name,
                          ParentCategory = x.Material.Category.ParentCategory.Name,
                          Category = x.Material.Category.Name,
                          Weight = x.Material.WeightValue,
@@ -114,7 +116,7 @@ namespace CMMS.API.Controllers
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
                                 Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
-                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ToList();
+                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.ConversionUnit).ThenInclude(x=>x.Unit).ToList();
                             if (subVariants.Count > 0)
                             {
                                 //list.AddRange(subVariants.Select(x => new WarehouseDTO()
@@ -168,6 +170,7 @@ namespace CMMS.API.Controllers
                                         MaterialCode = subVariant.Material.MaterialCode,
                                         MaterialImage = subVariant.Material.ImageUrl,
                                         Brand = subVariant.Material.Brand.Name,
+                                        Unit = subVariant.ConversionUnit.Unit.Name,
                                         ParentCategory = subVariant.Material.Category.ParentCategory.Name,
                                         Category = subVariant.Material.Category.Name,
                                         Weight = subVariant.Material.WeightValue,
