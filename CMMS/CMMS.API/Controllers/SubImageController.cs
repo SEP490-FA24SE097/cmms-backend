@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CMMS.Core.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [Route("api/sub-images")]
     [ApiController]
     public class SubImageController : ControllerBase

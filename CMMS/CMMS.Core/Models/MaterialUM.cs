@@ -10,7 +10,6 @@ namespace CMMS.Core.Models
     {
         public Guid Id { get; set; }
         public string? Name { get; set; }
-        public string? WeightUnit { get; set; }
         public float? WeightValue { get; set; }
         public string? BarCode { get; set; }
         public string? CategoryId { get; set; }
@@ -18,9 +17,7 @@ namespace CMMS.Core.Models
         public string? Description { get; set; }
         public decimal SalePrice { get; set; }
         public decimal CostPrice { get; set; }
-        public decimal MinStock { get; set; }
-        public decimal MaxStock { get; set; }
-        public List<string>? ImageFiles { get; set; }
-        public bool? isPoint { get; set; }
+        public string? MainImage { get; set; }
+        public List<string>? SubImages { get; set; }
     }
 }

@@ -16,7 +16,8 @@ namespace CMMS.Core.Models
             public string Name { get; set; }
             public decimal CostPrice { get; set; }
             public decimal SalePrice { get; set; }
-            public List<string> ImagesFile { get; set; }
+            public string MainImage { get; set; }
+            public List<string> SubImages { get; set; }
             public float? WeightValue { get; set; }
             public string? Description { get; set; }
             public decimal MinStock { get; set; }

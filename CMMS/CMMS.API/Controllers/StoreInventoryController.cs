@@ -134,6 +134,7 @@ namespace CMMS.API.Controllers
         {
             try
             {
+
                 if (variantId != null)
                 {
                     var variant = _variantService.Get(x => x.Id == variantId).Include(x => x.ConversionUnit).FirstOrDefault();
@@ -174,17 +175,18 @@ namespace CMMS.API.Controllers
         }
         [HttpGet("get-products-by-store-id")]
         public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
-            [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] string storeId)
+            [FromQuery] Guid? categoryId, [FromQuery] Guid? parentCategoryId, [FromQuery] Guid? brandId, [FromQuery] string storeId)
         {
             try
             {
-
                 var secondItems = await _storeInventoryService
-                    .Get(x => x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x =>  (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
+                    Include(x => x.Material).ThenInclude(x => x.Unit).
+                    Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).
                     Include(x => x.Variant).ThenInclude(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                    Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new WarehouseDTO()
+                    Include(x => x.Variant).ThenInclude(x => x.ConversionUnit).Select(x => new InventoryDTO()
                     {
                         Id = x.Id,
                         MaterialId = x.MaterialId,
@@ -193,8 +195,14 @@ namespace CMMS.API.Controllers
                         MaterialImage = x.Material.ImageUrl,
                         MaterialPrice = x.Material.SalePrice,
                         Brand = x.Material.Brand.Name,
+                        Unit = x.Material.Unit.Name,
+                        ParentCategory = x.Material.Category.ParentCategory.Name,
+                        Category = x.Material.Category.Name,
+                        Weight = x.Material.WeightValue,
                         MinStock = x.MinStock,
                         MaxStock = x.MaxStock,
+                        Discount = x.VariantId == null ? x.Material.Discount : x.Variant.Discount,
+                        AutoImportQuantity = x.ImportQuantity,
                         VariantId = x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
                         VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
@@ -209,6 +217,31 @@ namespace CMMS.API.Controllers
                         }).ToList(),
                         LastUpdateTime = x.LastUpdateTime
                     }).ToListAsync();
+                foreach (var item in secondItems)
+                {
+                    decimal? afterDiscountPrice = null;
+                    if (!item.Discount.IsNullOrEmpty())
+                    {
+                        var trimDiscount = item.Discount.Trim();
+
+                        if (trimDiscount.Contains('%'))
+                        {
+                            afterDiscountPrice = item.VariantId == null ?
+                                item.MaterialPrice - item.MaterialPrice * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100
+                                :
+                                item.VariantPrice - item.VariantPrice * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                        }
+                        else
+                        {
+                            afterDiscountPrice = item.VariantId == null ?
+                                item.MaterialPrice - decimal.Parse(trimDiscount)
+                                :
+                                item.VariantPrice - decimal.Parse(trimDiscount);
+                        }
+                        item.AfterDiscountPrice = afterDiscountPrice;
+                    }
+
+                }
                 switch (quantityStatus)
                 {
                     case 1:
@@ -229,7 +262,7 @@ namespace CMMS.API.Controllers
                         break;
 
                 }
-                List<WarehouseDTO> secondList = [];
+                List<InventoryDTO> secondList = [];
                 foreach (var item in secondItems)
                 {
                     if (item.VariantId != null)
@@ -240,33 +273,89 @@ namespace CMMS.API.Controllers
                         {
                             var subVariants = _variantService.Get(x => x.AttributeVariantId == variant.Id).
                                 Include(x => x.MaterialVariantAttributes).ThenInclude(x => x.Attribute).
-                                Include(x => x.ConversionUnit).
-                                Include(x => x.Material).ThenInclude(x => x.Brand).ToList();
-                            secondList.AddRange(subVariants.Select(x => new WarehouseDTO()
+                                Include(x => x.ConversionUnit).ThenInclude(x => x.Unit).
+                                Include(x => x.Material).ThenInclude(x => x.Brand).Include(x => x.Material).ThenInclude(x => x.Category).ThenInclude(x => x.ParentCategory).ToList();
+                            if (subVariants.Count > 0)
                             {
-                                Id = item.Id,
-                                MaterialId = x.MaterialId,
-                                MaterialName = x.Material.Name,
-                                MaterialCode = x.Material.MaterialCode,
-                                MaterialImage = x.Material.ImageUrl,
-                                Brand = x.Material.Brand.Name,
-                                MaterialPrice = x.Material.SalePrice,
-                                MaterialCostPrice = x.Material.CostPrice,
-                                MinStock = item.MinStock / x.ConversionUnit.ConversionRate,
-                                MaxStock = x.Material.MaxStock / x.ConversionUnit.ConversionRate,
-                                VariantId = x.Id,
-                                VariantName = x.SKU,
-                                VariantImage = x.VariantImageUrl,
-                                Quantity = item.InOrderQuantity == null ? item.Quantity / x.ConversionUnit.ConversionRate : (item.Quantity - (decimal)item.InOrderQuantity) / x.ConversionUnit.ConversionRate,
-                                VariantPrice = x.Price,
-                                VariantCostPrice = x.CostPrice,
-                                Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                //secondList.AddRange(subVariants.Select(x => new InventoryDTO()
+                                //{
+                                //    Id = item.Id,
+                                //    MaterialId = x.MaterialId,
+                                //    MaterialName = x.Material.Name,
+                                //    MaterialCode = x.Material.MaterialCode,
+                                //    MaterialImage = x.Material.ImageUrl,
+                                //    Brand = x.Material.Brand.Name,
+                                //    Unit = x.ConversionUnit.Unit.Name,
+                                //    MaterialPrice = x.Material.SalePrice,
+                                //    MaterialCostPrice = x.Material.CostPrice,
+                                //    MinStock = item.MinStock / x.ConversionUnit.ConversionRate,
+                                //    MaxStock = x.Material.MaxStock / x.ConversionUnit.ConversionRate,
+                                //    AutoImportQuantity = item.AutoImportQuantity / x.ConversionUnit.ConversionRate,
+                                //    VariantId = x.Id,
+                                //    VariantName = x.SKU,
+                                //    VariantImage = x.VariantImageUrl,
+                                //    Quantity = item.InOrderQuantity == null ? item.Quantity / x.ConversionUnit.ConversionRate : (item.Quantity - (decimal)item.InOrderQuantity) / x.ConversionUnit.ConversionRate,
+                                //    VariantPrice = x.Price,
+                                //    VariantCostPrice = x.CostPrice,
+                                //    Attributes = x.MaterialVariantAttributes.Count <= 0 ? null : x.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                //    {
+                                //        Name = x.Attribute.Name,
+                                //        Value = x.Value
+                                //    }).ToList(),
+                                //    LastUpdateTime = item.LastUpdateTime
+                                //}));
+                                foreach (var subVariant in subVariants)
                                 {
-                                    Name = x.Attribute.Name,
-                                    Value = x.Value
-                                }).ToList(),
-                                LastUpdateTime = item.LastUpdateTime
-                            }));
+                                    decimal? afterDiscountPrice = null;
+                                    if (!subVariant.Discount.IsNullOrEmpty())
+                                    {
+                                        var trimDiscount = subVariant.Discount.Trim();
+
+                                        if (trimDiscount.Contains('%'))
+                                        {
+                                            afterDiscountPrice = subVariant.Price - subVariant.Price * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                                        }
+                                        else
+                                        {
+                                            afterDiscountPrice = subVariant.Price - decimal.Parse(trimDiscount);
+                                        }
+                                    }
+                                    secondList.Add(new InventoryDTO()
+                                    {
+                                        Id = item.Id,
+                                        MaterialId = subVariant.MaterialId,
+                                        MaterialName = subVariant.Material.Name,
+                                        MaterialCode = subVariant.Material.MaterialCode,
+                                        MaterialImage = subVariant.Material.ImageUrl,
+                                        Brand = subVariant.Material.Brand.Name,
+                                        Unit = subVariant.ConversionUnit.Unit.Name,
+                                        ParentCategory = subVariant.Material.Category.ParentCategory.Name,
+                                        Category = subVariant.Material.Category.Name,
+                                        Weight = subVariant.Material.WeightValue,
+                                        MaterialPrice = null,
+                                        MaterialCostPrice = null,
+                                        VariantId = subVariant.Id,
+                                        VariantName = subVariant.SKU,
+                                        VariantImage = subVariant.VariantImageUrl,
+                                        Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / subVariant.ConversionUnit.ConversionRate,
+                                        VariantPrice = subVariant.Price,
+                                        VariantCostPrice = subVariant.CostPrice,
+                                        MinStock = subVariant.Material.MinStock / subVariant.ConversionUnit.ConversionRate,
+                                        MaxStock = subVariant.Material.MaxStock / subVariant.ConversionUnit.ConversionRate,
+                                        Discount = subVariant.Discount,
+                                        AutoImportQuantity = item.AutoImportQuantity / subVariant.ConversionUnit.ConversionRate,
+                                        AfterDiscountPrice = afterDiscountPrice,
+                                        Attributes = subVariant.MaterialVariantAttributes.Count <= 0
+                                            ? null
+                                            : subVariant.MaterialVariantAttributes.Select(x => new AttributeDTO()
+                                            {
+                                                Name = x.Attribute.Name,
+                                                Value = x.Value
+                                            }).ToList(),
+                                        LastUpdateTime = item.LastUpdateTime
+                                    });
+                                }
+                            }
                         }
 
                     }
@@ -284,7 +373,7 @@ namespace CMMS.API.Controllers
                         }
                     }
                 }
-                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems.OrderByDescending(x=>x.LastUpdateTime), page == null ? 0 : (int)page - 1,
+                var secondResult = Helpers.LinqHelpers.ToPageList(secondItems.OrderByDescending(x => x.LastUpdateTime), page == null ? 0 : (int)page - 1,
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
@@ -317,13 +406,13 @@ namespace CMMS.API.Controllers
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock / conversionRate;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
+                        
                     }
                     else
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock;
-                        material.LastUpdateTime = GetVietNamTime();
+                        
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();
@@ -347,12 +436,11 @@ namespace CMMS.API.Controllers
                     if (conversionRate > 0)
                     {
                         material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
                     }
                     else
                     {
-                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity / conversionRate;
-                        material.LastUpdateTime = GetVietNamTime();
+                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity;
+                        
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();

@@ -17,6 +17,7 @@ namespace CMMS.Core.Entities
         public string SKU { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
+        public string? Discount { get; set; }
         public string VariantImageUrl { get; set; }
         public Guid? ConversionUnitId { get; set; }
         public Guid? AttributeVariantId { get; set; }

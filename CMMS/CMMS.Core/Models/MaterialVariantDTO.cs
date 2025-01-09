@@ -22,6 +22,8 @@ namespace CMMS.Core.Models
         public Guid? ConversionUnitId { get; set; }
         public string? ConversionUnitName { get; set; }
         public string Image { get; set; }
+        public string? Discount { get; set; }
+        public decimal? AfterDiscountPrice { get; set; }
         public List<AttributeDTO>? Attributes { get; set; }
     }
 

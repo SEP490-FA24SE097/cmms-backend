@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/brands")]
     public class BrandController : Controller

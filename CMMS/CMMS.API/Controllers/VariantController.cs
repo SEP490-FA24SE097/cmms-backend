@@ -5,9 +5,11 @@ using CMMS.Infrastructure.Services.Firebase;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/variants")]
     public class VariantController : ControllerBase
@@ -96,7 +98,7 @@ namespace CMMS.API.Controllers
                     {
                         VariantId = x.Id,
                         ConversionUnitId = x.ConversionUnitId,
-                       // ConversionUnitName = x.ConversionUnit.Name,
+                        // ConversionUnitName = x.ConversionUnit.Name,
                         Sku = x.SKU,
                         Image = x.VariantImageUrl,
                         Price = x.Price,
@@ -139,7 +141,7 @@ namespace CMMS.API.Controllers
                     return BadRequest();
                 }
                 var dic = variant.Attributes.ToDictionary(x => x.Id, x => x.Value);
-                List<string> list=[variant.VariantImage];
+                List<string> list = [variant.VariantImage];
                 var image = await UploadImages.UploadToFirebase(list);
                 var newVariant = new Variant
                 {
@@ -188,12 +190,24 @@ namespace CMMS.API.Controllers
                 }
 
                 // Update the variant
-                List<string> list = [variantUM.VariantImage];
-                var image = await UploadImages.UploadToFirebase(list);
-                existingVariant.SKU = variantUM.SKU;
-                existingVariant.Price = variantUM.Price;
-                existingVariant.CostPrice = variantUM.CostPrice;
-                existingVariant.VariantImageUrl = image.First();
+                if (!variantUM.VariantImage.IsNullOrEmpty())
+                {
+                    List<string> list = [variantUM.VariantImage];
+                    var image = await UploadImages.UploadToFirebase(list);
+                    existingVariant.VariantImageUrl = image.First();
+                }
+                existingVariant.SKU = variantUM.SKU.IsNullOrEmpty() ? existingVariant.SKU : variantUM.SKU;
+                existingVariant.Price = variantUM.Price<=0?existingVariant.Price:variantUM.Price;
+                existingVariant.CostPrice = variantUM.CostPrice<=0? existingVariant.CostPrice : variantUM.CostPrice;
+                if (existingVariant.ConversionUnitId == null)
+                {
+                    var material = _materialService.Get(x => x.Id == existingVariant.MaterialId).FirstOrDefault();
+                    if (material != null)
+                    {
+                        material.SalePrice = variantUM.Price <= 0 ? material.SalePrice : variantUM.Price;
+                        material.CostPrice = variantUM.CostPrice <= 0 ? material.CostPrice : variantUM.CostPrice;
+                    }
+                }
 
                 _variantService.Update(existingVariant);
                 await _variantService.SaveChangeAsync();

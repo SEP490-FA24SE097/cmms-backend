@@ -24,7 +24,8 @@ namespace CMMS.Core.Entities
         public float? WeightValue { get; set; }  
         public string? Description { get; set; }  
         public decimal? MinStock { get; set; }  
-        public decimal? MaxStock { get; set; }  
+        public decimal? MaxStock { get; set; }
+        public string? Discount { get; set; }
         public string? ImageUrl { get; set; }  
         public bool IsRewardEligible { get; set; } 
         public bool? IsActive { get; set; } = true;  
