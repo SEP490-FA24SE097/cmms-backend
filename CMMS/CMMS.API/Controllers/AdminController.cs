@@ -338,11 +338,11 @@ namespace CMMS.API.Controllers
         #region seeding
         [AllowAnonymous]
         [HttpGet("SeedRole")]
-        public IActionResult SeedRole()
+        public async Task<IActionResult> SeedRoleAsync()
         {
             try
             {
-                _roleSerivce.SeedingRole();
+                await _roleSerivce.SeedingRole();
             }
             catch (Exception)
             {
@@ -352,11 +352,11 @@ namespace CMMS.API.Controllers
         }
         [AllowAnonymous]
         [HttpGet("SeedPermission")]
-        public IActionResult SeedPermission()
+        public async Task<IActionResult> SeedPermissionAsync()
         {
             try
             {
-                _roleSerivce.SeedingPermission();
+                await _roleSerivce.SeedingPermission();
             }
             catch (Exception)
             {
@@ -366,11 +366,11 @@ namespace CMMS.API.Controllers
         }
         [AllowAnonymous]
         [HttpGet("SeedRolePermission")]
-        public IActionResult SeedingRolePermission()
+        public async Task<IActionResult> SeedingRolePermissionAsync()
         {
             try
             {
-                _roleSerivce.LinkRolePermission();
+                await _roleSerivce.LinkRolePermission();
             }
             catch (Exception)
             {
