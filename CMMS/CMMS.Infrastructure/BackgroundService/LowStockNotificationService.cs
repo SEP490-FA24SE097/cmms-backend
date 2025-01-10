@@ -82,7 +82,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             }
             foreach (var storeId in storeIds)
             {
-                var lowStockStoreProducts = await storeInventoryService.GetAll().Include(x => x.Material)
+                var lowStockStoreProducts = await storeInventoryService.GetAll().Include(x => x.Material).Include(x=>x.Variant)
                     .Where(p => p.TotalQuantity - (p.InOrderQuantity ?? 0) <= p.MinStock && p.StoreId == storeId)
                     .ToListAsync(stoppingToken);
                 foreach (var product in lowStockStoreProducts)
@@ -133,7 +133,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             {
                 _notifiedProducts.Remove(productId); // Remove if product has sufficient stock
             }
-            await Task.Delay(3600000 * 12, stoppingToken);
+            await Task.Delay(60000, stoppingToken);
         }
 
     }
