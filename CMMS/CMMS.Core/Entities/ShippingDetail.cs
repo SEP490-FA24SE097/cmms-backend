@@ -19,6 +19,8 @@ namespace CMMS.Core.Entities
         public DateTime? ShippingDate { get; set; }
         public string? PhoneReceive { get; set; }
         public string? Note { get; set; }
+        public int? ShippingDetailStatus { get; set; } = 0;
+        public string?  Reason { get; set; }
         public decimal? NeedToPay { get; set; }
         public decimal? ShippingFee { get; set; }
         public DateTime EstimatedArrival { get; set; }

@@ -112,6 +112,13 @@ namespace CMMS.Infrastructure
 
             services.AddScoped<IShippingService, ShippingService>();
 
+            services.AddScoped<IConfigCustomerDiscountRepository, ConfigCustomerDiscountRepository>();
+            services.AddScoped<IConfigurationCustomerDiscountService, ConfigurationCustomerDiscountService>();
+
+            services.AddScoped<IConfigShippingRepository, ConfigShippingRepository>();
+            services.AddScoped<IConfigurationShippingServices, ConfigurationShippingServices> ();
+
+
             return services;
         }
     }

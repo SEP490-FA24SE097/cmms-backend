@@ -1,4 +1,5 @@
 ﻿using CMMS.Core.Entities;
+using CMMS.Core.Entities.Configurations;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Attribute = CMMS.Core.Entities.Attribute;
@@ -16,6 +17,8 @@ namespace CMMS.Infrastructure.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<ShippingDetail> ShippingDetails { get; set; }
+        public DbSet<ConfigCustomerDiscount> ConfigCustomerDiscounts { get; set; }
+        public DbSet<ConfigShipping> ConfigShippings { get; set; }
 
         public DbSet<Material> Materials { get; set; }
         public DbSet<Unit> Units { get; set; }
