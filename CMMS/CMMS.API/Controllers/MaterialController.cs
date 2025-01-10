@@ -1186,7 +1186,7 @@ namespace CMMS.API.Controllers
             }
         }
 
-        [HttpDelete("activate-or-deactivate-material")]
+        [HttpPost("activate-or-deactivate-material")]
         public async Task<IActionResult> Delete([FromQuery] string materialId)
         {
             try
