@@ -65,7 +65,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                     // Send notification
                     await _WarehouseHubContext.Clients.All.SendAsync(
                     "ReceiveLowQuantityAlert",
-                        $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({warehouseProduct.TotalQuantity} sản phẩm)"
+                        $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({warehouseProduct.TotalQuantity - warehouseProduct.InRequestQuantity ?? 0} sản phẩm)"
                         ,
                         stoppingToken
                     );
@@ -82,7 +82,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
             }
             foreach (var storeId in storeIds)
             {
-                var lowStockStoreProducts = await storeInventoryService.GetAll().Include(x => x.Material).Include(x=>x.Variant)
+                var lowStockStoreProducts = await storeInventoryService.GetAll().Include(x => x.Material).Include(x => x.Variant)
                     .Where(p => p.TotalQuantity - (p.InOrderQuantity ?? 0) <= p.MinStock && p.StoreId == storeId)
                     .ToListAsync(stoppingToken);
                 foreach (var product in lowStockStoreProducts)
@@ -100,7 +100,7 @@ public class LowStockNotificationService : Microsoft.Extensions.Hosting.Backgrou
                         }
                         if (StoreNotificationHub.GetConnectionId(storeId) is { } connectionId)
                         {
-                            await _storeHubContext.Clients.Client(connectionId).SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({product.TotalQuantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động", stoppingToken);
+                            await _storeHubContext.Clients.Client(connectionId).SendAsync("ReceiveLowQuantityAlert", $"Số lượng sản phẩm {name} trong kho đang ở mức thấp ({product.TotalQuantity-product.InOrderQuantity} sản phẩm) yêu cầu nhập hàng đã được gửi tự động", stoppingToken);
                         };
                         var checkRequest = await storeMaterialImportRequestService.CheckExist(x =>
                             x.MaterialId == product.MaterialId && x.VariantId == product.VariantId && x.StoreId == storeId && x.Status == "Processing");
