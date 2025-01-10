@@ -34,6 +34,7 @@ namespace CMMS.Core.Models
             public Guid UnitId { get; set; }
             public decimal ConversionRate { get; set; }
             public decimal Price { get; set; }
+            public decimal CostPrice { get; set; }
         }
 
     }

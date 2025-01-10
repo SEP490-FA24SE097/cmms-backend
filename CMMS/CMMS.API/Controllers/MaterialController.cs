@@ -65,7 +65,7 @@ namespace CMMS.API.Controllers
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
                         && (upperPrice == null || x.SalePrice <= upperPrice)
-                    ).OrderByDescending(x=>x.Timestamp);
+                    ).OrderByDescending(x => x.Timestamp);
                 if (isPriceDescending == true)
                 {
                     if (isCreatedDateDescending == true)
@@ -1050,12 +1050,13 @@ namespace CMMS.API.Controllers
                 }
                 if (materialCm.MaterialUnitDtoList != null && materialCm.MaterialUnitDtoList.Any())
                 {
-                    var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionUnit()
+                    var list = materialCm.MaterialUnitDtoList.Select(x => new ConversionDTO()
                     {
                         Id = Guid.NewGuid(),
                         UnitId = x.UnitId,
                         ConversionRate = x.ConversionRate,
                         Price = x.Price,
+                        CostPrice = x.CostPrice,
                         MaterialId = material.Id
                     }).ToList();
                     await _conversionUnitService.AddRange(list);
@@ -1081,7 +1082,7 @@ namespace CMMS.API.Controllers
                             Id = Guid.NewGuid(),
                             VariantImageUrl = material.ImageUrl,
                             Price = item.Price == 0 ? material.SalePrice * item.ConversionRate : item.Price,
-                            CostPrice = 0,
+                            CostPrice = item.CostPrice == 0 ? material.CostPrice * item.ConversionRate : item.CostPrice,
                             ConversionUnitId = item.Id,
                             AttributeVariantId = newVariant.Id,
                             SKU = material.Name + " (" + unitName.Unit.Name + ")",
