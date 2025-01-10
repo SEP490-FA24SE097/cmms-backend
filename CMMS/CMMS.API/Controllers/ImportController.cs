@@ -123,7 +123,7 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = _importService.GetAll().Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Include(x => x.Store).Where(x => x.Id == id).Select(x => new
+            var import = _importService.Get(x=>x.Id==id).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Include(x => x.Store).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
                 importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
@@ -154,7 +154,7 @@ namespace CMMS.API.Controllers
                     x.Note
                 }).ToList()
 
-            }).ToList();
+            }).FirstOrDefault();
             if (import == null)
             {
                 return NotFound();
