@@ -160,9 +160,7 @@ namespace CMMS.API.Controllers
                     result.ShippngFree = roundedAmount;
                     result.FinalPrice = shippingFee + result.TotalStoreAmount;
                 }
-
             }
-
             // handle final price
 
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);

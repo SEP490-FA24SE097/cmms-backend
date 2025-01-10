@@ -17,6 +17,7 @@ using CMMS.API.Helpers;
 using Microsoft.CodeAnalysis.Elfie.Model;
 using Microsoft.IdentityModel.Tokens;
 using CMMS.Infrastructure.Constant;
+using CMMS.Infrastructure.Repositories;
 
 namespace CMMS.API.Controllers
 {
@@ -61,10 +62,16 @@ namespace CMMS.API.Controllers
                 var avaibleQuantity = _storeInventoryService.GetAvailableQuantityInAllStore(cartItem);
                 CartItemVM cartItemVM = _mapper.Map<CartItemVM>(cartItem);
                 var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
+                var finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), null);
+
+                // check item was discount or not
+                if (finalPrice != material.SalePrice) cartItemVM.isDiscount = true;
+
                 cartItemVM.ItemName = material.Name;
-                cartItemVM.SalePrice = material.SalePrice;
+                cartItemVM.SalePrice = finalPrice;
+                cartItemVM.BeforeDiscountPrice = material.SalePrice;
                 cartItemVM.ImageUrl = material.ImageUrl;
-                cartItemVM.ItemTotalPrice = material.SalePrice * cartItem.Quantity;
+                cartItemVM.ItemTotalPrice = finalPrice * cartItem.Quantity;
                 if (avaibleQuantity < cartItem.Quantity)
                     cartItemVM.IsChangeQuantity = true;
                 if (cartItem.VariantId != null)
@@ -82,9 +89,14 @@ namespace CMMS.API.Controllers
                     {
                         cartItemVM.ItemName += $" | {variant.SKU}";
                     }
-                    cartItemVM.SalePrice = variant.Price;
+
+                    finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), variant.Id.ToString());
+                    cartItemVM.SalePrice = finalPrice;
                     cartItemVM.ImageUrl = variant.VariantImageUrl;
-                    cartItemVM.ItemTotalPrice = variant.Price * cartItem.Quantity;
+                    cartItemVM.BeforeDiscountPrice = variant.Price;
+                    cartItemVM.ItemTotalPrice = finalPrice * cartItem.Quantity;
+                    // check item was discount or not
+                    if (finalPrice != variant.Price) cartItemVM.isDiscount = true;
                 }
                 totalAmount += cartItemVM.ItemTotalPrice;
                 listCartItemVM.Add(cartItemVM);

@@ -203,8 +203,11 @@ namespace CMMS.Infrastructure.Services
                     var allocatedQuantity = Math.Min(remainingQuantity, availableQuantity);
 
                     // Lấy thông tin sản phẩm
+
+                    // SalePrice chỗ này sẽ bằng giá tiền sau khi giảm giá.
                     var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
-                    var itemTotalPrice = material.SalePrice * allocatedQuantity;
+                    var finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), null);
+                    var itemTotalPrice = finalPrice * allocatedQuantity;
 
                     var cartItemVM = new CartItemVM
                     {
@@ -212,10 +215,14 @@ namespace CMMS.Infrastructure.Services
                         VariantId = cartItem.VariantId,
                         Quantity = allocatedQuantity,
                         ItemName = material.Name,
-                        SalePrice = material.SalePrice,
+                        SalePrice = finalPrice,
+                        BeforeDiscountPrice = material.SalePrice,
                         ItemTotalPrice = itemTotalPrice,
                         ImageUrl = material.ImageUrl,
                     };
+
+                    // check item was discount or not
+                    if (finalPrice != material.SalePrice) cartItemVM.isDiscount = true;
 
                     // Xử lý biến thể (variant) nếu có
                     if (!string.IsNullOrEmpty(cartItem.VariantId))
@@ -223,8 +230,7 @@ namespace CMMS.Infrastructure.Services
                         var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                         if (variant != null)
                         {
-                            //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                            // cartItemVM.ItemName += $" | {variantAttribute.Value}";
+                            finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), variant.Id.ToString());
                             if (variant.MaterialVariantAttributes != null && variant.MaterialVariantAttributes.Count > 0)
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
@@ -235,9 +241,12 @@ namespace CMMS.Infrastructure.Services
                             {
                                 cartItemVM.ItemName += $" | {variant.SKU}";
                             }
-                            cartItemVM.SalePrice = variant.Price;
+                            cartItemVM.BeforeDiscountPrice = variant.Price;
+                            cartItemVM.SalePrice = finalPrice;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;
-                            cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
+                            cartItemVM.ItemTotalPrice = finalPrice * cartItemVM.Quantity;
+                            // check item was discount or not
+                            if (finalPrice != variant.Price) cartItemVM.isDiscount = true;
                         }
                     }
 

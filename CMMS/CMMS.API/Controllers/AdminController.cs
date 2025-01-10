@@ -27,7 +27,7 @@ namespace CMMS.API.Controllers
 
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
-            IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService, 
+            IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService,
             IConfigurationShippingServices configShippingService)
         {
             _userService = userSerivce;
@@ -177,7 +177,7 @@ namespace CMMS.API.Controllers
         #endregion
 
         #region roles
-  
+
         [HttpGet("get-roles")]
         public async Task<IActionResult> GetAccounts()
         {
@@ -219,7 +219,7 @@ namespace CMMS.API.Controllers
             var result = await _roleSerivce.DeleteRole(roleId);
             return Ok(result);
         }
-  
+
         [HttpGet("get-user-role/{userId}")]
         public async Task<IActionResult> GetUserRole(string userId)
         {
@@ -242,27 +242,96 @@ namespace CMMS.API.Controllers
 
 
         #region Cofigurations data
+        [AllowAnonymous]
         [HttpGet("shipping-free-config")]
-        public async Task<IActionResult> GetShippingFreeConfiguration(ShippingConfigurationFilterModel filterModel)
+        public IActionResult GetShippingFreeConfiguration([FromQuery] ShippingConfigurationFilterModel filterModel)
         {
-            var fitlerList = _configShippingService.Get(_ => _.Id != null);
-            return Ok(fitlerList);
+            var filterList = _configShippingService.Get(_ =>
+                   (!filterModel.FromDate.HasValue || _.CreatedAt >= filterModel.FromDate) &&
+                   (!filterModel.ToDate.HasValue || _.CreatedAt <= filterModel.ToDate));
+            var total = filterList.Count();
+            var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
+            return Ok(new
+            {
+                data = filterListPaged.OrderByDescending(_ => _.CreatedAt),
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
         }
 
+        [AllowAnonymous]
         [HttpPost("add-shipping-free-config")]
         public async Task<IActionResult> AddShippingFreeConfiguration(ShippingCofigDTO model)
         {
-            var shippingConfig = _mapper.Map<ConfigShipping>(model);
-            shippingConfig.Id = new Guid().ToString();
-            shippingConfig.CreatedAt = Helpers.TimeConverter.GetVietNamTime();
-            await _configShippingService.AddAsync(shippingConfig);
-            var result = await _configShippingService.SaveChangeAsync();
-            if(result)
+            try
             {
-                return Ok("Tạo mới cấu hình giá tiền ship thành công");
+                var shippingConfig = _mapper.Map<ConfigShipping>(model);
+                shippingConfig.Id = Guid.NewGuid().ToString();
+                shippingConfig.CreatedAt = Helpers.TimeConverter.GetVietNamTime();
+                await _configShippingService.AddAsync(shippingConfig);
+                var result = await _configShippingService.SaveChangeAsync();
+                if (result)
+                {
+                    return Ok("Tạo mới cấu hình giá tiền ship thành công");
+                }
+                return BadRequest("Không thể tạo mới cấu hình");
             }
-            return BadRequest("Không thể tạo mới cấu hình");
+            catch (Exception)
+            {
+                return BadRequest("Không thể tạo mới cấu hình");
+            }
+
         }
+
+        [AllowAnonymous]
+        [HttpGet("customer-type-discount-config")]
+        public  IActionResult GetCustomerDiscountConfiguration([FromQuery] CustomerDiscountConfigurationFilterModel filterModel)
+        {
+            var filterList = _configCustomerDiscountService.Get(_ =>
+                   (!filterModel.FromDate.HasValue || _.CreatedAt >= filterModel.FromDate) &&
+                   (!filterModel.ToDate.HasValue || _.CreatedAt <= filterModel.ToDate));
+            var total = filterList.Count();
+            var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
+            return Ok(new
+            {
+                data = filterListPaged.OrderByDescending(_ => _.CreatedAt),
+                pagination = new
+                {
+                    total,
+                    perPage = filterModel.defaultSearch.perPage,
+                    currentPage = filterModel.defaultSearch.currentPage,
+                }
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("customer-type-discount-config")]
+        public async Task<IActionResult> AddCustomerDiscountConfiguration(CustomerDiscountCofigDTO model)
+        {
+            try
+            {
+                var customerDiscount = _mapper.Map<ConfigCustomerDiscount>(model);
+                customerDiscount.Id = Guid.NewGuid().ToString();
+                customerDiscount.CreatedAt = Helpers.TimeConverter.GetVietNamTime();
+                await _configCustomerDiscountService.AddAsync(customerDiscount);
+                var result = await _configCustomerDiscountService.SaveChangeAsync();
+                if (result)
+                {
+                    return Ok("Tạo mới cấu hình giảm giá cho khách hàng thành công");
+                }
+                return BadRequest("Không thể tạo mới cấu hình");
+            }
+            catch (Exception)
+            {
+                return BadRequest("Không thể tạo mới cấu hình");
+            }
+
+        }
+
         #endregion
 
 

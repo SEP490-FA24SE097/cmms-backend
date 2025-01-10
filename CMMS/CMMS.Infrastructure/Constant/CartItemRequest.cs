@@ -17,6 +17,5 @@ namespace CMMS.Infrastructure.Constant
     public class UpdateCartItemRequest
     {
         public List<CartItemWithoutStoreId> CartItems { get; set; }
-        //public 
     }
 }
