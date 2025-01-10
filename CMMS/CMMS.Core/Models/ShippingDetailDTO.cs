@@ -42,6 +42,8 @@ namespace CMMS.Core.Models
         public string? ShipperName { get; set; }
         public string? ShipperCode { get; set; }
         public string? Note { get; set; }
+        public string? Reason { get; set; }
+        public int? ShippingDetailStatus  { get; set; }
         public InvoiceShippingDetailsVM Invoice { get; set; }
     }
 
@@ -78,12 +80,31 @@ namespace CMMS.Core.Models
         public string? ShippingDetailCode { get; set; }
         public string? ShipperId { get; set; }
         public int? InvoiceStatus { get; set; }
+        public int? ShippingDetailStatus { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
         public DefaultSearch defaultSearch { get; set; }
         public ShippingDetailFilterModel() { 
             defaultSearch = new DefaultSearch();
         }
+    }
+
+    public class SendRequestShippingDetail
+    {
+        public string? InvoiceId { get; set; }
+        public string? ShippingDetailCode { get; set; }
+        public string? Reason { get; set; }
+        public string? ShipperId { get; set; }
+
+    }
+
+    public class ProcessRequestShippingDetailFromShipper
+    {
+        public string? InvoiceId { get; set; }
+        public string? ShippingDetailCode { get; set; }
+        public string? ShipperId { get; set; }
+        public string? StoreStaffId { get; set; }
+        public int ShipperDetailStatus { get; set; }
     }
 
 

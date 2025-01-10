@@ -12,6 +12,7 @@ namespace CMMS.Infrastructure.Enums
         RequestToChange = 1,
         Approved = 2,
         Rejected = 3,
-        Done = 4,
+        NotRecived = 4,
+        Done = 5,
     }
 }
