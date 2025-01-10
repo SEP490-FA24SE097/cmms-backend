@@ -65,7 +65,7 @@ namespace CMMS.API.Controllers
                         && (brandId == null || x.BrandId == brandId)
                         && (lowerPrice == null || x.SalePrice >= lowerPrice)
                         && (upperPrice == null || x.SalePrice <= upperPrice)
-                    );
+                    ).OrderByDescending(x=>x.Timestamp);
                 if (isPriceDescending == true)
                 {
                     if (isCreatedDateDescending == true)
