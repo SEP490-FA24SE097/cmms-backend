@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CMMS.API.Constant;
 using CMMS.API.Helpers;
+using CMMS.Core.Entities.Configurations;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
@@ -21,15 +22,20 @@ namespace CMMS.API.Controllers
         private IRoleService _roleSerivce;
         private IPermissionSerivce _permissionService;
         private IMapper _mapper;
+        private IConfigurationCustomerDiscountService _configCustomerDiscountService;
+        private IConfigurationShippingServices _configShippingService;
 
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
-            IUserService userSerivce, IMapper mapper)
+            IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService, 
+            IConfigurationShippingServices configShippingService)
         {
             _userService = userSerivce;
             _roleSerivce = roleService;
             _permissionService = permissionSerivce;
             _mapper = mapper;
+            _configCustomerDiscountService = configCustomerDiscountService;
+            _configShippingService = configShippingService;
         }
         #region userManagement
         [HasPermission(Permission.StoreMaterialTracking)]
@@ -235,6 +241,30 @@ namespace CMMS.API.Controllers
         #endregion
 
 
+        #region Cofigurations data
+        [HttpGet("shipping-free-config")]
+        public async Task<IActionResult> GetShippingFreeConfiguration(ShippingConfigurationFilterModel filterModel)
+        {
+            var fitlerList = _configShippingService.Get(_ => _.Id != null);
+            return Ok(fitlerList);
+        }
+
+        [HttpPost("add-shipping-free-config")]
+        public async Task<IActionResult> AddShippingFreeConfiguration(ShippingCofigDTO model)
+        {
+            var shippingConfig = _mapper.Map<ConfigShipping>(model);
+            shippingConfig.Id = new Guid().ToString();
+            shippingConfig.CreatedAt = Helpers.TimeConverter.GetVietNamTime();
+            await _configShippingService.AddAsync(shippingConfig);
+            var result = await _configShippingService.SaveChangeAsync();
+            if(result)
+            {
+                return Ok("Tạo mới cấu hình giá tiền ship thành công");
+            }
+            return BadRequest("Không thể tạo mới cấu hình");
+        }
+        #endregion
+
 
         #region seeding
         [AllowAnonymous]
@@ -280,5 +310,7 @@ namespace CMMS.API.Controllers
             return Ok();
         }
         #endregion
+
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CMMS.Core.Entities;
+using CMMS.Core.Entities.Configurations;
 using CMMS.Core.Models;
 
 namespace CMMS.API.Helpers
@@ -86,6 +87,12 @@ namespace CMMS.API.Helpers
             #region Transaction
             CreateMap<Transaction, TransactionVM>().ReverseMap();
             #endregion
+
+            #region Transaction
+            CreateMap<CustomerDiscountCofigDTO, ConfigCustomerDiscount>().ReverseMap();
+            CreateMap<ShippingCofigDTO, ConfigShipping>().ReverseMap();
+            #endregion
+
 
 
         }
