@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Guid = System.Guid;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.Infrastructure.Services
 {
@@ -27,6 +29,7 @@ namespace CMMS.Infrastructure.Services
         Task<bool> Remove(Guid id);
         Task<bool> CheckExist(Expression<Func<Material, bool>> where);
         Task<bool> SaveChangeAsync();
+        Task<decimal> GetAfterDiscountPrice(string materialId, string? variantId);
     }
 
     public class MaterialService : IMaterialService
@@ -99,6 +102,48 @@ namespace CMMS.Infrastructure.Services
             _materialRepository.Update(material);
         }
         #endregion
+
+        public async Task<decimal> GetAfterDiscountPrice(string materialId, string? variantId)
+        {
+            if (variantId != null)
+            {
+                var variant = _variantService.Get(x => x.Id == Guid.Parse(variantId)).FirstOrDefault();
+                var afterDiscountPrice = variant.Price;
+                if (!variant.Discount.IsNullOrEmpty())
+                {
+                    var trimDiscount = variant.Discount.Trim();
+
+                    if (trimDiscount.Contains('%'))
+                    {
+                        afterDiscountPrice = variant.Price - variant.Price * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                    }
+                    else
+                    {
+                        afterDiscountPrice = variant.Price - decimal.Parse(trimDiscount);
+                    }
+                }
+                return afterDiscountPrice;
+            }
+            else
+            {
+                var material = Get(x => x.Id == Guid.Parse(materialId)).FirstOrDefault();
+                var afterDiscountPrice = material.SalePrice;
+                if (!material.Discount.IsNullOrEmpty())
+                {
+                    var trimDiscount = material.Discount.Trim();
+
+                    if (trimDiscount.Contains('%'))
+                    {
+                        afterDiscountPrice = material.SalePrice - material.SalePrice * decimal.Parse(trimDiscount.Remove(trimDiscount.Length - 1, 1)) / 100;
+                    }
+                    else
+                    {
+                        afterDiscountPrice = material.SalePrice - decimal.Parse(trimDiscount);
+                    }
+                }
+                return afterDiscountPrice;
+            }
+        }
         public async Task<decimal?> GetConversionRate(string materialId, string? variantId)
         {
             if (variantId == null)
@@ -116,6 +161,7 @@ namespace CMMS.Infrastructure.Services
                 }
             }
         }
+
         public async Task<float?> GetWeight(string materialId, string? variantId)
         {
             if (variantId == null)
