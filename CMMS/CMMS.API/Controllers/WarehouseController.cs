@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Trim().Contains(materialName.ToLower().Trim())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() ||x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -306,7 +306,7 @@ namespace CMMS.API.Controllers
 
                 }
                 var result = Helpers.LinqHelpers.ToPageList(items.OrderByDescending(x => x.LastUpdateTime), page == null ? 0 : (int)page - 1,
-                    itemPerPage == null ? 12 : (int)itemPerPage);
+                   itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
                     data = result,

@@ -145,8 +145,8 @@ namespace CMMS.API.Controllers
                         var conversionRate = await GetConversionRate(item.MaterialId, item.VariantId);
                         if (warehouseItem != null)
                         {
-                            warehouseItem.TotalQuantity -= conversionRate > 0 ? (warehouseItem.InRequestQuantity ?? 0) - (item.QuantityInSystem - item.QuantityInReality) * conversionRate : (warehouseItem.InRequestQuantity ?? 0) - (item.QuantityInSystem - item.QuantityInReality);
-                            warehouseItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                            warehouseItem.TotalQuantity -= conversionRate > 0 ? (item.QuantityInSystem-  item.QuantityInReality) * conversionRate :  item.QuantityInSystem - item.QuantityInReality;
+                            
                             await _warehouseService.SaveChangeAsync();
                         }
                         else
@@ -162,8 +162,8 @@ namespace CMMS.API.Controllers
 
                         if (storeItem != null)
                         {
-                            storeItem.TotalQuantity -= conversionRate > 0 ? (storeItem.InOrderQuantity ?? 0) - (item.QuantityInSystem - item.QuantityInReality) * conversionRate : (storeItem.InOrderQuantity ?? 0) - (item.QuantityInSystem - item.QuantityInReality);
-                            storeItem.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                            storeItem.TotalQuantity -= conversionRate > 0 ?  (item.QuantityInSystem- item.QuantityInReality) * conversionRate :  item.QuantityInSystem- item.QuantityInReality;
+                            
                             await _storeInventoryService.SaveChangeAsync();
                         }
                         else

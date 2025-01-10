@@ -14,6 +14,8 @@ using CMMS.Infrastructure.Services.Firebase;
 using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
 using Humanizer;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+
 namespace CMMS.API.Controllers
 {
     [AllowAnonymous]
@@ -46,7 +48,6 @@ namespace CMMS.API.Controllers
             _storeInventoryService = storeInventoryService;
             _warehouseService = warehouseService;
         }
-
 
         [HttpGet]
         [AllowAnonymous]
