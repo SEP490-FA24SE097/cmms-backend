@@ -218,11 +218,11 @@ namespace CMMS.API.Controllers
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                                cartItemVM.ItemName += $" | {variant.SKU} {attributesString}";
+                                cartItemVM.ItemName = $"{variant.SKU} {attributesString}";
                             }
                             else
                             {
-                                cartItemVM.ItemName += $" | {variant.SKU}";
+                                cartItemVM.ItemName = $"{variant.SKU}";
                             }
                             cartItemVM.SalePrice = variant.Price;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;

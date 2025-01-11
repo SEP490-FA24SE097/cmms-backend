@@ -54,7 +54,7 @@ namespace CMMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> GetUserCartAsync(CartItemRequest cartItems)
         {
-            var listCartRequest = cartItems.CartItems.ToPageList(cartItems.currentPage, cartItems.perPage);
+            var listCartRequest = cartItems.CartItems;
             List<CartItemVM> listCartItemVM = new List<CartItemVM>();
             decimal totalAmount = 0;
             foreach (var cartItem in listCartRequest)
@@ -83,11 +83,11 @@ namespace CMMS.API.Controllers
                     {
                         var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                         var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                        cartItemVM.ItemName += $" | {variant.SKU} {attributesString}";
+                        cartItemVM.ItemName = $"{variant.SKU} {attributesString}";
                     }
                     else
                     {
-                        cartItemVM.ItemName += $" | {variant.SKU}";
+                        cartItemVM.ItemName = $"{variant.SKU}";
                     }
 
                     finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), variant.Id.ToString());
