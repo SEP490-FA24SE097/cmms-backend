@@ -381,7 +381,7 @@ namespace CMMS.API.Controllers
                     Transaction transaction = new Transaction();
 
                     transaction.Id = "TT" + invoiceCode;
-                    transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
+                    transaction.TransactionType = (int)TransactionType.QuickSale;
                     transaction.TransactionDate = DateTime.Now;
                     transaction.CustomerId = customerId;
                     transaction.InvoiceId = invoice.Id;
@@ -534,6 +534,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
+                        shippingDetail.ShippingDetailStatus = (int) ShippingDetailStatus.Pending;
                         await  _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
@@ -599,7 +600,8 @@ namespace CMMS.API.Controllers
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
-                        shippingDetail.ShipperId = shipperId;
+                        shippingDetail.ShipperId = shipperId; 
+                        shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
                         _shippingDetailService.Update(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
@@ -616,7 +618,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost("update-invoice")]
-        public async Task<IActionResult> InvoiceFailed(InvoiceDataUpdateStatus model)
+        public async Task<IActionResult> UpdateInvoice(InvoiceDataUpdateStatus model)
         {
             try
             {
@@ -627,6 +629,7 @@ namespace CMMS.API.Controllers
                     {
                         shippingDetail.ShippingDate = model.ShippingDate;
                         shippingDetail.Note = model.Reason;
+                        shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.NotRecived;
                         _shippingDetailService.Update(shippingDetail);
 
                         var invoice = shippingDetail.Invoice;

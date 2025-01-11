@@ -15,11 +15,21 @@
         ManageProfile,
         CreateOrder,
         ViewOrderHistory,
+        CreateShipper,
+        CreateSaleStaff,
+        GetSaleStaff,
+        SendRequestToImport,
+        ViewCustomer
     }
 
     public enum SeniorManagementPermission { 
         StoreMaterialTrackings,
-   
+        SendRequestToImport,
+        CreateShipper,
+        CreateSaleStaff,
+        GetSaleStaff,
+        ViewCustomer
+
     }
 
     public enum  StoreManagerPermission 
@@ -31,6 +41,8 @@
     public enum SaleStaffPermission
     {
         OderTracking,
+        ViewCustomer,
+        CreateShipper
 
     }
     public enum WarehouseStaffPermission {

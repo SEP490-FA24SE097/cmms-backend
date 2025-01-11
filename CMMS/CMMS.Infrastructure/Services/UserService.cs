@@ -72,13 +72,15 @@ namespace CMMS.Infrastructure.Services
         private readonly IMaterialService _materialService;
         private readonly IVariantService _variantService;
         private readonly ITransactionService _transactionService;
+        private readonly IConfigurationCustomerDiscountService _configurationCustomerDiscountService;
         private readonly IUserService _userService;
 
         public UserService(IUserRepository userRepository, UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager, IConfiguration configuration,
             RoleManager<IdentityRole> roleManager, IUnitOfWork unitOfWork, IMapper mapper,
              IInvoiceService invoiceService, IMaterialService materialService,
-             IVariantService variantService, ITransactionService transactionService)
+             IVariantService variantService, ITransactionService transactionService,
+             IConfigurationCustomerDiscountService configurationCustomerDiscountService)
         {
             _userRepository = userRepository;
             _userManager = userManager;
@@ -91,6 +93,7 @@ namespace CMMS.Infrastructure.Services
             _materialService = materialService;
             _variantService = variantService;
             _transactionService = transactionService;
+            _configurationCustomerDiscountService = configurationCustomerDiscountService;
         }
 
 
@@ -284,12 +287,14 @@ namespace CMMS.Infrastructure.Services
 
         public async Task<decimal> GetCustomerDiscountPercentAsync(decimal amount, string userId)
         {
-            var customerDiscountPercent = float.Parse(_configuration["User:DiscountPercent:Customer"]);
-            var agencyDiscountPercnet = float.Parse(_configuration["User:DiscountPercent:Agency"]);
+            var customerDiscountConfig = _configurationCustomerDiscountService.GetAll().OrderByDescending(_ => _.CreatedAt).FirstOrDefault();
+
+            var customerDiscountPercent = customerDiscountConfig.Customer;
+            var agencyDiscountPercnet = customerDiscountConfig.Agency;
             var user = await _userRepository.FindAsync(userId);
             if (user.Type.Equals(CustomerType.Agency))
-                return (decimal)((float)amount * agencyDiscountPercnet);
-            return (decimal)((float)amount * customerDiscountPercent);
+                return amount * agencyDiscountPercnet;
+            return amount * customerDiscountPercent;
         }
 
         public async Task<decimal> GetRevenueFromCustomer(string userId)
@@ -380,8 +385,10 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.GetAll();
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                    || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSale += transaction.Amount;
+
             }
             return currentTotalSale;
         }
@@ -391,8 +398,10 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                    || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSale += transaction.Amount;
+
             }
             return currentTotalSale;
         }
@@ -404,7 +413,8 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.GetAll();
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                   || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSaleAfterRefund += transaction.Amount;
                 else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
                     currentTotalSaleAfterRefund -= transaction.Amount;
@@ -417,7 +427,8 @@ namespace CMMS.Infrastructure.Services
             var customerInvoices = _transactionService.Get(_ => _.CustomerId.Equals(userId));
             foreach (var transaction in customerInvoices)
             {
-                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem))
+                if (transaction.TransactionType.Equals((int)TransactionType.SaleItem)
+                       || transaction.TransactionType.Equals((int)TransactionType.QuickSale))
                     currentTotalSaleAfterRefund += transaction.Amount;
                 else if (transaction.TransactionType.Equals((int)TransactionType.RefundInvoice))
                     currentTotalSaleAfterRefund -= transaction.Amount;

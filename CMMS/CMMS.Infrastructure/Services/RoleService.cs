@@ -41,13 +41,14 @@ namespace CMMS.Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ITransaction _efTransaction;
 
         public RoleService(UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager, IConfiguration configuration,
             RoleManager<IdentityRole> roleManager, IMapper mapper, ApplicationDbContext dbContext,
             IPermissionRepository permissionRepository, IRolePermissionRepository rolePermissionRepository,
             IUnitOfWork unitOfWork, IRoleRepository roleRepository,
-            IUserRepository userRepository, ILogger<RoleService> logger)
+            IUserRepository userRepository, ILogger<RoleService> logger, ITransaction transaction)
         {
             _logger = logger;
             _userManager = userManager;
@@ -59,6 +60,7 @@ namespace CMMS.Infrastructure.Services
             _unitOfWork = unitOfWork;
             _roleRepository = roleRepository;
             _userRepository = userRepository;
+            _efTransaction = transaction;
         }
 
         public async Task<List<IdentityRole>> GetRole()
@@ -144,7 +146,9 @@ namespace CMMS.Infrastructure.Services
                     });
                 }
             }
-            await _unitOfWork.SaveChangeAsync();
+            var result =  await _unitOfWork.SaveChangeAsync();
+            if (result)
+                await _efTransaction.CommitAsync();
         }
 
         public async Task SeedingPermission()
@@ -160,7 +164,9 @@ namespace CMMS.Infrastructure.Services
                     });
                 }
             }
-            await _unitOfWork.SaveChangeAsync();
+            var result = await _unitOfWork.SaveChangeAsync();
+            if (result)
+                await _efTransaction.CommitAsync();
         }
 
         public List<string> getRolePermission<T>(T rolePermission)
@@ -180,7 +186,6 @@ namespace CMMS.Infrastructure.Services
             var seniorPermission = EnumHelpers.GetEnumValues<Enums.SeniorManagementPermission>();
             var storeManagerPermission = EnumHelpers.GetEnumValues<Enums.StoreManagerPermission>();
             var saleStaffPermission = EnumHelpers.GetEnumValues<Enums.SaleStaffPermission>();
-            var warehousePermission = EnumHelpers.GetEnumValues<Enums.WarehouseStaffPermission>();
             var customerPermission = EnumHelpers.GetEnumValues<Enums.CustomerPermission>();
             #endregion
 
@@ -189,7 +194,6 @@ namespace CMMS.Infrastructure.Services
                 {Role.Senior_Management,  seniorPermission},
                 {Role.Store_Manager,  storeManagerPermission},
                 {Role.Sale_Staff,  saleStaffPermission},
-                {Role.Warehouse_Staff,  warehousePermission},
                 {Role.Customer,  customerPermission},
             };
             List<RolePermission> rolesPermissions = new List<RolePermission>();
@@ -214,7 +218,9 @@ namespace CMMS.Infrastructure.Services
             }
             if (!rolesPermissions.IsNullOrEmpty()) { 
                 await _rolePermissionRepository.AddRangce(rolesPermissions);
-                await _unitOfWork.SaveChangeAsync();
+                var result = await _unitOfWork.SaveChangeAsync();
+                if (result)
+                    await _efTransaction.CommitAsync();
             }
 
         }

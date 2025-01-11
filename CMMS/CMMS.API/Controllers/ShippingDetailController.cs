@@ -80,6 +80,7 @@ namespace CMMS.API.Controllers
                 (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
                 (string.IsNullOrEmpty(filterModel.ShippingDetailCode) || _.Id.Equals(filterModel.ShippingDetailCode)) &&
                 (filterModel.InvoiceStatus == null || _.Invoice.InvoiceStatus.Equals(filterModel.InvoiceStatus)) &&
+                (filterModel.ShippingDetailStatus == null || _.ShippingDetailStatus.Equals(filterModel.ShippingDetailStatus)) &&
                 (string.IsNullOrEmpty(filterModel.ShipperId) || _.ShipperId.Equals(filterModel.ShipperId))
                 , _ => _.Invoice, _ => _.Invoice.InvoiceDetails, _ => _.Shipper, _ => _.Shipper.Store);
             var total = fitlerList.Count();
@@ -147,6 +148,7 @@ namespace CMMS.API.Controllers
                     invoice.InvoiceStatus = (int)InvoiceStatus.Done;
                     _invoiceService.Update(invoice);
                     shippingDetail.ShippingDate = model.ShippingDate;
+                    shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Done;
                     shippingDetail.TransactionPaymentType = model.TransactionPaymentType;
                     shippingDetail.Address = model.Address;
                     shippingDetail.EstimatedArrival = (DateTime)model.EstimatedArrival;
@@ -289,6 +291,47 @@ namespace CMMS.API.Controllers
             }
             return BadRequest("Không tìm thấy cửa hàng");
 
+        }
+
+
+
+        [HttpPost("send-request-to-change")]
+        public async Task<IActionResult> SendRequestToChangeDelivery(SendRequestShippingDetail request)
+        {
+            var user = await _currentUserService.GetCurrentUser();
+            var shippingDetail = _shippingDetailService.Get(_ => _.ShipperId.Equals(user.Id) && _.Id.Equals(request.ShippingDetailCode)).FirstOrDefault();
+            if (shippingDetail != null)
+            {
+                request.ShipperId = user.Id;
+                var result = await _shippingDetailService.SendRequestToCancleShipping(request);
+                if(result.StatusCode == 200)
+                {
+                    await _efTransaction.CommitAsync();
+                    return Ok(result.Content);
+                }
+                return BadRequest(result.Content);
+            }
+            return BadRequest("Không có quyền gửi yêu cầu đổi cho đơn hàng này");
+
+        }
+
+        [HttpPost("handle-request-to-change")]
+        public async Task<IActionResult> HandleRequestToChangeDelivery(ProcessRequestShippingDetailFromShipper request)
+        {
+            var user = await _currentUserService.GetCurrentUser();
+            request.StoreStaffId = user.StoreId;
+            var shippingDetail = await _shippingDetailService.FindAsync(request.ShippingDetailCode);
+            if (shippingDetail != null)
+            {
+                var result = await _shippingDetailService.ProcessRequestFromShipper(request);
+                if (result.StatusCode == 200)
+                {
+                    await _efTransaction.CommitAsync();
+                    return Ok(result.Content);
+                }
+                return BadRequest(result.Content);
+            }
+            return BadRequest("Không tìm thấy shipping detail");
         }
     }
 }

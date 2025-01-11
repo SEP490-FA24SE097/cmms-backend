@@ -1,5 +1,9 @@
-﻿using CMMS.Core.Entities;
+﻿using Azure.Core;
+using CMMS.Core.Constant;
+using CMMS.Core.Entities;
+using CMMS.Core.Models;
 using CMMS.Infrastructure.Data;
+using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore.Query;
 using System;
@@ -26,17 +30,22 @@ namespace CMMS.Infrastructure.Services
         Task<bool> CheckExist(Expression<Func<ShippingDetail, bool>> where);
         Task<bool> SaveChangeAsync();
         #endregion
+
+        public Task<Message> SendRequestToCancleShipping(SendRequestShippingDetail request);
+        public Task<Message> ProcessRequestFromShipper(ProcessRequestShippingDetailFromShipper processRequest);
     }
     public class ShippingDetailService : IShippingDetailService
     {
         private IShippingDetailRepository _shippingDetailRepository;
         private IUnitOfWork _unitOfWork;
+        private IUserRepository _userRepository;
 
         public ShippingDetailService(IShippingDetailRepository shippingDetailRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork, IUserRepository userRepository)
         {
             _shippingDetailRepository = shippingDetailRepository;
             _unitOfWork = unitOfWork;
+            _userRepository = userRepository;
         }
 
         #region CURD 
@@ -90,10 +99,83 @@ namespace CMMS.Infrastructure.Services
             return await _unitOfWork.SaveChangeAsync();
         }
 
+
         public void Update(ShippingDetail ShippingDetail)
         {
             _shippingDetailRepository.Update(ShippingDetail);
         }
         #endregion
+
+
+
+        public async Task<Message> ProcessRequestFromShipper(ProcessRequestShippingDetailFromShipper processRequest)
+        {
+            var message = new Message();
+            var shippingDetail = await _shippingDetailRepository.FindAsync(processRequest.ShippingDetailCode);
+            if (shippingDetail != null)
+            {
+                var shipper = await _userRepository.FindAsync(processRequest.ShipperId);
+                if (processRequest.StoreStaffId.Equals(shipper.StoreId))
+                {
+                    switch (processRequest.ShipperDetailStatus)
+                    {
+                        case (int)ShippingDetailStatus.Approved:
+                            {
+                                shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                                shippingDetail.ShipperId = processRequest.ShipperId;
+                                _shippingDetailRepository.Update(shippingDetail);
+                                var result = await _unitOfWork.SaveChangeAsync();
+                                if (result)
+                                {
+                                    message.StatusCode = 200;
+                                    message.Content = $"Chuyển đổi người giao hàng cho hóa đơn {shippingDetail.InvoiceId} thành công";
+                                }
+                                break;
+                            }
+                        case (int)ShippingDetailStatus.Rejected:
+                            {
+                                shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Rejected;
+                                _shippingDetailRepository.Update(shippingDetail);
+                                var result = await _unitOfWork.SaveChangeAsync();
+                                if (result)
+                                {
+                                    message.StatusCode = 200;
+                                    message.Content = $"Từ chối yêu cầu chuyển đổi đơn hàng.";
+                                }
+                                break;
+                            }
+                    }
+                    return message;
+                }
+                message.StatusCode = 404;
+                message.Content = "Chỉ được gán cho shipper trực thuộc cửa hàng mà bạn đang quản lí";
+
+            }
+            return message;
+        }
+
+        public async Task<Message> SendRequestToCancleShipping(SendRequestShippingDetail request)
+        {
+            var message = new Message();
+            var shippingDetail = await _shippingDetailRepository.FindAsync(request.ShippingDetailCode);
+            if (shippingDetail != null)
+            {
+                shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.RequestToChange;
+                shippingDetail.Reason = request.Reason;
+                _shippingDetailRepository.Update(shippingDetail);
+                var result = await _unitOfWork.SaveChangeAsync();
+                if (result)
+                {
+                    message.StatusCode = 200;
+                    message.Content = $"Gửi yêu cầu chuyển đổi đơn hàng của hóa đơn {shippingDetail.InvoiceId} thành công";
+                }
+                else
+                {
+                    message.StatusCode = 500;
+                }
+            }
+            return message;
+        }
+
     }
 }

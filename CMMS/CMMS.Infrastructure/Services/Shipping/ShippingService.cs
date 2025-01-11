@@ -24,12 +24,14 @@ namespace CMMS.Infrastructure.Services.Shipping
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly IConfigurationShippingServices _configurationShippingServices;
 
         public ShippingService(HttpClient httpClient,  IMapper mapper, 
-            IStoreService storeService, IConfiguration configuration)
+            IStoreService storeService, IConfiguration configuration, IConfigurationShippingServices configurationShippingServices)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _configurationShippingServices = configurationShippingServices;
         }
 
         public double CalculateDistanceBetweenPostionLatLon(double lat1, double lon1, double lat2, double lon2)
@@ -56,11 +58,13 @@ namespace CMMS.Infrastructure.Services.Shipping
         public decimal CalculateShippingFee(decimal distance, decimal weight)
         {
             // Config
-            decimal baseFee = decimal.Parse(_configuration["ShippingFee:BaseFee"]); // Cước cơ bản
-            decimal first5KmFee = decimal.Parse(_configuration["ShippingFee:First5KmFree"]);// Phí cho 5km đầu
-            decimal additionalKmFee = decimal.Parse(_configuration["ShippingFee:AdditionalKmFee"]); // Phí cho mỗi km vượt quá
-            decimal first10KgFee = decimal.Parse(_configuration["ShippingFee:First10KgFee"]); // Phí cho 3kg đầu
-            decimal additionalKgFee = decimal.Parse(_configuration["ShippingFee:AdditionalKgFee"]); // Phí cho mỗi kg vượt quá
+           var shippingFeeConfig = _configurationShippingServices.GetAll().OrderByDescending(_ => _.CreatedAt).FirstOrDefault();
+
+            decimal baseFee = shippingFeeConfig.BaseFee; // Cước cơ bản
+            decimal first5KmFee = shippingFeeConfig.First5KmFree;
+            decimal additionalKmFee = shippingFeeConfig.AdditionalKmFee;
+            decimal first10KgFee = shippingFeeConfig.First10KgFee;
+            decimal additionalKgFee = shippingFeeConfig.AdditionalKgFee;
 
             // Tính phí quãng đường
             decimal distanceFee = distance <= 5 ? first5KmFee :

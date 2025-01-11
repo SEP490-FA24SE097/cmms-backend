@@ -15,6 +15,7 @@ namespace CMMS.Infrastructure.Enums
         PurchaseCustomerDebt = 4,
         FixCustomerDebt = 5,
         RefundInvoice = 6,
+        QuickSale = 7,
     }
 
     public enum TransactionPaymentType
