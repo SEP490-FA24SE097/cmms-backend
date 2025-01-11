@@ -782,6 +782,25 @@ namespace CMMS.API.Controllers
 
                                 }
                             }
+                            var goodsNote = new GoodsNote()
+                            {
+                                Id = Guid.NewGuid(),
+                                StoreId = null,
+                                ReasonDescription = $"Nhập hàng từ nhà cung cấp tới kho tổng",
+                                TotalQuantity = import.Quantity,
+                                Type = (int)GoodsNoteType.Receive,
+                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                            };
+                            await _goodsNoteService.AddAsync(goodsNote);
+                            await _goodsNoteDetailService.AddRangeAsync(list.Select(x => new GoodsNoteDetail()
+                            {
+                                Id = Guid.NewGuid(),
+                                GoodsNoteId = goodsNote.Id,
+                                MaterialId = x.MaterialId,
+                                VariantId = x.VariantId,
+                                Quantity = x.Quantity,
+                            }));
+                            await _goodsNoteDetailService.SaveChangeAsync();
                         }
                     }
                     return Ok();
