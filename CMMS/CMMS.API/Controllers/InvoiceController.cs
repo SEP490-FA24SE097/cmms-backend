@@ -7,6 +7,7 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.InvoicePdf;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
@@ -18,7 +19,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/invoices")]
     [ApiController]
-    [AllowAnonymous]
+    [HasPermission(PermissionName.InvoicePermissions)]
     public class InvoiceController : ControllerBase
     {
         private IInvoiceService _invoiceService;
@@ -159,17 +160,13 @@ namespace CMMS.API.Controllers
            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
-           (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
-           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus) &&
+            _.Customer.Id.Equals(userId)) 
            , _ => _.Customer);
-            if (userId != null)
-            {
-                filteredList = filteredList.Where(_ => _.Customer.Id.Equals(userId));
-            }
-           
+         
 
             // 2. Group theo GroupId
             var groupedInvoices = filteredList

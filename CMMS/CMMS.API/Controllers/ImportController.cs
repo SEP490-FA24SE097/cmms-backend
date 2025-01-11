@@ -15,12 +15,14 @@ using Microsoft.IdentityModel.Tokens;
 using NuGet.Packaging.Signing;
 using CMMS.Core.Enums;
 using System.Security.Cryptography.X509Certificates;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [Route("api/imports")]
     [ApiController]
+    [HasPermission(PermissionName.ImportPermissions)]
     public class ImportController : ControllerBase
     {
         private readonly IImportService _importService;

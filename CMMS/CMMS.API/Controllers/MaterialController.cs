@@ -15,12 +15,14 @@ using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
 using Humanizer;
 using Org.BouncyCastle.Bcpg.OpenPgp;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [ApiController]
     [Route("api/materials")]
+    [HasPermission(PermissionName.ImportPermissions)]
     public class MaterialController : Controller
     {
         private readonly IMaterialService _materialService;
@@ -887,6 +889,7 @@ namespace CMMS.API.Controllers
         //}
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public IActionResult GetMaterialByIdAsync([FromRoute] string id)
         {
             try

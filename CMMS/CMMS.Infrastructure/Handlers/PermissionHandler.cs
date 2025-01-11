@@ -11,7 +11,7 @@ namespace CMMS.Infrastructure.Handlers
     // create HasPermissionAttribute 
     public sealed class HasPermissionAttribute : AuthorizeAttribute
     {
-        public HasPermissionAttribute(params Permission[] permissions)
+        public HasPermissionAttribute(params PermissionName[] permissions)
             : base(policy: string.Join(",", permissions.Select(p => p.ToString())))
         {
 

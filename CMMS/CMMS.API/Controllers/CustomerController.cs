@@ -5,6 +5,7 @@ using CMMS.API.Services;
 using CMMS.Core.Entities;
 using CMMS.Core.Models;
 using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
 using Firebase.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,6 @@ namespace CMMS.API.Controllers
 {
     [Route("api/customers")]
     [ApiController]
-    [AllowAnonymous]
     public class CustomerController : ControllerBase
     {
         private IUserService _userService;
@@ -62,6 +62,7 @@ namespace CMMS.API.Controllers
         #region CRUD Customer
 
         [HttpGet]
+        [HasPermission(PermissionName.ViewCustomer)]
         public async Task<ActionResult> GetAllCustomerInStoreAsync([FromQuery] CustomerFilterModel filterModel)
         {
             var listCustomer = _userService.Get(_ => _.Id != null, _ => _.Invoices);
@@ -120,6 +121,7 @@ namespace CMMS.API.Controllers
             });
         }
         [HttpGet("get-in-store")]
+        [HasPermission(PermissionName.ViewCustomer)]
         public async Task<ActionResult> GetAllCustomerInStoreByStoreManagerAsync([FromQuery] CustomerFilterModel filterModel)
         {
             var currentUser = await _currentUserService.GetCurrentUser();
@@ -181,6 +183,8 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("get-customer-data-in-store")]
+        [HasPermission(PermissionName.ViewCustomer)]
+
         public async Task<ActionResult> GetAllCustomerInStoreByStoreAsync([FromQuery] CustomerFilterModel filterModel)
         {
             var currentUser = await _currentUserService.GetCurrentUser();
@@ -236,6 +240,8 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPut("update-customer")]
+        [HasPermission(PermissionName.CustomerPermissions)]
+
         public async Task<ActionResult> UpdateCustomerInfoInStoreAsync(UserDTO model)
         {
             var updateUser = await _userService.FindAsync(model.Id);
@@ -252,6 +258,7 @@ namespace CMMS.API.Controllers
             return Ok(result.Succeeded);
         }
         [HttpPost("update-customer-status/{id}")]
+        [HasPermission(PermissionName.UpdateCustomerStatus)]
         public async Task<ActionResult> DisableCustomerAsync(string id)
         {
             var user = await _userService.FindAsync(id);
@@ -267,6 +274,7 @@ namespace CMMS.API.Controllers
             return Ok("Cập nhật trạng thái người dùng thành công");
         }
         [HttpPost]
+        [HasPermission(PermissionName.AddNewCustomer)]
         public async Task<ActionResult> AddCustomerInStoreAsync(UserDTO model)
         {
             var currentUser = await _currentUserService.GetCurrentUser();
@@ -381,16 +389,10 @@ namespace CMMS.API.Controllers
             });
         }
 
-        // query invoice detail nguoi ban, thong tin giao hang.
-        [HttpGet("open-invoice-detail")]
-        public ActionResult OpenInvoiceDetail()
-        {
-            return Ok();
-        }
-
         #endregion
 
         #region Customer Transaction
+        [HasPermission( PermissionName.ViewCustomer)]
         [HttpGet("customer-debt")]
         public async Task<ActionResult> GetDebtCustomerAsync([FromQuery] TransactionFilterModel filterModel)
         {
@@ -465,22 +467,7 @@ namespace CMMS.API.Controllers
             });
         }
 
-        // tao thanh toan tra no.
-        // cho nay se co 2 option chon tra theo hoa don va tra so tien 
-        [HttpPost("purchase-debt")]
-        public ActionResult PurchaseCustomerDebt()
-        {
-            return Ok();
-        }
-
-        // dieu chinh cong no neu co sai sot thu
-        [HttpGet("update-customer-debt")]
-        public ActionResult UpdateCustomerDebt()
-        {
-            return Ok();
-        }
-
-        // dieu chinh cong no neu co sai sot thu
+        [HasPermission(PermissionName.CustomerPermissions)]
         [HttpPost("delivery-address")]
         public async Task<ActionResult> CustomerDeliveryAddressAsync(CustomerAddressModel model)
         {
@@ -498,19 +485,6 @@ namespace CMMS.API.Controllers
             return BadRequest("Không tìm thấy user");
         }
 
-
-
-        // dieu chinh cong no neu co sai sot thu
-        [HttpPost("current-user")]
-        public async Task<ActionResult> GetCurrentUser()
-        {
-            var currrentUser = await _currentUserService.GetCurrentUser();
-            var result = _mapper.Map<UserVM>(currrentUser);
-            return Ok(new
-            {
-                data = result
-            });
-        }
 
         #endregion
     }

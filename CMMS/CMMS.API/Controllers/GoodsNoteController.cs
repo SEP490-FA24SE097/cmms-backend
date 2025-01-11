@@ -10,12 +10,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Humanizer;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [Route("api/goods-notes")]
     [ApiController]
+    [HasPermission(PermissionName.GoodNotePermissions)]
     public class GoodsNoteController : ControllerBase
     {
         private readonly IGoodsNoteService _goodsDeliveryNoteService;
