@@ -238,11 +238,24 @@ namespace CMMS.API.Controllers
                         //    Attributes = null
                         //}));
                     }
-
+                    
+                    List<VariantDTO> orderedVariants = new List<VariantDTO>(variants.Count);
+                    
+                    foreach (var variant in variants)
+                    {
+                        if (variant.ConversionUnitId == null)
+                        {
+                            orderedVariants.Insert(0,variant);
+                        }
+                        else
+                        {
+                            orderedVariants.Add(variant);
+                        }
+                    }
                     newList.Add(new MaterialVariantDTO()
                     {
                         Material = material,
-                        Variants = variants
+                        Variants = orderedVariants
 
                     });
                 }
@@ -988,12 +1001,25 @@ namespace CMMS.API.Controllers
                         });
                     }
                 }
+                List<VariantDTO> orderedVariants = new List<VariantDTO>(variants.Count);
+
+                foreach (var variant in variants)
+                {
+                    if (variant.ConversionUnitId == null)
+                    {
+                        orderedVariants.Insert(0, variant);
+                    }
+                    else
+                    {
+                        orderedVariants.Add(variant);
+                    }
+                }
                 return Ok(new
                 {
                     data = new
                     {
                         material = result,
-                        variants = variants
+                        variants = orderedVariants
                     }
                 });
             }
