@@ -508,7 +508,7 @@ namespace CMMS.API.Controllers
                     existImp.TotalDiscount = import.TotalDiscount;
                     existImp.TotalDue = import.TotalDue;
                     existImp.Note = import.Note;
-                    existImp.Status = import.Status;
+                    existImp.Status = import.Status.IsNullOrEmpty()?"Phiếu tạm":import.Status;
                     var updatedDetails = import.ImportDetails;
                     foreach (var updatedDetail in updatedDetails)
                     {
