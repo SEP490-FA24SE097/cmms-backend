@@ -155,17 +155,21 @@ namespace CMMS.API.Controllers
         {
             var userId = _currentUserService.GetUserId();
             var filteredList = _invoiceService
-            .Get(_ =>
-            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
-            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
-            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
-            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
-            (_.Customer.Id.Equals(userId)) &&
-            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
-            (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
-            , _ => _.Customer);
+           .Get(_ =>
+           (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
+           (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
+           (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
+           (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
+           (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
+           (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
+           (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
+           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+           , _ => _.Customer);
+            if (userId != null)
+            {
+                filteredList = filteredList.Where(_ => _.Customer.Id.Equals(userId));
+            }
+           
 
             // 2. Group theo GroupId
             var groupedInvoices = filteredList
@@ -217,7 +221,7 @@ namespace CMMS.API.Controllers
                                 {
                                     var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                     var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                     invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
+                                    invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                                 }
                                 else
                                 {
@@ -288,11 +292,11 @@ namespace CMMS.API.Controllers
                         {
                             var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                             var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                            invoiceItem.ItemName += $" | {variant.SKU} {attributesString}";
+                            invoiceItem.ItemName = $"{variant.SKU} {attributesString}";
                         }
                         else
                         {
-                            invoiceItem.ItemName += $" | {variant.SKU}";
+                            invoiceItem.ItemName = $"{variant.SKU}";
                         }
                         invoiceItem.SalePrice = variant.Price;
                         invoiceItem.ImageUrl = variant.VariantImageUrl;
