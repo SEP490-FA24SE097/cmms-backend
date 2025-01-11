@@ -280,7 +280,7 @@ namespace CMMS.API.Controllers
                                 var secondGoodsNoteDetail = new GoodsNoteDetail()
                                 {
                                     Id = Guid.NewGuid(),
-                                    GoodsNoteId = goodsNote.Id,
+                                    GoodsNoteId = secondGoodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
                                     Quantity = request.Quantity,
