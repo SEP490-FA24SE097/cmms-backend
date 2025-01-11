@@ -119,11 +119,11 @@ namespace CMMS.API.Controllers
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                                invoiceDetail.ItemName += $" | {variant.SKU} {attributesString}";
+                 invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                             }
                             else
                             {
-                                invoiceDetail.ItemName += $" | {variant.SKU}";
+                                invoiceDetail.ItemName = $"{variant.SKU}";
                             }
 
                             invoiceDetail.SalePrice = variant.Price;
@@ -159,6 +159,7 @@ namespace CMMS.API.Controllers
             (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
             (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
             (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
+            (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
             (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
             (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
             (_.Customer.Id.Equals(userId)) &&
@@ -216,11 +217,11 @@ namespace CMMS.API.Controllers
                                 {
                                     var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                     var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                                    invoiceDetail.ItemName += $" | {variant.SKU} {attributesString}";
+                     invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                                 }
                                 else
                                 {
-                                    invoiceDetail.ItemName += $" | {variant.SKU}";
+                                    invoiceDetail.ItemName = $"{variant.SKU}";
                                 }
                                 invoiceDetail.SalePrice = variant.Price;
                                 invoiceDetail.ImageUrl = variant.VariantImageUrl;
@@ -243,7 +244,7 @@ namespace CMMS.API.Controllers
             if (filterModel.defaultSearch.isAscending)
             {
                 filterListPaged = result.OrderBy(_ => _.InvoiceDate);
-            } 
+            }
             var total = groupedInvoices.Count();
             return Ok(new
             {
@@ -356,7 +357,7 @@ namespace CMMS.API.Controllers
                     await _invoiceService.AddAsync(invoice);
                     foreach (var item in invoiceInfo.StoreItems)
                     {
-                        
+
                         var material = await _materialService.FindAsync(Guid.Parse(item.MaterialId));
                         var totalItemPrice = material.SalePrice * item.Quantity;
                         if (item.VariantId != null)
@@ -534,8 +535,8 @@ namespace CMMS.API.Controllers
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
-                        shippingDetail.ShippingDetailStatus = (int) ShippingDetailStatus.Pending;
-                        await  _shippingDetailService.AddAsync(shippingDetail);
+                        shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                        await _shippingDetailService.AddAsync(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Tạo đơn hàng thành công" });
@@ -600,7 +601,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
-                        shippingDetail.ShipperId = shipperId; 
+                        shippingDetail.ShipperId = shipperId;
                         shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
                         _shippingDetailService.Update(shippingDetail);
                         var result = await _shippingDetailService.SaveChangeAsync();
@@ -674,7 +675,7 @@ namespace CMMS.API.Controllers
                                            InvoiceId = invoiceDetail.InvoiceId
                                        }).ToList();
 
-                    var groupInvoiceId = Guid.NewGuid().ToString(); 
+                    var groupInvoiceId = Guid.NewGuid().ToString();
                     foreach (var item in refundItems)
                     {
                         var lineTotalRefund = item.RefundQuantity * item.PricePerQuantity;
@@ -752,9 +753,9 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> GetInvoicePdf(string invoiceId)
         {
             var fileName = $"{invoiceId}.pdf";
-            var htmlContent =  await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
+            var htmlContent = await _generateInvoicePdf.GenerateHtmlFromInvoiceAsync(invoiceId);
             //var pdfBytes = await _generateInvoicePdf.GeneratePdf(htmlContent);
-            var pdfBytes =  _generateInvoicePdf.GeneratePdf(htmlContent, fileName);
+            var pdfBytes = _generateInvoicePdf.GeneratePdf(htmlContent, fileName);
             return File(pdfBytes, "application/pdf", fileName);
         }
 
@@ -763,7 +764,7 @@ namespace CMMS.API.Controllers
         [HttpGet("get-revenue-all")]
         public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
         {
-            if(filterModel.Year != null && filterModel.StoreId != null)
+            if (filterModel.Year != null && filterModel.StoreId != null)
             {
                 var result = await _invoiceService.GetMonthlyRevenueAsync(filterModel);
                 return Ok(result);
@@ -771,8 +772,8 @@ namespace CMMS.API.Controllers
             var revenueData = await _invoiceService.GetStoreRevenueAsync(filterModel);
             return Ok(new
             {
-              data = revenueData
-            }); 
+                data = revenueData
+            });
         }
     }
 }

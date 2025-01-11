@@ -160,11 +160,11 @@ namespace CMMS.API.Controllers
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                                invoiceDetail.ItemName += $" | {variant.SKU} {attributesString}";
+                                invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                             }
                             else
                             {
-                                invoiceDetail.ItemName += $" | {variant.SKU}";
+                                invoiceDetail.ItemName = $"{variant.SKU}";
                             }
                             //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
                             invoiceDetail.SalePrice = variant.Price;
