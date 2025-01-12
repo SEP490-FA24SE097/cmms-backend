@@ -426,8 +426,8 @@ namespace CMMS.API.Controllers
                 {
                     if (conversionRate > 0)
                     {
-                        material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock / conversionRate;
-                        material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock / conversionRate;
+                        material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock * conversionRate;
+                        material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock * conversionRate;
 
                     }
                     else
@@ -457,7 +457,7 @@ namespace CMMS.API.Controllers
                 {
                     if (conversionRate > 0)
                     {
-                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity / conversionRate;
+                        material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity * conversionRate;
                     }
                     else
                     {
