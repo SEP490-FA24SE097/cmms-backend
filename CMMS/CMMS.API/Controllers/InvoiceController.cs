@@ -165,27 +165,23 @@ namespace CMMS.API.Controllers
            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
+           (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
-           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus) &&
-            _.Customer.Id.Equals(userId))
-           , _ => _.Customer);
-
+           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+           , _ => _.Customer).OrderByDescending(_ => _.InvoiceDate);
 
             // 2. Group theo GroupId
             var groupedInvoices = filteredList
                 .GroupBy(_ => _.GroupId)
                 .ToList(); // Tạm lưu kết quả Group vào List
-
+            var total = groupedInvoices.Count();
             // 3. Phân trang trên danh sách GroupId
-            var pagedGroups = groupedInvoices
-                .Skip((filterModel.defaultSearch.currentPage - 1) * filterModel.defaultSearch.perPage)
-                .Take(filterModel.defaultSearch.perPage)
-                .ToList();
+            //var pagedGroups = groupedInvoices.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
 
             var result = new List<GroupInvoiceVM>();
-            foreach (var groupInvoice in pagedGroups)
+            foreach (var groupInvoice in groupedInvoices)
             {
                 var groupInvoiceVM = new GroupInvoiceVM();
                 var groupId = groupInvoice.Key;
@@ -245,16 +241,10 @@ namespace CMMS.API.Controllers
                 result.Add(groupInvoiceVM);
             }
 
-            var filterListPaged = result.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
-                .OrderByDescending(_ => _.InvoiceDate);
-            if (filterModel.defaultSearch.isAscending)
-            {
-                filterListPaged = result.OrderBy(_ => _.InvoiceDate);
-            }
-            var total = groupedInvoices.Count();
+        
             return Ok(new
             {
-                data = filterListPaged,
+                data = result.OrderByDescending(_ => _.InvoiceDate).ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage),
                 pagination = new
                 {
                     total,
@@ -648,14 +638,14 @@ namespace CMMS.API.Controllers
                         _invoiceService.Update(invoice);
 
                         // hoàn đơn hàng vào kho.
-                        var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
-                        foreach (var invoiceDetail in invoiceDetails)
-                        {
-                            var item = _mapper.Map<CartItem>(invoiceDetail);
-                            item.StoreId = invoice.StoreId;
-                            // update store quantity
-                            await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Refund);
-                        }
+                        //var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                        //foreach (var invoiceDetail in invoiceDetails)
+                        //{
+                        //    var item = _mapper.Map<CartItem>(invoiceDetail);
+                        //    item.StoreId = invoice.StoreId;
+                        //    // update store quantity
+                        //    await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Refund);
+                        //}
                         var result = await _shippingDetailService.SaveChangeAsync();
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Cập nhật thông tin đơn hàng thành công" });

@@ -135,7 +135,7 @@ namespace CMMS.API.Controllers
 
             return Ok(new
             {
-                data = result,
+                data = result.OrderByDescending(_ => _.EstimatedArrival),
                 pagination = new
                 {
                     total,

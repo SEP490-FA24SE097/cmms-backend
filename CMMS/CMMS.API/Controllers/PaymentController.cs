@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http;
 using System.Net.WebSockets;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
 {
@@ -157,13 +158,13 @@ namespace CMMS.API.Controllers
                 else
                 {
                     var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance, (decimal)totalWeight);
-                    decimal roundedAmount = Math.Floor(shippingFee) ;
+                  
+                    decimal roundedAmount = (int)Math.Round((double)shippingFee / 1000.0) * 1000; ;
                     result.ShippngFree = roundedAmount;
                     result.FinalPrice = shippingFee + result.TotalStoreAmount;
                 }
             }
             // handle final price
-
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
             var totalShippingFee = preCheckOutModels.Sum(x => x.ShippngFree);
             var discountPrice = await _userService.GetCustomerDiscountPercentAsync((decimal)totalAmount, user.Id);
