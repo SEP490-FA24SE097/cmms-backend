@@ -208,7 +208,7 @@ namespace CMMS.Infrastructure.Services
                     // SalePrice chỗ này sẽ bằng giá tiền sau khi giảm giá.
                     var material = await _materialService.FindAsync(Guid.Parse(cartItem.MaterialId));
                     var finalPrice = await _materialService.GetAfterDiscountPrice(material.Id.ToString(), null);
-                    var itemTotalPrice = finalPrice * allocatedQuantity;
+                    var itemTotalPrice = material.SalePrice * allocatedQuantity;
 
                     var cartItemVM = new CartItemVM
                     {
@@ -245,7 +245,7 @@ namespace CMMS.Infrastructure.Services
                             cartItemVM.BeforeDiscountPrice = variant.Price;
                             cartItemVM.SalePrice = finalPrice;
                             cartItemVM.ImageUrl = variant.VariantImageUrl;
-                            cartItemVM.ItemTotalPrice = finalPrice * cartItemVM.Quantity;
+                            cartItemVM.ItemTotalPrice = variant.Price * cartItemVM.Quantity;
                             // check item was discount or not
                             if (finalPrice != variant.Price) cartItemVM.isDiscount = true;
                         }
@@ -273,9 +273,8 @@ namespace CMMS.Infrastructure.Services
 
                     // Thêm sản phẩm vào danh sách của cửa hàng
                     storeResult.StoreItems.Add(cartItemVM);
-                    storeResult.TotalStoreAmount += cartItemVM.ItemTotalPrice;
-
-                    
+                    //storeResult.TotalStoreAmount += cartItemVM.ItemTotalPrice;
+                    storeResult.TotalStoreAmount += (cartItemVM.BeforeDiscountPrice * cartItemVM.Quantity);
 
                     // Cập nhật số lượng còn lại
                     remainingQuantity -= allocatedQuantity;

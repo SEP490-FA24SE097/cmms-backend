@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using Org.BouncyCastle.Asn1.Pkcs;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
@@ -301,7 +302,24 @@ namespace CMMS.API.Controllers
         public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
         {
             var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
-            return Ok(result);
+
+            var months = Enumerable.Range(1, 12);
+
+            // Chuyển đổi dữ liệu
+            var convertedData = result
+                .GroupBy(x => new { x.Year, x.StoreId })
+                .Select(group => new
+                {
+                    Year = group.Key.Year,
+                    StoreId = group.Key.StoreId,
+                    MonthlyRevenue = months.Select(month => new
+                    {
+                        Revenue = group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0
+                    }).ToList()
+                })
+                .ToList();
+
+            return Ok(convertedData);
         }
 
 
