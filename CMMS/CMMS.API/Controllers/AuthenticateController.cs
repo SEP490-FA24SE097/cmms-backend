@@ -141,7 +141,7 @@ namespace CMMS.API.Controllers
             var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
             var refreshToken = _jwtTokenService.CreateRefeshToken();
             user.RefreshToken = refreshToken;
-            user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
+            user.DateExpireRefreshToken = TimeConverter.TimeConverter.GetVietNamTime().AddDays(7);
             _userService.Update(user);
             var userVM = _mapper.Map<UserVM>(user);
             var result = await _userService.SaveChangeAsync();
@@ -196,7 +196,7 @@ namespace CMMS.API.Controllers
             var userRoles = await _userService.GetRolesAsync(user);
             var newRefreshToken = _jwtTokenService.CreateRefeshToken();
             user.RefreshToken = newRefreshToken;
-            user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
+            user.DateExpireRefreshToken = TimeConverter.TimeConverter.GetVietNamTime().AddDays(7);
             var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
             _userService.Update(user);
             await _userService.SaveChangeAsync();

@@ -18,16 +18,6 @@ using System.Threading.Tasks;
 
 namespace CMMS.Infrastructure.Services
 {
-    public class StoreRevenue
-    {
-        public int? Month { get; set; }
-        public string StoreId { get; set; }
-        public string StoreName { get; set; }
-        public int TotalInvoices { get; set; }  // Số lượng hóa đơn đã hoàn tất
-        public decimal TotalRevenue { get; set; }  // Tổng doanh thu
-        public decimal TotalRefunds { get; set; }  // Tổng hoàn tiền
-        public decimal Profit { get; set; }  // Lợi nhuận
-    }
     public interface IInvoiceService
     {
         #region CURD
@@ -45,8 +35,7 @@ namespace CMMS.Infrastructure.Services
         string GenerateInvoiceCode();
         #endregion
 
-        Task<List<StoreRevenue>> GetStoreRevenueAsync(DashboardInvoiceFitlerModel filterModel);
-        Task<List<StoreRevenue>> GetMonthlyRevenueAsync(DashboardInvoiceFitlerModel filterModel);
+        Task<List<MonthlyRevenueDto>> GetStoreMonthlyRevenueAsync();
     }
     public class InvoiceService : IInvoiceService
     {
@@ -127,73 +116,93 @@ namespace CMMS.Infrastructure.Services
             return invoiceCode;
         }
 
-        public async Task<List<StoreRevenue>> GetStoreRevenueAsync(DashboardInvoiceFitlerModel filterModel)
+        public async Task<List<MonthlyRevenueDto>> GetStoreMonthlyRevenueAsync()
         {
-            // Lấy danh sách tất cả các cửa hàng
-            var allStores = _storeService.GetAll(); 
-            var storeRevenuesList = new List<StoreRevenue>();
-
-            // Lọc hóa đơn theo các điều kiện
-            var invoices = _invoiceRepository
-                .Get(_ => _.Id != null &&
-                          (!filterModel.SpecificDate.HasValue ||
-                           (_.InvoiceDate <= ((DateTime)filterModel.SpecificDate).Date.AddDays(1).AddMilliseconds(-1) &&
-                            _.InvoiceDate >= ((DateTime)filterModel.SpecificDate).Date)) &&
-                          (filterModel.Year == null || _.InvoiceDate.Year.Equals(filterModel.Year)))
-                .GroupBy(i => i.StoreId)
-                .ToList(); // Chuyển thành danh sách để dễ xử lý
-
-            // Kết hợp dữ liệu từ danh sách tất cả các cửa hàng và hóa đơn đã lọc
-            foreach (var store in allStores)
+            var stores = _invoiceRepository.Get(_ => _.InvoiceStatus.Equals((int)InvoiceStatus.Done) ||
+            _.InvoiceStatus.Equals((int)InvoiceStatus.DoneInStore)).GroupBy(_ => new
             {
-                var invoiceGroup = invoices.FirstOrDefault(g => g.Key == store.Id);
+                Year = _.InvoiceDate.Year,
+                Month = _.InvoiceDate.Month,
+                _.StoreId
+            }).Select(g => new MonthlyRevenueDto
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                //StoreId = _storeService.Get(_ => _.Id.Equals(g.Key.StoreId)).First().Name,
+                StoreId = g.Key.StoreId,
+                MonthlyRevenue = g.Sum(i => i.TotalAmount)
+            })
+            .OrderBy(r => r.Year)
+            .ThenBy(r => r.Month)
+            .ThenBy(r => r.StoreId);
 
-                var storeRevenue = new StoreRevenue
-                {
-                    StoreId = store.Id,
-                    StoreName = store.Name,
-                    TotalInvoices = invoiceGroup?.Count(i => i.InvoiceStatus == (int)InvoiceStatus.Done) ?? 0,
-                    TotalRevenue = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => i.SalePrice ?? 0) ?? 0,
-                    TotalRefunds = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Refund).Sum(i => i.SalePrice ?? 0) ?? 0,
-                    Profit = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => (i.SalePrice ?? 0) - (i.Discount ?? 0)) ?? 0
-                };
-
-                storeRevenuesList.Add(storeRevenue);
-            }
-
-            return storeRevenuesList;
+            return await stores.ToListAsync();
         }
 
 
-        public async Task<List<StoreRevenue>> GetMonthlyRevenueAsync(DashboardInvoiceFitlerModel fitlerModel)
-        {
-            var monthlyRevenues = new List<StoreRevenue>();
+        //    public async Task<StoreSummaryData> GetStoreRevuenueAsync(string year, string storeId)
+        //    {
+        //        var monthlyRevenues = new List<StoreRevenue>();
 
-            // Lọc hóa đơn theo năm
-            var invoices = _invoiceRepository
-                .Get(_ => _.InvoiceDate.Year == fitlerModel.Year && _.StoreId.EndsWith(fitlerModel.StoreId))
-                .GroupBy(i => i.InvoiceDate.Month)
-                .ToList();
+        //        // Lọc hóa đơn theo năm
+        //        var invoices = _invoiceRepository
+        //            .Get(_ => _.InvoiceDate.Year == fitlerModel.Year && _.StoreId.EndsWith(fitlerModel.StoreId))
+        //            .GroupBy(i => i.InvoiceDate.Month)
+        //            .ToList();
 
-            // Tạo dữ liệu doanh thu theo từng tháng
-            for (int month = 1; month <= 12; month++)
-            {
-                var invoiceGroup = invoices.FirstOrDefault(g => g.Key == month);
-                var store = _storeService.Get(_ => _.Id.Equals(fitlerModel.StoreId)).FirstOrDefault();
+        //        // Tạo dữ liệu doanh thu theo từng tháng
+        //        for (int month = 1; month <= 12; month++)
+        //        {
+        //            var invoiceGroup = invoices.FirstOrDefault(g => g.Key == month);
+        //            var store = _storeService.Get(_ => _.Id.Equals(fitlerModel.StoreId)).FirstOrDefault();
 
-                var monthlyRevenue = new StoreRevenue
-                {
-                    Month = month,
-                    StoreId = store.Id,
-                    StoreName = store.Name,
-                    TotalInvoices = invoiceGroup?.Count(i => i.InvoiceStatus == (int)InvoiceStatus.Done) ?? 0,
-                    TotalRevenue = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => i.SalePrice ?? 0) ?? 0,
-                    TotalRefunds = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Refund).Sum(i => i.SalePrice ?? 0) ?? 0,
-                    Profit = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => (i.SalePrice ?? 0) - (i.Discount ?? 0)) ?? 0
-                };
-                monthlyRevenues.Add(monthlyRevenue);
-            }
-            return monthlyRevenues;
-        }
+        //            var monthlyRevenue = new StoreRevenue
+        //            {
+        //                Month = month,
+        //                StoreId = store.Id,
+        //                StoreName = store.Name,
+        //                TotalInvoices = invoiceGroup?.Count(i => i.InvoiceStatus == (int)InvoiceStatus.Done) ?? 0,
+        //                TotalRevenue = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => i.SalePrice ?? 0) ?? 0,
+        //                TotalRefunds = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Refund).Sum(i => i.SalePrice ?? 0) ?? 0,
+        //                Profit = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => (i.SalePrice ?? 0) - (i.Discount ?? 0)) ?? 0
+        //            };
+        //            monthlyRevenues.Add(monthlyRevenue);
+        //        }
+        //        return monthlyRevenues;
+        //    }
+
+
+        //    public async Task<ProductSales> GetProductSoldedAsync(string year, string storeId)
+        //    {
+        //        var monthlyRevenues = new List<StoreRevenue>();
+
+        //        // Lọc hóa đơn theo năm
+        //        var invoices = _invoiceRepository
+        //            .Get(_ => _.InvoiceDate.Year == fitlerModel.Year && _.StoreId.EndsWith(fitlerModel.StoreId))
+        //            .GroupBy(i => i.InvoiceDate.Month)
+        //            .ToList();
+
+        //        // Tạo dữ liệu doanh thu theo từng tháng
+        //        for (int month = 1; month <= 12; month++)
+        //        {
+        //            var invoiceGroup = invoices.FirstOrDefault(g => g.Key == month);
+        //            var store = _storeService.Get(_ => _.Id.Equals(fitlerModel.StoreId)).FirstOrDefault();
+
+        //            var monthlyRevenue = new StoreRevenue
+        //            {
+        //                Month = month,
+        //                StoreId = store.Id,
+        //                StoreName = store.Name,
+        //                TotalInvoices = invoiceGroup?.Count(i => i.InvoiceStatus == (int)InvoiceStatus.Done) ?? 0,
+        //                TotalRevenue = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => i.SalePrice ?? 0) ?? 0,
+        //                TotalRefunds = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Refund).Sum(i => i.SalePrice ?? 0) ?? 0,
+        //                Profit = invoiceGroup?.Where(i => i.InvoiceStatus == (int)InvoiceStatus.Done).Sum(i => (i.SalePrice ?? 0) - (i.Discount ?? 0)) ?? 0
+        //            };
+        //            monthlyRevenues.Add(monthlyRevenue);
+        //        }
+        //        return monthlyRevenues;
+        //    }
+        //}
+        //}
     }
 }

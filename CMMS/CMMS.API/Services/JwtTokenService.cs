@@ -74,7 +74,7 @@ namespace CMMS.API.Services
             var token = new JwtSecurityToken(
                 issuer: _configuration["JWT:ValidIssuer"],
                 audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddMonths(1),
+                expires: TimeConverter.TimeConverter.GetVietNamTime().AddMonths(1),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature)
             );

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CMMS.API.Helpers;
 using CMMS.API.Services;
+using CMMS.API.TimeConverter;
 using CMMS.Core.Entities;
 using CMMS.Core.Enums;
 using CMMS.Core.Models;
@@ -351,6 +352,7 @@ namespace CMMS.API.Controllers
 
                     Invoice invoice = new Invoice();
                     invoice.Id = invoiceCode;
+                    invoice.InvoiceDate = TimeConverter.TimeConverter.GetVietNamTime();
                     invoice.StoreId = storeId;
                     invoice.InvoiceStatus = (int)InvoiceStatus.Done;
                     invoice.InvoiceType = (int)InvoiceType.Normal;
@@ -390,7 +392,7 @@ namespace CMMS.API.Controllers
 
                     transaction.Id = "TT" + invoiceCode;
                     transaction.TransactionType = (int)TransactionType.QuickSale;
-                    transaction.TransactionDate = DateTime.Now;
+                    transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                     transaction.CustomerId = customerId;
                     transaction.InvoiceId = invoice.Id;
                     transaction.Amount = (decimal)salePrices;
@@ -455,7 +457,7 @@ namespace CMMS.API.Controllers
                         {
                             Id = invoiceCode,
                             CustomerId = customerId,
-                            InvoiceDate = DateTime.Now,
+                            InvoiceDate = TimeConverter.TimeConverter.GetVietNamTime(),
                             InvoiceStatus = (int)InvoiceStatus.Shipping,
                             InvoiceType = (int)InvoiceType.Normal,
                             Note = note,
@@ -476,7 +478,7 @@ namespace CMMS.API.Controllers
                         transaction = new Transaction();
                         transaction.Id = "DH" + invoiceCode;
                         transaction.TransactionType = (int)TransactionType.SaleItem;
-                        transaction.TransactionDate = DateTime.Now;
+                        transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                         transaction.CustomerId = customerId;
                         transaction.InvoiceId = invoice.Id;
                         transaction.TransactionPaymentType = 1;
@@ -492,7 +494,7 @@ namespace CMMS.API.Controllers
                             transaction = new Transaction();
                             transaction.Id = "TT" + invoiceCode;
                             transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
-                            transaction.TransactionDate = DateTime.Now;
+                            transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                             transaction.CustomerId = customerId;
                             transaction.InvoiceId = invoice.Id;
                             transaction.Amount = (decimal)customerPaid;
@@ -538,7 +540,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.Id = shippingDetailId;
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                        shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                        shippingDetail.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
@@ -592,7 +594,7 @@ namespace CMMS.API.Controllers
                             transaction = new Transaction();
                             transaction.Id = "TT" + invoiceCode;
                             transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
-                            transaction.TransactionDate = DateTime.Now;
+                            transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                             transaction.CustomerId = customerId;
                             transaction.InvoiceId = invoice.Id;
                             transaction.Amount = (decimal)customerPaid;
@@ -605,7 +607,7 @@ namespace CMMS.API.Controllers
                         var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
                         shippingDetail.Invoice = invoice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
-                        shippingDetail.EstimatedArrival = DateTime.Now.AddDays(3);
+                        shippingDetail.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
@@ -721,7 +723,7 @@ namespace CMMS.API.Controllers
                     {
                         Id = invoiceCode,
                         CustomerId = invoice.CustomerId,
-                        InvoiceDate = DateTime.Now,
+                        InvoiceDate = TimeConverter.TimeConverter.GetVietNamTime(),
                         InvoiceStatus = (int)InvoiceStatus.Refund,
                         InvoiceType = (int)InvoiceType.Normal,
                         //Note = shippingDetail.Note,
@@ -739,7 +741,7 @@ namespace CMMS.API.Controllers
                     var transaction = new Transaction();
                     transaction.Id = "TH" + invoiceCode;
                     transaction.TransactionType = (int)TransactionType.RefundInvoice;
-                    transaction.TransactionDate = DateTime.Now;
+                    transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                     transaction.CustomerId = invoice.CustomerId;
                     transaction.InvoiceId = invoice.Id;
                     transaction.Amount = (decimal)totalRefundAmount;
@@ -773,20 +775,5 @@ namespace CMMS.API.Controllers
         }
 
 
-        [HttpGet("get-revenue-all")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
-        {
-            if (filterModel.Year != null && filterModel.StoreId != null)
-            {
-                var result = await _invoiceService.GetMonthlyRevenueAsync(filterModel);
-                return Ok(result);
-            }
-            var revenueData = await _invoiceService.GetStoreRevenueAsync(filterModel);
-            return Ok(new
-            {
-                data = revenueData
-            });
-        }
     }
 }

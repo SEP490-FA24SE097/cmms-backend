@@ -1,5 +1,7 @@
 ﻿
 
+using System.Net.Cache;
+
 namespace CMMS.Core.Models
 {
     public class InvoiceDTO
@@ -120,12 +122,72 @@ namespace CMMS.Core.Models
         public int? NearDays { get; set; }
         public int? Year { get; set; }
         public string? StoreId { get; set; }
-        
     }
 
     public class InvoiceDetailVM : CartItemVM
     {
 
     }
- 
+
+
+
+    public class RevenueModel
+    {
+        public MockData MockData { get; set; } = new MockData();
+        public StoreSummaryData StoreSummaryData { get; set; } = new StoreSummaryData();
+        public ProductSalesData ProductSalesData { get; set; } = new ProductSalesData();
+    }
+
+    public class StoreMonthlyData
+    {
+        public List<int> Store1 { get; set; } = new List<int>();
+        public List<int> Store2 { get; set; } = new List<int>();
+    }
+
+    public class MockData
+    {
+        public Dictionary<int, StoreMonthlyData> Data { get; set; } = new();
+    }
+
+
+
+    public class StoreSummary
+    {
+        public int Revenue { get; set; } 
+        public int Invoices { get; set; }
+        public int Refunds { get; set; } 
+        public int RevenueAfterRefund { get; set; } 
+    }
+
+    public class MonthlyRevenueDto
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string StoreId { get; set; }
+        public decimal MonthlyRevenue { get; set; }
+    }
+
+    public class ProductSales
+    {
+        public List<string> Products { get; set; } = new List<string>(); 
+        public List<int> Sales { get; set; } = new List<int>();
+    }
+
+    public class ProductSalesData
+    {
+        public Dictionary<string, ProductSales> Data { get; set; } = new(); 
+    }
+
+    public class StoreSummaryData
+    {
+        public Dictionary<int, Dictionary<string, StoreSummary>> Data { get; set; } = new();
+    }
+
+    public class DashboardDataResponse
+    {
+        public MockData MockData { get; set; } = new MockData();
+        public StoreSummaryData StoreSummaryData { get; set; } = new StoreSummaryData();
+        public ProductSalesData ProductSalesData { get; set; } = new ProductSalesData();
+    }
+
 }

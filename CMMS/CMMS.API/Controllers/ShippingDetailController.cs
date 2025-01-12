@@ -167,7 +167,7 @@ namespace CMMS.API.Controllers
                     var transaction = new Transaction();
                     transaction.Id = "TTGH" + invoice.Id;
                     transaction.TransactionType = (int)TransactionType.PurchaseDebtInvoice;
-                    transaction.TransactionDate = DateTime.Now;
+                    transaction.TransactionDate = TimeConverter.TimeConverter.GetVietNamTime();
                     transaction.CustomerId = shippingDetail.Invoice.CustomerId;
                     transaction.InvoiceId = invoice.Id;
                     transaction.Amount = (decimal)shippingDetail.NeedToPay;
