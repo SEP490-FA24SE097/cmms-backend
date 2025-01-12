@@ -15,6 +15,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace CMMS.API.Controllers
 {
     [Route("api/admin")]
+    [AllowAnonymous]
     [ApiController]
     public class AdminController : ControllerBase
     {
