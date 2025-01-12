@@ -130,7 +130,7 @@ namespace CMMS.API.Controllers
                 {
                     return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
                 }
-                if (item.TotalQuantity-(item.InOrderQuantity??0) <= 0)
+                if (item.TotalQuantity - (item.InOrderQuantity ?? 0) <= 0)
                 {
                     return Ok(new { success = true, message = "Hết hàng" });
                 }
@@ -218,8 +218,9 @@ namespace CMMS.API.Controllers
                         VariantId = x.VariantId,
                         VariantName = x.Variant == null ? null : x.Variant.SKU,
                         VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                        Quantity = x.InOrderQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InOrderQuantity,
-                        InOrderQuantity = x.InOrderQuantity,
+                        //       Quantity = x.InOrderQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InOrderQuantity,
+                        Quantity = x.TotalQuantity,
+                        InOrderQuantity = x.InOrderQuantity ?? 0,
                         VariantPrice = x.Variant == null ? null : x.Variant.Price,
                         VariantCostPrice = x.Variant == null ? null : x.Variant.CostPrice,
                         Attributes = x.VariantId == null || x.Variant.MaterialVariantAttributes.Count <= 0 ? null : x.Variant.MaterialVariantAttributes.Select(x => new AttributeDTO()
@@ -349,7 +350,9 @@ namespace CMMS.API.Controllers
                                         VariantId = subVariant.Id,
                                         VariantName = subVariant.SKU,
                                         VariantImage = subVariant.VariantImageUrl,
-                                        Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / subVariant.ConversionUnit.ConversionRate,
+                                        //   Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / subVariant.ConversionUnit.ConversionRate,
+                                        Quantity = item.Quantity / subVariant.ConversionUnit.ConversionRate,
+                                        InOrderQuantity = (item.InOrderQuantity ?? 0) / subVariant.ConversionUnit.ConversionRate,
                                         VariantPrice = subVariant.Price,
                                         VariantCostPrice = subVariant.CostPrice,
                                         MinStock = subVariant.Material.MinStock / subVariant.ConversionUnit.ConversionRate,

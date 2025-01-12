@@ -27,7 +27,6 @@ namespace CMMS.Core.Models
         public decimal Quantity { get; set; }
         public decimal? MinStock { get; set; }
         public decimal? MaxStock { get; set; }
-        [JsonIgnore]
         public decimal? InOrderQuantity { get; set; }
         public decimal? MaterialPrice { get; set; }
         public decimal? MaterialCostPrice { get; set; }
