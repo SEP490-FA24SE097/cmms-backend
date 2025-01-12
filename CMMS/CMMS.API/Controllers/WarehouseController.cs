@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() ||  x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && ((x.Material.Name.ToLower().Equals(materialName.ToLower()) || x.Variant.SKU.ToLower().Equals(materialName.ToLower())) || (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) || x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -78,7 +78,7 @@ namespace CMMS.API.Controllers
                              Value = x.Value
                          }).ToList(),
                          LastUpdateTime = x.LastUpdateTime,
-                         IsActive=x.Material.IsActive
+                         IsActive = x.Material.IsActive
                      }).ToListAsync();
                 foreach (var item in items)
                 {
@@ -196,7 +196,7 @@ namespace CMMS.API.Controllers
                                                 Value = x.Value
                                             }).ToList(),
                                         LastUpdateTime = item.LastUpdateTime,
-                                        IsActive=item.IsActive
+                                        IsActive = item.IsActive
                                     });
                                 }
                             }
@@ -308,6 +308,7 @@ namespace CMMS.API.Controllers
                         break;
 
                 }
+
                 var result = Helpers.LinqHelpers.ToPageList(items.OrderByDescending(x => x.LastUpdateTime), page == null ? 0 : (int)page - 1,
                    itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
