@@ -18,6 +18,7 @@ namespace CMMS.API.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
+        private IInvoiceService _invoiceService;
         private IUserService _userService;
         private IRoleService _roleSerivce;
         private IPermissionSerivce _permissionService;
@@ -28,8 +29,9 @@ namespace CMMS.API.Controllers
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
             IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService,
-            IConfigurationShippingServices configShippingService)
+            IConfigurationShippingServices configShippingService, IInvoiceService invoiceService)
         {
+            _invoiceService = invoiceService;
             _userService = userSerivce;
             _roleSerivce = roleService;
             _permissionService = permissionSerivce;
@@ -291,6 +293,17 @@ namespace CMMS.API.Controllers
             }
 
         }
+
+
+
+        [HttpGet("get-revenue-all")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
+        {
+            var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
+            return Ok(result);
+        }
+
 
         [HttpGet("customer-type-discount-config")]
         [HasPermission(PermissionName.SeniorPermission)]

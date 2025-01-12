@@ -91,7 +91,7 @@ namespace CMMS.API.Controllers
                 var accessToken = await _jwtTokenService.CreateToken(user, userRoles);
                 var refreshToken = _jwtTokenService.CreateRefeshToken();
                 user.RefreshToken = refreshToken;
-                user.DateExpireRefreshToken = DateTime.Now.AddDays(7);
+                user.DateExpireRefreshToken = TimeConverter.TimeConverter.GetVietNamTime().AddDays(7);
                 _userService.Update(user);
                 var result = await _userService.SaveChangeAsync();
                 if (result)
