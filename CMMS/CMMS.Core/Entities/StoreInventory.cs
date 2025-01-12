@@ -19,6 +19,7 @@ namespace CMMS.Core.Entities
         public decimal MinStock { get; set; }
         public decimal MaxStock { get; set; }
         public decimal? ImportQuantity { get; set; }
+        public decimal? SoldQuantity { get; set; }
         public DateTime LastUpdateTime { get; set; }
         public virtual Material Material { get; set; }
         public virtual Variant? Variant { get; set; }

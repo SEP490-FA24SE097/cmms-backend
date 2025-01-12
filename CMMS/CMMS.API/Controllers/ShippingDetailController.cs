@@ -279,7 +279,19 @@ namespace CMMS.API.Controllers
                 var deliveryAddress = model.DeliveryAddress;
                 var storeDistance = await _shippingService.GeStoreOrderbyDeliveryDistance(deliveryAddress, store);
 
-
+                if ((decimal)storeDistance.Distance / 1000 >= 200)
+                {
+                    return Ok(new
+                    {
+                        data = new
+                        {
+                            shippingFee = 0,
+                            totalWeight = 0,
+                            shippingDistance = storeDistance.Distance,
+                            message = "Khoảng cách vượt quá 200km",
+                        }
+                    });
+                }
                 float totalWeight = 0;
                 foreach (var item in model.storeItems)
                 {
@@ -294,7 +306,8 @@ namespace CMMS.API.Controllers
                     {
                         shippingFee = shippingFee,
                         totalWeight = totalWeight,
-                        shippingDistance = storeDistance.Distance
+                        shippingDistance = storeDistance.Distance,
+                        message = ""
                     }
                 });
             }

@@ -773,7 +773,6 @@ namespace CMMS.API.Controllers
         }
 
 
-
         [HttpGet("get-revenue-all")]
         [AllowAnonymous]
         public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
