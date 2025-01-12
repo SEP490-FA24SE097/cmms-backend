@@ -9,10 +9,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography.X509Certificates;
 using CMMS.Core.Enums;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
+    [HasPermission(Infrastructure.Enums.PermissionName.ImportRequestPermissions)]
     [Route("api/store-material-import-requests")]
     [ApiController]
     public class StoreMaterialImportRequestController : ControllerBase

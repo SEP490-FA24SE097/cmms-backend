@@ -153,7 +153,7 @@ namespace CMMS.Infrastructure.Services
 
         public async Task SeedingPermission()
         {
-            foreach (Enums.Permission permission in Enum.GetValues(typeof(Enums.Permission)))
+            foreach (Enums.PermissionName permission in Enum.GetValues(typeof(Enums.PermissionName)))
             {
                 if (_permissionRepository.Get(p => p.Name.Equals(permission.ToString())).FirstOrDefault() == null)
                 {
@@ -185,6 +185,7 @@ namespace CMMS.Infrastructure.Services
             #region getEnumPermission
             var seniorPermission = EnumHelpers.GetEnumValues<Enums.SeniorManagementPermission>();
             var storeManagerPermission = EnumHelpers.GetEnumValues<Enums.StoreManagerPermission>();
+            var storeShipperPermission = EnumHelpers.GetEnumValues<Enums.StoreShipperPermission>();
             var saleStaffPermission = EnumHelpers.GetEnumValues<Enums.SaleStaffPermission>();
             var customerPermission = EnumHelpers.GetEnumValues<Enums.CustomerPermission>();
             #endregion
@@ -195,6 +196,7 @@ namespace CMMS.Infrastructure.Services
                 {Role.Store_Manager,  storeManagerPermission},
                 {Role.Sale_Staff,  saleStaffPermission},
                 {Role.Customer,  customerPermission},
+                {Role.Shipper_Store, storeShipperPermission }
             };
             List<RolePermission> rolesPermissions = new List<RolePermission>();
             foreach (var roleMapping in rolePermissionMapping)

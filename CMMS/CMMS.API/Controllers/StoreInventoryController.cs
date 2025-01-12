@@ -18,12 +18,13 @@ using Microsoft.CodeAnalysis.Elfie.Model;
 using Microsoft.IdentityModel.Tokens;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Repositories;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [ApiController]
     [Route("api/store-inventories")]
+    [AllowAnonymous]
     public class StoreInventoryController : ControllerBase
     {
         private readonly IStoreInventoryService _storeInventoryService;
@@ -52,6 +53,7 @@ namespace CMMS.API.Controllers
 
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> GetUserCartAsync(CartItemRequest cartItems)
         {
             var listCartRequest = cartItems.CartItems;
@@ -79,7 +81,7 @@ namespace CMMS.API.Controllers
                     var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                     //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                     //cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                    if (variant.MaterialVariantAttributes.Count > 0)
+                    if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                     {
                         var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                         var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
@@ -119,6 +121,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("get-product-quantity-of-specific-store")]
+        [AllowAnonymous]
         public async Task<IActionResult> Get([FromQuery] Guid materialId, [FromQuery] Guid? variantId, [FromQuery] string storeId)
         {
             try
@@ -142,6 +145,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("get-store-product-quantity-list")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetQuantity([FromQuery] Guid materialId, [FromQuery] Guid? variantId)
         {
             try
@@ -186,6 +190,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("get-products-by-store-id")]
+        [AllowAnonymous]
         public async Task<IActionResult> Get([FromQuery] int? quantityStatus, [FromQuery] string? materialName, [FromQuery] int? page, [FromQuery] int? itemPerPage,
             [FromQuery] Guid? categoryId, [FromQuery] Guid? parentCategoryId, [FromQuery] Guid? brandId, [FromQuery] string storeId)
         {

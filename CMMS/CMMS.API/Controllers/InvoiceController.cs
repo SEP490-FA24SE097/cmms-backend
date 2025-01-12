@@ -7,12 +7,14 @@ using CMMS.Core.Models;
 using CMMS.Infrastructure.Constant;
 using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.InvoicePdf;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
@@ -65,8 +67,9 @@ namespace CMMS.API.Controllers
             _generateInvoicePdf = generateInvoicePdf;
         }
 
-
         [HttpGet]
+        [HasPermission(PermissionName.AddNewCustomer)]
+
         public async Task<IActionResult> GetInvoicesAsync([FromQuery] InvoiceFitlerModel filterModel)
         {
             var fitlerList = _invoiceService
@@ -79,6 +82,7 @@ namespace CMMS.API.Controllers
               (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
               (string.IsNullOrEmpty(filterModel.StaffId) || _.StaffId.Equals(filterModel.StaffId)) &&
               (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
+              (filterModel.InvoiceId == null || _.Id.Equals(filterModel.InvoiceId)) &&
               (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
               , _ => _.Customer);
             var total = fitlerList.Count();
@@ -115,11 +119,11 @@ namespace CMMS.API.Controllers
                             var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                             //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                            if (variant.MaterialVariantAttributes.Count > 0)
+                            if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                 invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
+                                invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                             }
                             else
                             {
@@ -151,6 +155,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("customer")]
+        [HasPermission(PermissionName.InvoicePermissions)]
         public async Task<IActionResult> GetCustomerInvoicesAsync([FromQuery] InvoiceFitlerModel filterModel)
         {
             var userId = _currentUserService.GetUserId();
@@ -159,17 +164,13 @@ namespace CMMS.API.Controllers
            (!filterModel.FromDate.HasValue || _.InvoiceDate >= filterModel.FromDate) &&
            (!filterModel.ToDate.HasValue || _.InvoiceDate <= filterModel.ToDate) &&
            (string.IsNullOrEmpty(filterModel.Id) || _.Id.Equals(filterModel.Id)) &&
-           (string.IsNullOrEmpty(filterModel.CustomerId) || _.CustomerId.Equals(filterModel.CustomerId)) &&
            (string.IsNullOrEmpty(filterModel.StoreId) || _.StoreId.Equals(filterModel.StoreId)) &&
            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
            (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
-           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
+           (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus) &&
+            _.Customer.Id.Equals(userId))
            , _ => _.Customer);
-            if (userId != null)
-            {
-                filteredList = filteredList.Where(_ => _.Customer.Id.Equals(userId));
-            }
-           
+
 
             // 2. Group theo GroupId
             var groupedInvoices = filteredList
@@ -217,7 +218,7 @@ namespace CMMS.API.Controllers
                                 var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                                 //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                                 //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                                if (variant.MaterialVariantAttributes.Count > 0)
+                                if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                                 {
                                     var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                     var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
@@ -263,6 +264,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("invoice-detail")]
+        [HasPermission(PermissionName.InvoicePermissions)]
         public async Task<IActionResult> GetInvoicesDetailAsync([FromQuery] InvoiceDetailFitlerModel filterModel)
         {
             var invoiceDetails = _invoiceDetailService
@@ -288,7 +290,7 @@ namespace CMMS.API.Controllers
                         var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                         //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                         //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                        if (variant.MaterialVariantAttributes.Count > 0)
+                        if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                         {
                             var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                             var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
@@ -325,6 +327,7 @@ namespace CMMS.API.Controllers
 
 
         [HttpPost("create-invoice")]
+        [HasPermission(PermissionName.InvoicePermissions)]
         public async Task<IActionResult> CreatePayment([FromBody] InvoiceStoreData invoiceInfo)
         {
 
@@ -424,7 +427,7 @@ namespace CMMS.API.Controllers
                                 //  var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                                 //storeItemName += $" | {variantAttribute.Value}";
                                 var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
-                                if (variant.MaterialVariantAttributes.Count > 0)
+                                if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                                 {
                                     var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                     var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
@@ -622,6 +625,7 @@ namespace CMMS.API.Controllers
             return BadRequest("Failed");
         }
 
+        [HasPermission(PermissionName.InvoicePermissions)]
         [HttpPost("update-invoice")]
         public async Task<IActionResult> UpdateInvoice(InvoiceDataUpdateStatus model)
         {
@@ -682,6 +686,10 @@ namespace CMMS.API.Controllers
                     var groupInvoiceId = Guid.NewGuid().ToString();
                     foreach (var item in refundItems)
                     {
+                        if (item.RefundQuantity == 0)
+                        {
+                            continue;
+                        }
                         var lineTotalRefund = item.RefundQuantity * item.PricePerQuantity;
                         var material = await _materialService.FindAsync(item.MaterialId);
 
@@ -754,6 +762,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpGet("{invoiceId}")]
+        [HasPermission(PermissionName.InvoicePermissions)]
         public async Task<IActionResult> GetInvoicePdf(string invoiceId)
         {
             var fileName = $"{invoiceId}.pdf";
@@ -764,8 +773,8 @@ namespace CMMS.API.Controllers
         }
 
 
-
         [HttpGet("get-revenue-all")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
         {
             if (filterModel.Year != null && filterModel.StoreId != null)

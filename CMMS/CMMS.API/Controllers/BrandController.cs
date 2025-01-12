@@ -8,10 +8,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [AllowAnonymous]
     [ApiController]
     [Route("api/brands")]
     public class BrandController : Controller
@@ -45,6 +45,7 @@ namespace CMMS.API.Controllers
 
         // Get a brand by its ID
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetBrandById([FromRoute] string id)
         {
             try
@@ -60,6 +61,7 @@ namespace CMMS.API.Controllers
 
         // Create new brands
         [HttpPost]
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         public async Task<IActionResult> Create([FromBody] List<string> brands)
         {
             try
@@ -80,6 +82,7 @@ namespace CMMS.API.Controllers
 
         // Update an existing brand
         [HttpPut]
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         public async Task<IActionResult> Update([FromBody] BrandUM brandUM)
         {
             try
@@ -109,6 +112,7 @@ namespace CMMS.API.Controllers
 
         // Delete a brand by its ID
         [HttpDelete("delete-brand")]
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         public async Task<IActionResult> Delete([FromQuery] string brandId)
         {
             try

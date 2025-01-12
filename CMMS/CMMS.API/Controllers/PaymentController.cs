@@ -16,6 +16,7 @@ using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Net.Http;
 using System.Net.WebSockets;
 
@@ -214,7 +215,7 @@ namespace CMMS.API.Controllers
                         var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(item.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                         if (variant != null)
                         {
-                            if (variant.MaterialVariantAttributes != null && variant.MaterialVariantAttributes.Count > 0)
+                            if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));

@@ -1,5 +1,7 @@
 ﻿using CMMS.Core.Entities;
 using CMMS.Core.Models;
+using CMMS.Infrastructure.Enums;
+using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +10,7 @@ namespace CMMS.API.Controllers
 {
     [ApiController]
     [Route("api/categories")]
+    [AllowAnonymous]
     public class CategoryController : Controller
     {
         private readonly ICategoryService _categoryService;
@@ -40,6 +43,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("get-sub-categories")]
+        [AllowAnonymous]
         public IActionResult GetSubCategoies([FromQuery] Guid parentCategoryId)
         {
             try
@@ -58,6 +62,7 @@ namespace CMMS.API.Controllers
             }
         }
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCateById([FromRoute] string id)
         {
             try
@@ -70,6 +75,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] List<CategoryCM> categories)
         {
@@ -89,7 +95,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [AllowAnonymous]
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] CategoryUM categoryUM)
         {
@@ -110,6 +116,7 @@ namespace CMMS.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+        [HasPermission(Infrastructure.Enums.PermissionName.SeniorPermission)]
         [HttpDelete("delete-category")]
         public async Task<IActionResult> Delete([FromQuery] string categoryId)
         {

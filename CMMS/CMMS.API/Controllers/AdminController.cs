@@ -38,7 +38,7 @@ namespace CMMS.API.Controllers
             _configShippingService = configShippingService;
         }
         #region userManagement
-        [HasPermission(Permission.StoreMaterialTracking)]
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpGet("get-all-user")]
         public async Task<IActionResult> GetAllUser([FromQuery] DefaultSearch defaultSearch)
         {
@@ -49,7 +49,7 @@ namespace CMMS.API.Controllers
             return Ok(new { total = result.ToList().Count, data, page = defaultSearch.currentPage, perPage = defaultSearch.perPage });
         }
 
-
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpPost("add-new-user")]
         public async Task<IActionResult> AddNewUser(UserCM userCM)
         {
@@ -58,6 +58,7 @@ namespace CMMS.API.Controllers
         }
         #endregion
         #region permissions
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpGet("get-all-permissions")]
         public IActionResult GetAllPermission([FromQuery] DefaultSearch defaultSearch)
         {
@@ -78,6 +79,7 @@ namespace CMMS.API.Controllers
             );
         }
         [HttpGet("get-user-permissions/{userId}")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> GetUserPermisison(string userId)
         {
             var user = _userService.Get(u => u.Id.Equals(userId)).FirstOrDefault();
@@ -103,6 +105,7 @@ namespace CMMS.API.Controllers
 
         }
         [HttpGet("get-role-permissions/{roleId}")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> GetRolePermisison(string roleId)
         {
             var role = await _roleSerivce.GetRoleById(roleId);
@@ -123,6 +126,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpPost("add-new-user-permission")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> AddNewUserPermission(UserPermissionDTO userPermissionDTO)
         {
             if (ModelState.IsValid)
@@ -156,6 +160,7 @@ namespace CMMS.API.Controllers
         }
 
         [HttpDelete("remove-user-permission")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> RemoveUserPermission(UserPermissionDTO userPermissionDTO)
         {
             if (ModelState.IsValid)
@@ -242,8 +247,8 @@ namespace CMMS.API.Controllers
 
 
         #region Cofigurations data
-        [AllowAnonymous]
         [HttpGet("shipping-free-config")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public IActionResult GetShippingFreeConfiguration([FromQuery] ShippingConfigurationFilterModel filterModel)
         {
             var filterList = _configShippingService.Get(_ =>
@@ -263,8 +268,8 @@ namespace CMMS.API.Controllers
             });
         }
 
-        [AllowAnonymous]
         [HttpPost("add-shipping-free-config")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> AddShippingFreeConfiguration(ShippingCofigDTO model)
         {
             try
@@ -287,8 +292,8 @@ namespace CMMS.API.Controllers
 
         }
 
-        [AllowAnonymous]
         [HttpGet("customer-type-discount-config")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public  IActionResult GetCustomerDiscountConfiguration([FromQuery] CustomerDiscountConfigurationFilterModel filterModel)
         {
             var filterList = _configCustomerDiscountService.Get(_ =>
@@ -308,8 +313,8 @@ namespace CMMS.API.Controllers
             });
         }
 
-        [AllowAnonymous]
         [HttpPost("customer-type-discount-config")]
+        [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> AddCustomerDiscountConfiguration(CustomerDiscountCofigDTO model)
         {
             try
@@ -336,7 +341,7 @@ namespace CMMS.API.Controllers
 
 
         #region seeding
-        [AllowAnonymous]
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpGet("SeedRole")]
         public async Task<IActionResult> SeedRoleAsync()
         {
@@ -350,7 +355,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-        [AllowAnonymous]
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpGet("SeedPermission")]
         public async Task<IActionResult> SeedPermissionAsync()
         {
@@ -364,7 +369,7 @@ namespace CMMS.API.Controllers
             }
             return Ok();
         }
-        [AllowAnonymous]
+        [HasPermission(PermissionName.SeniorPermission)]
         [HttpGet("SeedRolePermission")]
         public async Task<IActionResult> SeedingRolePermissionAsync()
         {

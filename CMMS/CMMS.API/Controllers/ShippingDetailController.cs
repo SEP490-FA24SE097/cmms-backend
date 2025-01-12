@@ -115,7 +115,16 @@ namespace CMMS.API.Controllers
                         {
                             var variant = _variantService.Get(_ => _.Id.Equals(storeItem.VariantId)).FirstOrDefault();
                             var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                            invoiceDetails.ItemName += $" | {variantAttribute.Value}";
+                            if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
+                            {
+                                var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                invoiceDetails.ItemName = $"{variant.SKU} {attributesString}";
+                            }
+                            else
+                            {
+                                invoiceDetails.ItemName = $"{variant.SKU}";
+                            }
                             invoiceDetails.SalePrice = variant.Price;
                             invoiceDetails.ImageUrl = variant.VariantImageUrl;
                             invoiceDetails.ItemTotalPrice = invoiceDetails.ItemTotalPrice;
@@ -270,7 +279,19 @@ namespace CMMS.API.Controllers
                 var deliveryAddress = model.DeliveryAddress;
                 var storeDistance = await _shippingService.GeStoreOrderbyDeliveryDistance(deliveryAddress, store);
 
-
+                if ((decimal)storeDistance.Distance / 1000 >= 200)
+                {
+                    return Ok(new
+                    {
+                        data = new
+                        {
+                            shippingFee = 0,
+                            totalWeight = 0,
+                            shippingDistance = storeDistance.Distance,
+                            message = "Khoảng cách vượt quá 200km",
+                        }
+                    });
+                }
                 float totalWeight = 0;
                 foreach (var item in model.storeItems)
                 {
@@ -285,7 +306,8 @@ namespace CMMS.API.Controllers
                     {
                         shippingFee = shippingFee,
                         totalWeight = totalWeight,
-                        shippingDistance = storeDistance.Distance
+                        shippingDistance = storeDistance.Distance,
+                        message = ""
                     }
                 });
             }
