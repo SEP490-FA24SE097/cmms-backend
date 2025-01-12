@@ -36,6 +36,7 @@ namespace CMMS.Core.Models
         public decimal? AfterDiscountPrice { get; set; }
         public List<AttributeDTO>? Attributes { get; set; }
         public DateTime LastUpdateTime { get; set; }
+        public bool? IsActive { get; set; }
     }
 
     public class InventoryDTO : WarehouseDTO

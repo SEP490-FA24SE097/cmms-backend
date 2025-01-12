@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower()) || x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -77,7 +77,8 @@ namespace CMMS.API.Controllers
                              Name = x.Attribute.Name,
                              Value = x.Value
                          }).ToList(),
-                         LastUpdateTime = x.LastUpdateTime
+                         LastUpdateTime = x.LastUpdateTime,
+                         IsActive=x.Material.IsActive
                      }).ToListAsync();
                 foreach (var item in items)
                 {
@@ -194,7 +195,8 @@ namespace CMMS.API.Controllers
                                                 Name = x.Attribute.Name,
                                                 Value = x.Value
                                             }).ToList(),
-                                        LastUpdateTime = item.LastUpdateTime
+                                        LastUpdateTime = item.LastUpdateTime,
+                                        IsActive=item.IsActive
                                     });
                                 }
                             }
