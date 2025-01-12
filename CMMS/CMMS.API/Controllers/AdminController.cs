@@ -25,11 +25,12 @@ namespace CMMS.API.Controllers
         private IMapper _mapper;
         private IConfigurationCustomerDiscountService _configCustomerDiscountService;
         private IConfigurationShippingServices _configShippingService;
+        private IStoreService _storeService;
 
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
             IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService,
-            IConfigurationShippingServices configShippingService, IInvoiceService invoiceService)
+            IConfigurationShippingServices configShippingService, IInvoiceService invoiceService, IStoreService storeService)
         {
             _invoiceService = invoiceService;
             _userService = userSerivce;
@@ -38,6 +39,7 @@ namespace CMMS.API.Controllers
             _mapper = mapper;
             _configCustomerDiscountService = configCustomerDiscountService;
             _configShippingService = configShippingService;
+            _storeService = storeService;
         }
         #region userManagement
         [HasPermission(PermissionName.SeniorPermission)]
@@ -300,8 +302,35 @@ namespace CMMS.API.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
         {
+            
             var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
-            return Ok(result);
+            var months = Enumerable.Range(1, 12);
+            // Chuyển đổi dữ liệu
+            var convertedData = result
+                .GroupBy(x => new { x.Year, x.StoreId })
+                .Select(group => new
+                {
+                    Year = group.Key.Year,
+                    StoreName = _storeService.Get(_ => _.Id.Equals(group.Key.StoreId)).First().Name,
+                    MonthlyRevenue = months.Select(month => new
+                    {
+                        Revenue = group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0
+                    }).ToList()
+                })
+                .ToList();
+            var flattenedRevenueList = result
+                .GroupBy(x => new { x.Year, x.StoreId })
+                .SelectMany(group => months.Select(month =>
+                {
+                    return group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0;
+                }))
+                .ToList();
+            return Ok(new
+            {
+                convertedData,
+                flattenedRevenueList, 
+
+            });
         }
 
 

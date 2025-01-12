@@ -128,7 +128,6 @@ namespace CMMS.Infrastructure.Services
             {
                 Year = g.Key.Year,
                 Month = g.Key.Month,
-                //StoreId = _storeService.Get(_ => _.Id.Equals(g.Key.StoreId)).First().Name,
                 StoreId = g.Key.StoreId,
                 MonthlyRevenue = g.Sum(i => i.TotalAmount)
             })

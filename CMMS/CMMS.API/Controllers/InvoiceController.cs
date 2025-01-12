@@ -330,6 +330,7 @@ namespace CMMS.API.Controllers
             var shipperId = invoiceInfo.ShipperId != null ? invoiceInfo.ShipperId : null;
             var phoneRecevied = invoiceInfo.PhoneReceive != null ? invoiceInfo.PhoneReceive : null;
             var note = invoiceInfo.Note;
+            
 
             var storeManager = await _currentUserService.GetCurrentUser();
             var storeId = storeManager.StoreId;
@@ -533,6 +534,7 @@ namespace CMMS.API.Controllers
                         shippingDetail.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
                         shippingDetail.Address = invoiceInfo.Address;
                         shippingDetail.NeedToPay = needToPay;
+                        shippingDetail.ShippingFee = invoiceInfo.ShippingFee;
                         shippingDetail.ShipperId = shipperId;
                         shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
                         await _shippingDetailService.AddAsync(shippingDetail);
@@ -571,7 +573,7 @@ namespace CMMS.API.Controllers
                             item.StoreId = invoice.StoreId;
                             var updateQuantityStatus = await _storeInventoryService.UpdateStoreInventoryAsync(item, (int)InvoiceStatus.Pending);
                         }
-                        var needToPay = salePrices - discount;
+                        var needToPay = salePrices - discount + invoiceInfo.ShippingFee;
 
 
                         if (invoiceInfo.CustomerPaid > 0)
