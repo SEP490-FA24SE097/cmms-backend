@@ -49,103 +49,93 @@ namespace CMMS.API.Controllers
 
         }
 
-        [HttpGet("currentDebt")]
-        public async Task<IActionResult> getcurrentDebt()
-        {
-            var result = _transactionService.GetAmountDebtLeftFromInvoice("HD000014");
-            return Ok(result);
-        }
-
         [HttpGet]
         public async Task<IActionResult> GetTransactionAsync([FromQuery] TransactionFilterModel filterModel)
         {
-            var filterList = _transactionService.Get(_ =>
-            (!filterModel.FromDate.HasValue || _.TransactionDate >= filterModel.FromDate) &&
-            (!filterModel.ToDate.HasValue || _.TransactionDate <= filterModel.ToDate) &&
-            (string.IsNullOrEmpty(filterModel.InvoiceId) || _.InvoiceId.Equals(filterModel.InvoiceId)) &&
-            (string.IsNullOrEmpty(filterModel.TransactionId) || _.Id.Equals(filterModel.TransactionId)) &&
-            (string.IsNullOrEmpty(filterModel.TransactionType) || _.TransactionType.Equals(Int32.Parse(filterModel.TransactionType))) &&
-            (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Equals(filterModel.CustomerName)) &&
-            (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId))
-            , _ => _.Customer);
-
-            var total = filterList.Count();
-            var filterListPaged = filterList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
-                .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
-
-            var result = _mapper.Map<List<TransactionVM>>(filterListPaged);
-
-            foreach (var transaction in result)
+            if (filterModel.CustomerId != null)
             {
-                if (transaction.InvoiceId != null)
+                var filterCustomerList = _transactionService.Get(_ =>
+                    (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId))
+                , _ => _.Customer).OrderByDescending(_ => _.TransactionDate);
+                var totalCustomerTransaction = filterCustomerList.Count();
+                decimal currentDebt = 0;
+                var customerTransactionResult = _mapper.Map<List<TransactionVM>>(filterCustomerList);
+
+                foreach (var transaction in customerTransactionResult)
                 {
-                    var invoiceEntity = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
-                    transaction.CustomerCurrentDebt = _transactionService.GetAmountDebtLeftFromInvoice(invoiceEntity.Id);
-                    var invoice = _mapper.Map<InvoiceVM>(invoiceEntity);
-                    var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
-                    var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
-                    invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
-                    var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
-                    var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
-                    invoice.StaffName = staff != null ? staff.FullName : store.Name;
-                    invoice.StoreName = store != null ? store.Name : "";
-
-                    // load data in invoice Detail 
-                    foreach (var invoiceDetail in invoice.InvoiceDetails)
+                    if (transaction.InvoiceId != null)
                     {
-                        var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
-                        itemInStoreModel.StoreId = invoice.StoreId;
-                        var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
-                        if (item != null)
+                        var invoiceEntity = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
+                        currentDebt += _transactionService.GetAmountDebtLeftFromInvoice(invoiceEntity.Id);
+                        transaction.CustomerCurrentDebt = currentDebt;
+
+                        var invoice = _mapper.Map<InvoiceVM>(invoiceEntity);
+                        var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
+                        var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
+                        invoice.InvoiceDetails = _mapper.Map<List<InvoiceDetailVM>>(invoiceDetailList.ToList());
+                        var staff = _userService.Get(_ => _.Id.Equals(invoice.StaffId)).FirstOrDefault();
+                        var store = _storeService.Get(_ => _.Id.Equals(invoice.StoreId)).FirstOrDefault();
+                        invoice.StaffName = staff != null ? staff.FullName : store.Name;
+                        invoice.StoreName = store != null ? store.Name : "";
+
+                        // load data in invoice Detail 
+                        foreach (var invoiceDetail in invoice.InvoiceDetails)
                         {
-                            var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
-                            invoiceDetail.ItemName = material.Name;
-                            invoiceDetail.SalePrice = material.SalePrice;
-                            invoiceDetail.ImageUrl = material.ImageUrl;
-                            invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
-                            if (invoiceDetail.VariantId != null)
+                            var itemInStoreModel = _mapper.Map<AddItemModel>(invoiceDetail);
+                            itemInStoreModel.StoreId = invoice.StoreId;
+                            var item = await _storeInventoryService.GetItemInStoreAsync(itemInStoreModel);
+                            if (item != null)
                             {
-                                var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
-                                //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                                //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                                if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
+                                var material = await _materialService.FindAsync(Guid.Parse(invoiceDetail.MaterialId));
+                                invoiceDetail.ItemName = material.Name;
+                                invoiceDetail.SalePrice = material.SalePrice;
+                                invoiceDetail.ImageUrl = material.ImageUrl;
+                                invoiceDetail.ItemTotalPrice = material.SalePrice * invoiceDetail.Quantity;
+                                if (invoiceDetail.VariantId != null)
                                 {
-                                    var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
-                                    var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                                    invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
-                                }
-                                else
-                                {
-                                    invoiceDetail.ItemName = $"{variant.SKU}";
-                                }
+                                    var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
+                                    //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
+                                    //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
+                                    if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
+                                    {
+                                        var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                        var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                        invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
+                                    }
+                                    else
+                                    {
+                                        invoiceDetail.ItemName = $"{variant.SKU}";
+                                    }
 
-                                invoiceDetail.SalePrice = variant.Price;
-                                invoiceDetail.ImageUrl = variant.VariantImageUrl;
-                                invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
-                                invoiceDetail.InOrder = item.InOrderQuantity;
-                                invoiceDetail.InStock = item.TotalQuantity;
+                                    invoiceDetail.SalePrice = variant.Price;
+                                    invoiceDetail.ImageUrl = variant.VariantImageUrl;
+                                    invoiceDetail.ItemTotalPrice = variant.Price * invoiceDetail.Quantity;
+                                    invoiceDetail.InOrder = item.InOrderQuantity;
+                                    invoiceDetail.InStock = item.TotalQuantity;
 
+                                }
                             }
                         }
+                        invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
+
+                        transaction.InvoiceVM = invoice;
                     }
-                    invoice.shippingDetailVM = _mapper.Map<ShippingDetaiInvoiceResponseVM>(shippingDetail);
-
-                    transaction.InvoiceVM = invoice;
                 }
-                //var userVM = _userService.Get(_ => _.Id.Equals(transaction.CustomerId)).FirstOrDefault();
-            }
 
-            return Ok(new
-            {
-                data = result,
-                pagination = new
+                var filterCustomerListPaged = customerTransactionResult.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage).OrderByDescending(_ => _.CustomerCurrentDebt);
+                return Ok(new
                 {
-                    total,
-                    perPage = filterModel.defaultSearch.perPage,
-                    currentPage = filterModel.defaultSearch.currentPage,
-                }
-            });
-        }
+                    data = filterCustomerListPaged,
+                    pagination = new
+                    {
+                        totalCustomerTransaction,
+                        perPage = filterModel.defaultSearch.perPage,
+                        currentPage = filterModel.defaultSearch.currentPage,
+                    }
+                });
+            }
+            return BadRequest("Cần phải truyền customerId vào để tracking");
 
+        }
     }
 }

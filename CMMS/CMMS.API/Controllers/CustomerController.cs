@@ -94,7 +94,7 @@ namespace CMMS.API.Controllers
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
-            var result = _mapper.Map<List<UserStoreVM>>(filterListPaged);
+            var result = _mapper.Map<List<UserStoreVM>>(filterListPaged).OrderByDescending(_ => _.CurrentDebt);
             foreach (var item in result)
             {
                 item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();

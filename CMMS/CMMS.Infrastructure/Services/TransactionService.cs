@@ -112,8 +112,7 @@ namespace CMMS.Infrastructure.Services
         public decimal GetAmountDebtLeftFromInvoice(string invoiceCode)
         {
             decimal customerPaid = 0;
-            decimal customerDeft = 0;
-
+            decimal currentDebt = 0;
             var transactionInvoice = _transactionRepository.Get(_ => _.InvoiceId.Equals(invoiceCode));
             foreach (var transaction in transactionInvoice)
             {
@@ -122,10 +121,11 @@ namespace CMMS.Infrastructure.Services
                     customerPaid += transaction.Amount;
                 }
                 else if (transaction.TransactionType == (int)TransactionType.SaleItem) {
-                    customerDeft += transaction.Amount; 
+                    currentDebt += transaction.Amount; 
                 }
             }
-            return customerDeft - customerPaid;
+            var result = currentDebt - customerPaid;
+            return result;
 
         }
     }
