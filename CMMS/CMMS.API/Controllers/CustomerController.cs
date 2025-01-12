@@ -22,6 +22,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/customers")]
     [ApiController]
+    [AllowAnonymous]
     public class CustomerController : ControllerBase
     {
         private IUserService _userService;
@@ -220,12 +221,7 @@ namespace CMMS.API.Controllers
             var result = _mapper.Map<List<UserDataStoreVM>>(filterListPaged);
             foreach (var item in result)
             {
-                //item.StoreCreateName = _storeService.Get(_ => _.Id.Equals(item.StoreId)).Select(_ => _.Name).FirstOrDefault();
-                //item.CreateByName = _userService.Get(_ => _.Id.Equals(item.CreatedById)).Select(_ => _.FullName).FirstOrDefault();
-
                 item.CurrentDebt = _userService.GetCustomerCurrentDebt(item.Id);
-                //item.TotalSale = _userService.GetCustomerTotalSale(item.Id);
-                //item.TotalSaleAfterRefund = _userService.GetCustomerTotalSaleAfterRefund(item.Id);
             }
             return Ok(new
             {

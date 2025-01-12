@@ -10,6 +10,7 @@ using CMMS.API.Helpers;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
@@ -156,7 +157,7 @@ namespace CMMS.API.Controllers
                            // var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).FirstOrDefault();
                            // var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                             var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
-                            if (variant.MaterialVariantAttributes.Count > 0)
+                            if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                             {
                                 var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                 var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));

@@ -114,7 +114,6 @@ namespace CMMS.Infrastructure.Services
             decimal customerPaid = 0;
             decimal customerDeft = 0;
 
-
             var transactionInvoice = _transactionRepository.Get(_ => _.InvoiceId.Equals(invoiceCode));
             foreach (var transaction in transactionInvoice)
             {

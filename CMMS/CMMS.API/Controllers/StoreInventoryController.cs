@@ -24,7 +24,7 @@ namespace CMMS.API.Controllers
 {
     [ApiController]
     [Route("api/store-inventories")]
-    [HasPermission(Infrastructure.Enums.PermissionName.ManageInventory)]
+    [AllowAnonymous]
     public class StoreInventoryController : ControllerBase
     {
         private readonly IStoreInventoryService _storeInventoryService;
@@ -81,7 +81,7 @@ namespace CMMS.API.Controllers
                     var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(cartItem.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                     //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                     //cartItemVM.ItemName += $" | {variantAttribute.Value}";
-                    if (variant.MaterialVariantAttributes.Count > 0)
+                    if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                     {
                         var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                         var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));

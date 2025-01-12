@@ -247,7 +247,6 @@ namespace CMMS.API.Controllers
 
 
         #region Cofigurations data
-        [AllowAnonymous]
         [HttpGet("shipping-free-config")]
         [HasPermission(PermissionName.SeniorPermission)]
         public IActionResult GetShippingFreeConfiguration([FromQuery] ShippingConfigurationFilterModel filterModel)
@@ -269,7 +268,6 @@ namespace CMMS.API.Controllers
             });
         }
 
-        [AllowAnonymous]
         [HttpPost("add-shipping-free-config")]
         [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> AddShippingFreeConfiguration(ShippingCofigDTO model)
@@ -294,7 +292,6 @@ namespace CMMS.API.Controllers
 
         }
 
-        [AllowAnonymous]
         [HttpGet("customer-type-discount-config")]
         [HasPermission(PermissionName.SeniorPermission)]
         public  IActionResult GetCustomerDiscountConfiguration([FromQuery] CustomerDiscountConfigurationFilterModel filterModel)
@@ -316,7 +313,6 @@ namespace CMMS.API.Controllers
             });
         }
 
-        [AllowAnonymous]
         [HttpPost("customer-type-discount-config")]
         [HasPermission(PermissionName.SeniorPermission)]
         public async Task<IActionResult> AddCustomerDiscountConfiguration(CustomerDiscountCofigDTO model)

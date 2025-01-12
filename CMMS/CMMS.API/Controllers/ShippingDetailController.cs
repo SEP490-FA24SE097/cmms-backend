@@ -115,7 +115,16 @@ namespace CMMS.API.Controllers
                         {
                             var variant = _variantService.Get(_ => _.Id.Equals(storeItem.VariantId)).FirstOrDefault();
                             var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
-                            invoiceDetails.ItemName += $" | {variantAttribute.Value}";
+                            if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
+                            {
+                                var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
+                                var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
+                                invoiceDetails.ItemName = $"{variant.SKU} {attributesString}";
+                            }
+                            else
+                            {
+                                invoiceDetails.ItemName = $"{variant.SKU}";
+                            }
                             invoiceDetails.SalePrice = variant.Price;
                             invoiceDetails.ImageUrl = variant.VariantImageUrl;
                             invoiceDetails.ItemTotalPrice = invoiceDetails.ItemTotalPrice;

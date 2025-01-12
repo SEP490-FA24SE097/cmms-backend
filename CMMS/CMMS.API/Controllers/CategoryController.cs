@@ -10,6 +10,7 @@ namespace CMMS.API.Controllers
 {
     [ApiController]
     [Route("api/categories")]
+    [AllowAnonymous]
     public class CategoryController : Controller
     {
         private readonly ICategoryService _categoryService;

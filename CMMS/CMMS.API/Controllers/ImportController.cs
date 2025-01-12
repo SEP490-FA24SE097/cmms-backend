@@ -22,7 +22,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/imports")]
     [ApiController]
-    [HasPermission(PermissionName.ImportPermissions)]
+    [AllowAnonymous]
     public class ImportController : ControllerBase
     {
         private readonly IImportService _importService;

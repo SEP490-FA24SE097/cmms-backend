@@ -7,6 +7,7 @@ using CMMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CMMS.API.Controllers
 {
@@ -47,6 +48,14 @@ namespace CMMS.API.Controllers
             _materialVariantAttributeService = materialVariantAttributeService;
 
         }
+
+        [HttpGet("currentDebt")]
+        public async Task<IActionResult> getcurrentDebt()
+        {
+            var result = _transactionService.GetAmountDebtLeftFromInvoice("HD000014");
+            return Ok(result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetTransactionAsync([FromQuery] TransactionFilterModel filterModel)
         {
@@ -71,6 +80,7 @@ namespace CMMS.API.Controllers
                 if (transaction.InvoiceId != null)
                 {
                     var invoiceEntity = _invoiceService.Get(_ => _.Id.Equals(transaction.InvoiceId), _ => _.InvoiceDetails).FirstOrDefault();
+                    transaction.CustomerCurrentDebt = _transactionService.GetAmountDebtLeftFromInvoice(invoiceEntity.Id);
                     var invoice = _mapper.Map<InvoiceVM>(invoiceEntity);
                     var invoiceDetailList = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
                     var shippingDetail = _shippingDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id), _ => _.Shipper).FirstOrDefault();
@@ -98,11 +108,11 @@ namespace CMMS.API.Controllers
                                 var variant = _variantService.Get(_ => _.Id.Equals(Guid.Parse(invoiceDetail.VariantId))).Include(x => x.MaterialVariantAttributes).FirstOrDefault();
                                 //var variantAttribute = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).FirstOrDefault();
                                 //invoiceDetail.ItemName += $" | {variantAttribute.Value}";
-                                if (variant.MaterialVariantAttributes.Count > 0)
+                                if (!variant.MaterialVariantAttributes.IsNullOrEmpty())
                                 {
                                     var variantAttributes = _materialVariantAttributeService.Get(_ => _.VariantId.Equals(variant.Id)).Include(x => x.Attribute).ToList();
                                     var attributesString = string.Join('-', variantAttributes.Select(x => $"{x.Attribute.Name} :{x.Value} "));
-                     invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
+                                    invoiceDetail.ItemName = $"{variant.SKU} {attributesString}";
                                 }
                                 else
                                 {

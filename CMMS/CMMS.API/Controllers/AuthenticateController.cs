@@ -25,6 +25,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/auth")]
     [ApiController]
+    [AllowAnonymous]
     public class AuthenticateController : ControllerBase
     {
         private readonly IUserService _userService;

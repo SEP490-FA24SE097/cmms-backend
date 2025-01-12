@@ -22,7 +22,7 @@ namespace CMMS.API.Controllers
 {
     [ApiController]
     [Route("api/materials")]
-    [HasPermission(PermissionName.ImportPermissions)]
+    [AllowAnonymous]
     public class MaterialController : Controller
     {
         private readonly IMaterialService _materialService;

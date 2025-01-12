@@ -17,7 +17,7 @@ namespace CMMS.API.Controllers
 {
     [Route("api/goods-notes")]
     [ApiController]
-    [HasPermission(PermissionName.GoodNotePermissions)]
+    [AllowAnonymous]
     public class GoodsNoteController : ControllerBase
     {
         private readonly IGoodsNoteService _goodsDeliveryNoteService;
