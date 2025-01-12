@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower()) || x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() ||  x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -339,8 +339,8 @@ namespace CMMS.API.Controllers
                 {
                     if (conversionRate > 0)
                     {
-                        material.Material.MinStock = dto.MinStock == null ? material.Material.MinStock : (decimal)dto.MinStock / conversionRate;
-                        material.Material.MaxStock = dto.MaxStock == null ? material.Material.MaxStock : (decimal)dto.MaxStock / conversionRate;
+                        material.Material.MinStock = dto.MinStock == null ? material.Material.MinStock : (decimal)dto.MinStock * conversionRate;
+                        material.Material.MaxStock = dto.MaxStock == null ? material.Material.MaxStock : (decimal)dto.MaxStock * conversionRate;
 
                     }
                     else

@@ -1227,8 +1227,10 @@ namespace CMMS.API.Controllers
                 {
                     material.IsActive = false;
                 }
-
-                material.IsActive = true;
+                if (!(bool)material.IsActive)
+                {
+                    material.IsActive = true;
+                }
                 return Ok();
             }
             catch (Exception ex)
