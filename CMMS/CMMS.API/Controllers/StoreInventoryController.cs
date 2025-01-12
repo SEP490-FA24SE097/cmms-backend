@@ -197,7 +197,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var secondItems = await _storeInventoryService
-                    .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower()) || x.Variant.SKU.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -233,7 +233,8 @@ namespace CMMS.API.Controllers
                             Name = x.Attribute.Name,
                             Value = x.Value
                         }).ToList(),
-                        LastUpdateTime = x.LastUpdateTime
+                        LastUpdateTime = x.LastUpdateTime,
+                        IsActive=x.Material.IsActive
                     }).ToListAsync();
                 foreach (var item in secondItems)
                 {
@@ -372,7 +373,8 @@ namespace CMMS.API.Controllers
                                                 Name = x.Attribute.Name,
                                                 Value = x.Value
                                             }).ToList(),
-                                        LastUpdateTime = item.LastUpdateTime
+                                        LastUpdateTime = item.LastUpdateTime,
+                                        IsActive= item.IsActive
                                     });
                                 }
                             }
