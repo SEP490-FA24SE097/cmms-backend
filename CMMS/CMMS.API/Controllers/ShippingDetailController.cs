@@ -299,12 +299,13 @@ namespace CMMS.API.Controllers
                     totalWeight += (float)weight;
                 } 
                 var shippingFee = _shippingService.CalculateShippingFee((decimal)storeDistance.Distance / 1000, (decimal)totalWeight);
+                decimal roundedAmountShippingFee = (int)Math.Round((double)shippingFee / 1000.0) * 1000; ;
                 // handle final price
                 return Ok(new
                 {
                     data = new
                     {
-                        shippingFee = shippingFee,
+                        shippingFee = roundedAmountShippingFee,
                         totalWeight = totalWeight,
                         shippingDistance = storeDistance.Distance,
                         message = ""
