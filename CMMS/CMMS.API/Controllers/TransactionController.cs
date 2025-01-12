@@ -122,7 +122,7 @@ namespace CMMS.API.Controllers
                     }
                 }
 
-                var filterCustomerListPaged = customerTransactionResult.OrderByDescending(_ => _.CustomerCurrentDebt).ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
+                var filterCustomerListPaged = customerTransactionResult.OrderByDescending(_ => _.TransactionDate).ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
                 return Ok(new
                 {
                     data = filterCustomerListPaged,
