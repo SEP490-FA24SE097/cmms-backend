@@ -130,7 +130,7 @@ namespace CMMS.API.Controllers
                 {
                     return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
                 }
-                if (item.TotalQuantity <= 0)
+                if (item.TotalQuantity-(item.InOrderQuantity??0) <= 0)
                 {
                     return Ok(new { success = true, message = "Hết hàng" });
                 }
@@ -155,7 +155,7 @@ namespace CMMS.API.Controllers
                         if (variant.ConversionUnitId != null)
                         {
                             var rootVariantItems = _storeInventoryService
-                                .Get(x => x.VariantId == variant.AttributeVariantId).Include(x => x.Store);
+                                .Get(x => x.VariantId == variant.AttributeVariantId && x.TotalQuantity - (x.InOrderQuantity ?? 0) > 0).Include(x => x.Store);
                             if (rootVariantItems.Any())
                             {
                                 var variantItems = rootVariantItems.Select(x => new
@@ -171,7 +171,7 @@ namespace CMMS.API.Controllers
                 }
                 var items = await _storeInventoryService.Get(x =>
                     x.MaterialId == materialId &&
-                    x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
+                    x.VariantId == variantId && x.TotalQuantity - (x.InOrderQuantity ?? 0) > 0).Include(x => x.Store).Select(x => new
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,
