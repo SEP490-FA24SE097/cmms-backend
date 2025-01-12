@@ -241,6 +241,18 @@ namespace CMMS.API.Controllers
         }
 
 
+        [HttpGet("get-staff-id")]
+        public async Task<IActionResult> GetStaffById(string id)
+        {
+            var user = _userService.Get(_ => _.Id.Equals(id)).FirstOrDefault();
+            if(user == null)
+            {
+                return BadRequest("Không tìm thấy nhân viên này trên hệ thống");
+            }
+            var result = _mapper.Map<UserStoreVM>(user);
+  
+            return Ok(new { data = result });
+        }
 
     }
 }

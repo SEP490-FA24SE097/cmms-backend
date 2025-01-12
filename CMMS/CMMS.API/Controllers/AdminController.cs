@@ -319,18 +319,9 @@ namespace CMMS.API.Controllers
                     }).ToList()
                 })
                 .ToList();
-            var flattenedRevenueList = result
-                .GroupBy(x => new { x.Year, x.StoreId })
-                .SelectMany(group => months.Select(month =>
-                {
-                    return group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0;
-                }))
-                .ToList();
             return Ok(new
             {
                 convertedData,
-                flattenedRevenueList, 
-
             });
         }
 
