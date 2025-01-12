@@ -42,7 +42,7 @@ namespace CMMS.API.Controllers
                 // await BalanceQuantity();
 
                 var items = await _warehouseService
-                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() ||x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                     .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                                (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                      Include(x => x.Material).ThenInclude(x => x.Brand).
                      Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -179,7 +179,8 @@ namespace CMMS.API.Controllers
                                         VariantId = subVariant.Id,
                                         VariantName = subVariant.SKU,
                                         VariantImage = subVariant.VariantImageUrl,
-                                        Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / subVariant.ConversionUnit.ConversionRate,
+                                        //Quantity = (item.Quantity - (item.InOrderQuantity ?? 0)) / subVariant.ConversionUnit.ConversionRate,
+                                        Quantity = item.Quantity / subVariant.ConversionUnit.ConversionRate,
                                         VariantPrice = subVariant.Price,
                                         VariantCostPrice = subVariant.CostPrice,
                                         MinStock = subVariant.Material.MinStock / subVariant.ConversionUnit.ConversionRate,
