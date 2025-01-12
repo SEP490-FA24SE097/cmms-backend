@@ -72,6 +72,7 @@ namespace CMMS.API.Controllers
                     totalDue = x.TotalDue,
                     importDetails = x.ImportDetails.Count <= 0 ? null : x.ImportDetails.Select(x => new
                     {
+                        id = x.Id,
                         materialCode = x.Material.MaterialCode,
                         name = x.Material.Name,
                         materialId = x.MaterialId,
@@ -125,7 +126,7 @@ namespace CMMS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            var import = _importService.Get(x=>x.Id==id).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Include(x => x.Store).Where(x => x.Id == id).Select(x => new
+            var import = _importService.Get(x => x.Id == id).Include(x => x.ImportDetails).ThenInclude(x => x.Material).ThenInclude(x => x.Variants).Include(x => x.Supplier).Include(x => x.Store).Where(x => x.Id == id).Select(x => new
             {
                 x.Id,
                 importCode = "IMP-" + x.Id.ToString().ToUpper().Substring(0, 4),
@@ -143,6 +144,7 @@ namespace CMMS.API.Controllers
                 x.TotalDue,
                 importDetails = x.ImportDetails.Select(x => new
                 {
+                    x.Id,
                     x.Material.MaterialCode,
                     x.Material.Name,
                     x.MaterialId,
@@ -175,7 +177,7 @@ namespace CMMS.API.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (import.ImportDetails == null)
+                if (import.ImportDetails.IsNullOrEmpty())
                 {
                     return BadRequest("Import detail must not be null!");
                 }
@@ -331,11 +333,11 @@ namespace CMMS.API.Controllers
                             TimeStamp = GetVietNamTime(),
                         };
                         await _goodsNoteService.AddAsync(goodsNote);
-                        await _goodsNoteDetailService.AddRangeAsync(list.Select(x=>new GoodsNoteDetail()
+                        await _goodsNoteDetailService.AddRangeAsync(list.Select(x => new GoodsNoteDetail()
                         {
                             Id = Guid.NewGuid(),
                             GoodsNoteId = goodsNote.Id,
-                            MaterialId =x.MaterialId,
+                            MaterialId = x.MaterialId,
                             VariantId = x.VariantId,
                             Quantity = x.Quantity,
                         }));
@@ -491,9 +493,13 @@ namespace CMMS.API.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-
+                if (import.ImportDetails.IsNullOrEmpty())
+                {
+                    return BadRequest("Import detail must not be null!");
+                }
                 var existImp = await _importService.Get(x => x.Id == import.ImportId).Include(x => x.ImportDetails)
                     .FirstOrDefaultAsync();
+
                 if (existImp == null)
                 {
                     return BadRequest("Phiếu nhập không tồn tại!!");
@@ -501,6 +507,8 @@ namespace CMMS.API.Controllers
 
                 if (existImp != null && existImp.Status == "Đã nhập hàng")
                     return BadRequest("Không thể cập nhật phiếu đã nhập hàng!");
+
+
                 if (existImp != null)
                 {
                     existImp.Quantity = import.Quantity;
@@ -510,16 +518,30 @@ namespace CMMS.API.Controllers
                     existImp.TotalDiscount = import.TotalDiscount;
                     existImp.TotalDue = import.TotalDue;
                     existImp.Note = import.Note;
-                    existImp.Status = import.Status.IsNullOrEmpty()?"Phiếu tạm":import.Status;
-                    var updatedDetails = import.ImportDetails;
+                    existImp.Status = import.Status.IsNullOrEmpty() ? "Phiếu tạm" : import.Status;
+                    var updatedDetails = import.ImportDetails.Select(x => new ImportDetailUM
+                    {
+                        Id = x.Id == null ? Guid.NewGuid() : x.Id,
+                        VariantId = x.VariantId,
+                        MaterialId = x.MaterialId,
+                        PriceAfterDiscount = x.PriceAfterDiscount,
+                        UnitDiscount = x.UnitDiscount,
+                        UnitPrice = x.UnitPrice,
+                        Quantity = x.Quantity,
+                        Note = x.Note
+
+                    });
                     foreach (var updatedDetail in updatedDetails)
                     {
-                        var existingDetail = existImp.ImportDetails.FirstOrDefault(x => x.Id == updatedDetail.Id);
+
+
+                        var existingDetail = _importDetailService.Get(x => x.Id == updatedDetail.Id).FirstOrDefault();
+
                         if (existingDetail == null)
                         {
-                            existImp.ImportDetails.Add(new ImportDetail()
+                            await _importDetailService.AddAsync(new ImportDetail()
                             {
-                                Id = Guid.NewGuid(),
+                                Id = (Guid)updatedDetail.Id,
                                 ImportId = existImp.Id,
                                 VariantId = updatedDetail.VariantId,
                                 MaterialId = updatedDetail.MaterialId,
@@ -529,8 +551,9 @@ namespace CMMS.API.Controllers
                                 Quantity = updatedDetail.Quantity,
                                 Note = updatedDetail.Note
                             });
+
                         }
-                        else
+                        if (existingDetail != null)
                         {
                             existingDetail.VariantId = updatedDetail.VariantId;
                             existingDetail.MaterialId = updatedDetail.MaterialId;
@@ -539,15 +562,16 @@ namespace CMMS.API.Controllers
                             existingDetail.UnitPrice = updatedDetail.UnitPrice;
                             existingDetail.Quantity = updatedDetail.Quantity;
                             existingDetail.Note = updatedDetail.Note;
+
                         }
                     }
 
                     var detailIdsToKeep = updatedDetails.Select(x => x.Id).ToList();
-                    var detailsToRemove = existImp.ImportDetails.Where(x => !detailIdsToKeep.Contains(x.Id)).ToList();
+                    var detailsToRemove = _importDetailService.Get(x => x.ImportId == existImp.Id && !detailIdsToKeep.Contains(x.Id)).Select(x => x.Id).ToList();
 
                     foreach (var detailToRemove in detailsToRemove)
                     {
-                        existImp.ImportDetails.Remove(detailToRemove);
+                        await _importDetailService.Remove(detailToRemove);
                     }
 
                     await _importService.SaveChangeAsync();
@@ -807,8 +831,10 @@ namespace CMMS.API.Controllers
                     }
                     return Ok();
                 }
-
                 return BadRequest();
+
+
+
             }
             catch (Exception ex)
             {
@@ -933,6 +959,7 @@ namespace CMMS.API.Controllers
 
                 return Ok();
             }
+
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);

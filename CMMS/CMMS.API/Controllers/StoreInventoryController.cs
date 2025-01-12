@@ -133,7 +133,7 @@ namespace CMMS.API.Controllers
                 {
                     return Ok(new { success = true, message = "Không có hàng trong kho của cửa hàng" });
                 }
-                if (item.TotalQuantity <= 0)
+                if (item.TotalQuantity-(item.InOrderQuantity??0) <= 0)
                 {
                     return Ok(new { success = true, message = "Hết hàng" });
                 }
@@ -159,23 +159,23 @@ namespace CMMS.API.Controllers
                         if (variant.ConversionUnitId != null)
                         {
                             var rootVariantItems = _storeInventoryService
-                                .Get(x => x.VariantId == variant.AttributeVariantId).Include(x => x.Store).ToList();
-                            if (rootVariantItems.Count > 0)
+                                .Get(x => x.VariantId == variant.AttributeVariantId && x.TotalQuantity - (x.InOrderQuantity ?? 0) > 0).Include(x => x.Store);
+                            if (rootVariantItems.Any())
                             {
-                                return Ok(rootVariantItems.Select(x => new
+                                var variantItems = rootVariantItems.Select(x => new
                                 {
-
                                     storeId = x.StoreId,
                                     storeName = x.Store.Name,
                                     quantity = x.InOrderQuantity == null ? x.TotalQuantity / variant.ConversionUnit.ConversionRate : (x.TotalQuantity - x.InOrderQuantity) / variant.ConversionUnit.ConversionRate
-                                }));
+                                }).ToList();
+                                return Ok(new { data = new { totalQuantityInAllStore = variantItems.Sum(x => x.quantity), variantItems } });
                             }
                         }
                     }
                 }
                 var items = await _storeInventoryService.Get(x =>
                     x.MaterialId == materialId &&
-                    x.VariantId == variantId && x.TotalQuantity > 0).Include(x => x.Store).Select(x => new
+                    x.VariantId == variantId && x.TotalQuantity - (x.InOrderQuantity ?? 0) > 0).Include(x => x.Store).Select(x => new
                     {
                         storeId = x.StoreId,
                         storeName = x.Store.Name,
@@ -197,7 +197,7 @@ namespace CMMS.API.Controllers
             try
             {
                 var secondItems = await _storeInventoryService
-                    .Get(x =>  (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
+                    .Get(x => (parentCategoryId == null || x.Material.Category.ParentCategoryId == parentCategoryId) && x.StoreId == storeId && (materialName.IsNullOrEmpty() || x.Material.Name.ToLower().Contains(materialName.ToLower())) &&
                               (categoryId == null || x.Material.CategoryId == categoryId) && (brandId == null || x.Material.BrandId == brandId)).
                     Include(x => x.Material).ThenInclude(x => x.Brand).
                     Include(x => x.Material).ThenInclude(x => x.Unit).
@@ -423,13 +423,13 @@ namespace CMMS.API.Controllers
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock / conversionRate;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock / conversionRate;
-                        
+
                     }
                     else
                     {
                         material.MinStock = dto.MinStock == null ? material.MinStock : (decimal)dto.MinStock;
                         material.MaxStock = dto.MaxStock == null ? material.MaxStock : (decimal)dto.MaxStock;
-                        
+
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();
@@ -457,7 +457,7 @@ namespace CMMS.API.Controllers
                     else
                     {
                         material.ImportQuantity = dto.ImportQuantity == null ? material.ImportQuantity : (decimal)dto.ImportQuantity;
-                        
+
                     }
                 }
                 await _storeInventoryService.SaveChangeAsync();

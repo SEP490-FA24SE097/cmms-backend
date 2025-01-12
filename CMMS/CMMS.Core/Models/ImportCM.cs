@@ -7,7 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace CMMS.Core.Models
-{    public class ImportCM
+{
+    public class ImportCM
     {
         public Guid? SupplierId { get; set; }
         public string? StoreId { get; set; }
@@ -30,7 +31,8 @@ namespace CMMS.Core.Models
         public string? Note { get; set; }
     }
     public class ImportDetailUM
-    {   public Guid? Id { get; set; }
+    {
+        public Guid? Id { get; set; } 
         public Guid MaterialId { get; set; }
         public Guid? VariantId { get; set; }
         public decimal Quantity { get; set; }
@@ -40,7 +42,8 @@ namespace CMMS.Core.Models
         public string? Note { get; set; }
     }
     public class ImportUM
-    {   public Guid ImportId { get; set; }
+    {
+        public Guid ImportId { get; set; }
         public Guid? SupplierId { get; set; }
         public decimal Quantity { get; set; }
         public decimal TotalPrice { get; set; }
