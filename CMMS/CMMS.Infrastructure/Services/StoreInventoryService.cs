@@ -151,11 +151,12 @@ namespace CMMS.Infrastructure.Services
                         break;
                     case (int)InvoiceStatus.DoneInStore:
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
+                        storeInventory.SoldQuantity += (decimal)orderQuantity;
                         break;
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:
                         storeInventory.TotalQuantity -= (decimal)orderQuantity;
-                        storeInventory.SoldQuantity -= cartItem.Quantity;
+                        storeInventory.SoldQuantity -= (decimal)orderQuantity;
                         //storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                 }
