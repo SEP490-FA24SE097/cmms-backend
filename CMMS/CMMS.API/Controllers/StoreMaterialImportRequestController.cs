@@ -225,7 +225,7 @@ namespace CMMS.API.Controllers
                                 var secondGoodsNoteDetail = new GoodsNoteDetail()
                                 {
                                     Id = Guid.NewGuid(),
-                                    GoodsNoteId = goodsNote.Id,
+                                    GoodsNoteId = secondGoodsNote.Id,
                                     MaterialId = request.MaterialId,
                                     VariantId = request.VariantId,
                                     Quantity = request.Quantity,
@@ -242,7 +242,7 @@ namespace CMMS.API.Controllers
                                 .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
                             var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                 .FirstOrDefaultAsync();
-                            
+
                             if (warehouse != null)
                             {
                                 warehouse.TotalQuantity -= request.Quantity;
@@ -286,7 +286,7 @@ namespace CMMS.API.Controllers
                                     Quantity = request.Quantity,
                                 };
                                 await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
-                                await _goodsDeliveryNoteDetailService.SaveChangeAsync();
+                                // await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                             }
                         }
                         await _storeInventoryService.SaveChangeAsync();
@@ -373,7 +373,7 @@ namespace CMMS.API.Controllers
                                         var secondGoodsNoteDetail = new GoodsNoteDetail()
                                         {
                                             Id = Guid.NewGuid(),
-                                            GoodsNoteId = goodsNote.Id,
+                                            GoodsNoteId = secondGoodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
                                             Quantity = request.Quantity,
@@ -427,7 +427,7 @@ namespace CMMS.API.Controllers
                                         var secondGoodsNoteDetail = new GoodsNoteDetail()
                                         {
                                             Id = Guid.NewGuid(),
-                                            GoodsNoteId = goodsNote.Id,
+                                            GoodsNoteId = secondGoodsNote.Id,
                                             MaterialId = request.MaterialId,
                                             VariantId = request.VariantId,
                                             Quantity = request.Quantity,
@@ -536,12 +536,13 @@ namespace CMMS.API.Controllers
                                             .Get(x => x.MaterialId == request.MaterialId && x.VariantId == variant.AttributeVariantId).FirstOrDefault();
                                         var toStoreName = await _storeService.Get(x => x.Id == request.StoreId).Select(x => x.Name)
                                             .FirstOrDefaultAsync();
-                                       
+
                                         if (warehouse != null)
                                         {
                                             warehouse.TotalQuantity -= request.Quantity * variant.ConversionUnit.ConversionRate;
                                             warehouse.InRequestQuantity = (warehouse.InRequestQuantity ?? 0) - (request.Quantity * variant.ConversionUnit.ConversionRate);
                                             warehouse.LastUpdateTime = TimeConverter.TimeConverter.GetVietNamTime();
+                                          
                                             var goodsNote = new GoodsNote()
                                             {
                                                 Id = Guid.NewGuid(),
@@ -549,18 +550,9 @@ namespace CMMS.API.Controllers
                                                 ReasonDescription = $"Chuyển hàng từ kho tổng tới kho {toStoreName}",
                                                 TotalQuantity = request.Quantity,
                                                 Type = (int)GoodsNoteType.Delivery,
-                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
+                                                TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),                                                                                      
                                             };
                                             await _goodsDeliveryNoteService.AddAsync(goodsNote);
-                                            var goodsNoteDetail = new GoodsNoteDetail()
-                                            {
-                                                Id = Guid.NewGuid(),
-                                                GoodsNoteId = goodsNote.Id,
-                                                MaterialId = request.MaterialId,
-                                                VariantId = request.VariantId,
-                                                Quantity = request.Quantity,
-                                            };
-                                            await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
                                             var secondGoodsNote = new GoodsNote()
                                             {
                                                 Id = Guid.NewGuid(),
@@ -571,7 +563,7 @@ namespace CMMS.API.Controllers
                                                 TimeStamp = TimeConverter.TimeConverter.GetVietNamTime(),
                                             };
                                             await _goodsDeliveryNoteService.AddAsync(secondGoodsNote);
-                                            var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                            var goodsNoteDetail = new GoodsNoteDetail()
                                             {
                                                 Id = Guid.NewGuid(),
                                                 GoodsNoteId = goodsNote.Id,
@@ -579,8 +571,16 @@ namespace CMMS.API.Controllers
                                                 VariantId = request.VariantId,
                                                 Quantity = request.Quantity,
                                             };
+                                            await _goodsDeliveryNoteDetailService.AddAsync(goodsNoteDetail);
+                                            var secondGoodsNoteDetail = new GoodsNoteDetail()
+                                            {
+                                                Id = Guid.NewGuid(),
+                                                GoodsNoteId = secondGoodsNote.Id,
+                                                MaterialId = request.MaterialId,
+                                                VariantId = request.VariantId,
+                                                Quantity = request.Quantity,
+                                            };
                                             await _goodsDeliveryNoteDetailService.AddAsync(secondGoodsNoteDetail);
-                                            await _goodsDeliveryNoteDetailService.SaveChangeAsync();
                                         }
                                     }
                                     await _storeInventoryService.SaveChangeAsync();

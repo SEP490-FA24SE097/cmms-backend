@@ -238,14 +238,14 @@ namespace CMMS.API.Controllers
                         //    Attributes = null
                         //}));
                     }
-                    
+
                     List<VariantDTO> orderedVariants = new List<VariantDTO>(variants.Count);
-                    
+
                     foreach (var variant in variants)
                     {
                         if (variant.ConversionUnitId == null)
                         {
-                            orderedVariants.Insert(0,variant);
+                            orderedVariants.Insert(0, variant);
                         }
                         else
                         {
@@ -1284,13 +1284,19 @@ namespace CMMS.API.Controllers
                         == dto.MaterialId && x.Id == dto.VariantId).FirstOrDefault();
                     if (variant != null)
                     {
+                        if (dto.Discount.Trim() == "0")
+                        {
+                            variant.Discount = null;
+                        }
                         variant.Discount = dto.Discount.Trim();
                     }
                     if (variant.ConversionUnitId == null)
                     {
+
                         var material = _materialService.Get(x =>
                             x.Id == dto.MaterialId).FirstOrDefault();
-                        material.Discount = dto.Discount.Trim();
+
+                        material.Discount = variant.Discount;
                     }
 
                 }
@@ -1300,11 +1306,15 @@ namespace CMMS.API.Controllers
                         x.Id == dto.MaterialId).FirstOrDefault();
                     if (material != null)
                     {
+                        if (dto.Discount.Trim() == "0")
+                        {
+                            material.Discount = null;
+                        }
                         material.Discount = dto.Discount.Trim();
                         var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
                         if (variant != null)
                         {
-                            variant.Discount = dto.Discount.IsNullOrEmpty() ? variant.Discount : dto.Discount.Trim();
+                            variant.Discount = material.Discount;
                         }
                     }
                 }
