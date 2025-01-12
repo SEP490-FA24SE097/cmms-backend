@@ -137,15 +137,13 @@ namespace CMMS.API.Controllers
             var listStoreByDistance = await _shippingService.GetListStoreOrderbyDeliveryDistance(deliveryAddress, stores);
 
             var preCheckOutModels = await _storeInventoryService.DistributeItemsToStores(cartItems, listStoreByDistance);
-            decimal discountPrice = 0;
+
             foreach (var result in preCheckOutModels)
             {
-             
                 var listStoreItem = result.StoreItems;
                 float totalWeight = 0;
                 foreach (var item in listStoreItem)
                 {
-                    discountPrice += ((decimal)(item.BeforeDiscountPrice - item.SalePrice) * item.Quantity);
                     var weight = await _materialService.GetWeight(item.MaterialId, item.VariantId);
                     totalWeight += (float)(weight * (float)item.Quantity);
                 }
@@ -168,6 +166,7 @@ namespace CMMS.API.Controllers
 
             var totalAmount = preCheckOutModels.Sum(x => x.FinalPrice);
             var totalShippingFee = preCheckOutModels.Sum(x => x.ShippngFree);
+            var discountPrice = await _userService.GetCustomerDiscountPercentAsync((decimal)totalAmount, user.Id);
             var preCheckOutModel = new PreCheckOutModel
             {
                 Items = preCheckOutModels,
