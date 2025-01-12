@@ -122,13 +122,13 @@ namespace CMMS.API.Controllers
                     }
                 }
 
-                var filterCustomerListPaged = customerTransactionResult.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage).OrderByDescending(_ => _.CustomerCurrentDebt);
+                var filterCustomerListPaged = customerTransactionResult.OrderByDescending(_ => _.CustomerCurrentDebt).ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage);
                 return Ok(new
                 {
                     data = filterCustomerListPaged,
                     pagination = new
                     {
-                        totalCustomerTransaction,
+                        total = totalCustomerTransaction,
                         perPage = filterModel.defaultSearch.perPage,
                         currentPage = filterModel.defaultSearch.currentPage,
                     }
