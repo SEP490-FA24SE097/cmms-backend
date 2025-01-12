@@ -462,7 +462,7 @@ namespace CMMS.API.Controllers
                             GroupId = groupInvoiceId,
                         };
 
-                        var needToPay = salePrices;
+                        var needToPay = totalAmount;
 
                         Transaction transaction = null;
 
