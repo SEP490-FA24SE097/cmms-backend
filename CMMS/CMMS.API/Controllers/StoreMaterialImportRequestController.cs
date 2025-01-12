@@ -13,7 +13,8 @@ using CMMS.Infrastructure.Handlers;
 
 namespace CMMS.API.Controllers
 {
-    [HasPermission(Infrastructure.Enums.PermissionName.ImportRequestPermissions)]
+
+    [AllowAnonymous]        
     [Route("api/store-material-import-requests")]
     [ApiController]
     public class StoreMaterialImportRequestController : ControllerBase

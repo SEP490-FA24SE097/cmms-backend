@@ -462,7 +462,7 @@ namespace CMMS.API.Controllers
                             GroupId = groupInvoiceId,
                         };
 
-                        var needToPay = salePrices;
+                        var needToPay = totalAmount;
 
                         Transaction transaction = null;
 
@@ -473,7 +473,8 @@ namespace CMMS.API.Controllers
                         transaction.CustomerId = customerId;
                         transaction.InvoiceId = invoice.Id;
                         transaction.TransactionPaymentType = 1;
-                        transaction.Amount = (decimal)salePrices;
+                        // + luoon tien ship vo.
+                        transaction.Amount = (decimal)totalAmount;
                         await _transactionService.AddAsync(transaction);
 
                         if (invoiceInfo.CustomerPaid > 0)

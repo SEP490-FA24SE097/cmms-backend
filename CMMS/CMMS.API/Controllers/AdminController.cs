@@ -3,6 +3,7 @@ using CMMS.API.Constant;
 using CMMS.API.Helpers;
 using CMMS.Core.Entities.Configurations;
 using CMMS.Core.Models;
+using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.Services;
@@ -15,6 +16,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace CMMS.API.Controllers
 {
     [Route("api/admin")]
+    [AllowAnonymous]
     [ApiController]
     public class AdminController : ControllerBase
     {
@@ -26,11 +28,14 @@ namespace CMMS.API.Controllers
         private IConfigurationCustomerDiscountService _configCustomerDiscountService;
         private IConfigurationShippingServices _configShippingService;
         private IStoreService _storeService;
+        private ITransaction _efTransaction;
+        private IStoreInventoryService _storeInventoryService;
 
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
             IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService,
-            IConfigurationShippingServices configShippingService, IInvoiceService invoiceService, IStoreService storeService)
+            IConfigurationShippingServices configShippingService, IInvoiceService invoiceService, IStoreService storeService,
+            ITransaction transaction, IStoreInventoryService storeInventoryService)
         {
             _invoiceService = invoiceService;
             _userService = userSerivce;
@@ -40,6 +45,8 @@ namespace CMMS.API.Controllers
             _configCustomerDiscountService = configCustomerDiscountService;
             _configShippingService = configShippingService;
             _storeService = storeService;
+            _efTransaction = transaction;
+            _storeInventoryService = storeInventoryService;
         }
         #region userManagement
         [HasPermission(PermissionName.SeniorPermission)]
@@ -285,7 +292,10 @@ namespace CMMS.API.Controllers
                 var result = await _configShippingService.SaveChangeAsync();
                 if (result)
                 {
+                    await _efTransaction.CommitAsync();
                     return Ok("Tạo mới cấu hình giá tiền ship thành công");
+
+
                 }
                 return BadRequest("Không thể tạo mới cấu hình");
             }
@@ -300,43 +310,57 @@ namespace CMMS.API.Controllers
 
         [HttpGet("get-revenue-all")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetRevue([FromQuery] DashboardInvoiceFitlerModel filterModel)
+        public async Task<IActionResult> GetRevue()
         {
-            
+
             var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
             var months = Enumerable.Range(1, 12);
-            // Chuyển đổi dữ liệu
-            var convertedData = result
-                .GroupBy(x => new { x.Year, x.StoreId })
-                .Select(group => new
-                {
-                    Year = group.Key.Year,
-                    StoreName = _storeService.Get(_ => _.Id.Equals(group.Key.StoreId)).First().Name,
-                    MonthlyRevenue = months.Select(month => new
-                    {
-                        Revenue = group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0
-                    }).ToList()
-                })
-                .ToList();
-            var flattenedRevenueList = result
-                .GroupBy(x => new { x.Year, x.StoreId })
-                .SelectMany(group => months.Select(month =>
-                {
-                    return group.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0;
-                }))
-                .ToList();
+
+            var allStores = _storeService.GetAll()
+             .Select(store => new { store.Id, store.Name })
+             .ToList();
+
+            // get revenue in all store.
+            var groupedData = result
+                .GroupBy(x => x.Year)
+                .ToDictionary(
+                    yearGroup => yearGroup.Key,
+                    yearGroup => allStores
+                        .ToDictionary(
+                            store => store.Name,
+                            store => {
+                                var storeData = yearGroup
+                                    .Where(x => x.StoreId == store.Id)
+                                    .ToList();
+                                return months
+                                    .Select(month => storeData.FirstOrDefault(x => x.Month == month)?.MonthlyRevenue ?? 0)
+                                    .ToArray();
+                            }
+                        )
+                );
+
+
             return Ok(new
             {
-                convertedData,
-                flattenedRevenueList, 
-
+                groupedData,
             });
+        }
+
+        [HttpGet("get-top-product")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetInvoiceRevue()
+        {
+            var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
+            var months = Enumerable.Range(1, 12);
+        
+
+            return Ok();
         }
 
 
         [HttpGet("customer-type-discount-config")]
         [HasPermission(PermissionName.SeniorPermission)]
-        public  IActionResult GetCustomerDiscountConfiguration([FromQuery] CustomerDiscountConfigurationFilterModel filterModel)
+        public IActionResult GetCustomerDiscountConfiguration([FromQuery] CustomerDiscountConfigurationFilterModel filterModel)
         {
             var filterList = _configCustomerDiscountService.Get(_ =>
                    (!filterModel.FromDate.HasValue || _.CreatedAt >= filterModel.FromDate) &&

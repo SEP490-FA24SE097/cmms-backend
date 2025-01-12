@@ -167,6 +167,13 @@ namespace CMMS.Core.Models
         public decimal MonthlyRevenue { get; set; }
     }
 
+    public class ProductSalesPerStore
+    {
+        public string StoreId { get; set; }
+        public List<string> Products { get; set; }
+        public List<int> Sales { get; set; }
+    }
+
     public class ProductSales
     {
         public List<string> Products { get; set; } = new List<string>(); 
