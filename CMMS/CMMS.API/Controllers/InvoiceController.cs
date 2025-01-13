@@ -83,10 +83,14 @@ namespace CMMS.API.Controllers
               (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
               (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
               (string.IsNullOrEmpty(filterModel.StaffId) || _.StaffId.Equals(filterModel.StaffId)) &&
-              (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
               (filterModel.InvoiceId == null || _.Id.Equals(filterModel.InvoiceId)) &&
               (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
               , _ => _.Customer);
+
+            if(filterModel.InvoiceType == 2)
+            {
+                fitlerList = fitlerList.Where(_ => _.IsRefunded == false);
+            }
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
@@ -660,7 +664,7 @@ namespace CMMS.API.Controllers
                         string invoiceCode = invoice.Id;
                         invoice.StoreId = invoice.StoreId;
                         invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
-                        invoice.InvoiceType = (int)InvoiceType.Normal;
+                        //invoice.InvoiceType = (int)InvoiceType.Normal;
                         invoice.Note = note;
                         invoice.StaffId = storeManager.Id;
                         invoice.TotalAmount = (decimal)totalAmount;
@@ -750,6 +754,8 @@ namespace CMMS.API.Controllers
                     // create refund invoice
                     var staffManager = await _currentUserService.GetCurrentUser();
                     var invoice = await _invoiceService.FindAsync(model.InvoiceId);
+                    invoice.IsRefunded = true;
+                    _invoiceService.Update(invoice);
                     string invoiceCode = _invoiceService.GenerateInvoiceCode();
                     decimal totalRefundAmount = 0;
                     var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
@@ -819,7 +825,27 @@ namespace CMMS.API.Controllers
                         SellPlace = (int)Core.Enums.SellPlace.InStore,
                         GroupId = groupInvoiceId,
                     };
+
+
                     await _invoiceService.AddAsync(refundInvoice);
+
+                    var shippingDetailOldInvoice = _shippingDetailService.Get(_ => _.InvoiceId.Equals(model.InvoiceId)).FirstOrDefault();
+                    if(shippingDetailOldInvoice != null)
+                    {
+                        var shippingDetailId = "RF" + shippingDetailOldInvoice.InvoiceId;
+                        var shippingDetailRefund = new ShippingDetail();
+                        shippingDetailRefund.Id = shippingDetailId;
+                        shippingDetailRefund.Invoice = refundInvoice;
+                        shippingDetailRefund.PhoneReceive = shippingDetailOldInvoice.PhoneReceive;
+                        shippingDetailRefund.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
+                        shippingDetailRefund.Address = shippingDetailOldInvoice.Address;
+                        shippingDetailRefund.NeedToPay = shippingDetailOldInvoice.NeedToPay;
+                        shippingDetailRefund.ShipperId = shippingDetailOldInvoice.ShipperId;
+                        shippingDetailRefund.ShippingDetailStatus = (int)ShippingDetailStatus.Refund;
+                        await _shippingDetailService.AddAsync(shippingDetailRefund);
+                    }
+                   
+       
 
                     var transaction = new Transaction();
                     transaction.Id = "TH" + invoiceCode;

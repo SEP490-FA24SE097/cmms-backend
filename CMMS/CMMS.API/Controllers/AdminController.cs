@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using SQLitePCL;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CMMS.API.Controllers
@@ -30,12 +31,15 @@ namespace CMMS.API.Controllers
         private IStoreService _storeService;
         private ITransaction _efTransaction;
         private IStoreInventoryService _storeInventoryService;
+        private IMaterialService _materialService;
+        private IVariantService _variantService;
 
         public AdminController(IRoleService roleService,
             IPermissionSerivce permissionSerivce,
             IUserService userSerivce, IMapper mapper, IConfigurationCustomerDiscountService configCustomerDiscountService,
             IConfigurationShippingServices configShippingService, IInvoiceService invoiceService, IStoreService storeService,
-            ITransaction transaction, IStoreInventoryService storeInventoryService)
+            ITransaction transaction, IStoreInventoryService storeInventoryService, IMaterialService materialService,
+            IVariantService variantService)
         {
             _invoiceService = invoiceService;
             _userService = userSerivce;
@@ -47,6 +51,8 @@ namespace CMMS.API.Controllers
             _storeService = storeService;
             _efTransaction = transaction;
             _storeInventoryService = storeInventoryService;
+            _materialService = materialService;
+            _variantService = variantService;
         }
         #region userManagement
         [HasPermission(PermissionName.SeniorPermission)]
@@ -342,7 +348,7 @@ namespace CMMS.API.Controllers
 
             return Ok(new
             {
-                groupedData,
+              data = groupedData,
             });
         }
 
@@ -350,11 +356,68 @@ namespace CMMS.API.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetInvoiceRevue()
         {
-            var result = await _invoiceService.GetStoreMonthlyRevenueAsync();
-            var months = Enumerable.Range(1, 12);
-        
+            var salesData = await _storeInventoryService.GetAll()
+              .GroupBy(si => new { si.StoreId, si.MaterialId, si.VariantId })
+              .Select(group => new
+              {
+                  StoreId = group.Key.StoreId,
+                  MaterialId = group.Key.MaterialId,
+                  VariantId = group.Key.VariantId,
+                  TotalSold = group.Sum(x => x.SoldQuantity)
+              })
+              .OrderByDescending(x => x.TotalSold) // Sắp xếp theo số lượng bán giảm dần
+              .ToListAsync();
 
-            return Ok();
+            // Lấy tên sản phẩm từ Material và Variant
+            var materialNames = await _materialService.GetAll().ToDictionaryAsync(m => m.Id, m => m.Name);
+            var variantNames = await _variantService.GetAll().ToDictionaryAsync(v => v.Id, v => v.SKU);
+
+            // Nhóm theo StoreId và chuẩn bị dữ liệu trả về
+            var groupedData = salesData
+                .GroupBy(x => x.StoreId)
+                .Select(storeGroup => new
+                {
+                    StoreId = storeGroup.Key,
+                    Products = storeGroup
+                        .Take(5) // Lấy top 5 sản phẩm bán chạy
+                        .Select(x => $"{materialNames.GetValueOrDefault(x.MaterialId, "Unknown Material")}")
+                        .ToList(),
+                    Sales = storeGroup
+                        .Take(5)
+                        .Select(x => x.TotalSold)
+                        .ToList()
+                })
+                .ToList();
+
+            // Tính tổng hợp AllStores
+            var allStoresData = salesData
+                .GroupBy(x => new { x.MaterialId, x.VariantId })
+                .Select(group => new
+                {
+                    ProductName = $"{materialNames.GetValueOrDefault(group.Key.MaterialId, "Unknown Material")}",
+                    TotalSold = group.Sum(x => x.TotalSold)
+                })
+                .OrderByDescending(x => x.TotalSold)
+                .Take(5)
+                .ToList();
+
+            // Cấu trúc dữ liệu trả về
+            var result = groupedData.ToDictionary(
+                x => x.StoreId,
+                x => new
+                {
+                    products = x.Products,
+                    sales = x.Sales
+                }
+            );
+
+            result.Add("AllStores", new
+            {
+                products = allStoresData.Select(x => x.ProductName).ToList(),
+                sales = allStoresData.Select(x => x.TotalSold).ToList()
+            });
+
+            return Ok(new { data = result });
         }
 
 

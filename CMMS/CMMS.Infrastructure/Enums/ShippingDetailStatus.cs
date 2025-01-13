@@ -14,5 +14,6 @@ namespace CMMS.Infrastructure.Enums
         Rejected = 3,
         NotRecived = 4,
         Done = 5,
+        Refund = 6,
     }
 }

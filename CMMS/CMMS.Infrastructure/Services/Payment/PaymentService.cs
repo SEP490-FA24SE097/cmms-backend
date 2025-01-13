@@ -383,7 +383,7 @@ namespace CMMS.Infrastructure.Services.Payment
 
                                         var transaction = new Transaction();
                                         transaction.Id = "DH" + invoiceCode;
-                                        transaction.TransactionType = (int)TransactionType.SaleItem;
+                                        transaction.TransactionType = 3;
                                         transaction.TransactionDate = TimeConverter.GetVietNamTime();
                                         transaction.CustomerId = paymentRequestData.CustomerId;
                                         transaction.InvoiceId = invoice.Id;

@@ -24,6 +24,7 @@ namespace CMMS.Core.Models
         DebtPurchase = 1,
         Cash = 2,
         OnlinePayment = 3,
+        Refund = 7,
     }
 
     public class TransactionVM
@@ -49,6 +50,10 @@ namespace CMMS.Core.Models
                 if (TransactionType.Equals((int)TransactionTypeData.OnlinePayment))
                 {
                     return $"Thanh toán online";
+                };
+                if (TransactionType == 6)
+                {
+                    return $"Trả hàng";
                 };
                 return "";
             }
