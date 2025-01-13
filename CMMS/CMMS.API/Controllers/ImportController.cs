@@ -220,7 +220,7 @@ namespace CMMS.API.Controllers
                             if (item.VariantId == null)
                             {
                                 var storeInventory = _storeInventoryService
-                                    .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
+                                    .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId&&x.StoreId==import.StoreId)
                                     .FirstOrDefault();
                                 if (storeInventory != null)
                                 {
@@ -256,7 +256,7 @@ namespace CMMS.API.Controllers
                                     if (variant.ConversionUnitId == null)
                                     {
                                         var storeInventory = _storeInventoryService
-                                            .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id)
+                                            .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id&&x.StoreId==import.StoreId)
                                             .FirstOrDefault();
                                         if (storeInventory != null)
                                         {
@@ -269,8 +269,8 @@ namespace CMMS.API.Controllers
                                             {
                                                 Id = Guid.NewGuid(),
                                                 StoreId = import.StoreId,
-                                                MaterialId = item.MaterialId,
-                                                VariantId = item.VariantId,
+                                                MaterialId = variant.MaterialId,
+                                                VariantId = variant.Id,
                                                 TotalQuantity = item.Quantity,
                                                 MinStock = 10,
                                                 MaxStock = 1000,
@@ -290,7 +290,7 @@ namespace CMMS.API.Controllers
                                         {
                                             var storeInventory = _storeInventoryService
                                                 .Get(x => x.MaterialId == rootVariant.MaterialId &&
-                                                          x.VariantId == rootVariant.Id).FirstOrDefault();
+                                                          x.VariantId == rootVariant.Id&&x.StoreId==import.StoreId).FirstOrDefault();
                                             if (storeInventory != null)
                                             {
                                                 storeInventory.TotalQuantity +=
@@ -303,9 +303,9 @@ namespace CMMS.API.Controllers
                                                 {
                                                     Id = Guid.NewGuid(),
                                                     StoreId = import.StoreId,
-                                                    MaterialId = item.MaterialId,
-                                                    VariantId = item.VariantId,
-                                                    TotalQuantity = item.Quantity,
+                                                    MaterialId = rootVariant.MaterialId,
+                                                    VariantId = rootVariant.Id,
+                                                    TotalQuantity = item.Quantity * variant.ConversionUnit.ConversionRate,
                                                     MinStock = 10,
                                                     MaxStock = 1000,
                                                     InOrderQuantity = 0,
@@ -342,18 +342,18 @@ namespace CMMS.API.Controllers
                             Quantity = x.Quantity,
                         }));
                         await _goodsNoteDetailService.SaveChangeAsync();
-                        if (await _storeInventoryService.SaveChangeAsync())
-                        {
-                            var store = _storeService.Get(x => x.Id == import.StoreId).Select(x => new
-                            {
-                                x.Id,
-                                x.Name
-                            }).FirstOrDefault();
-                            return Ok(new
-                            {
-                                data = store
-                            });
-                        }
+                        //if (await _storeInventoryService.SaveChangeAsync())
+                        //{
+                        //    var store = _storeService.Get(x => x.Id == import.StoreId).Select(x => new
+                        //    {
+                        //        x.Id,
+                        //        x.Name
+                        //    }).FirstOrDefault();
+                        //    return Ok(new
+                        //    {
+                        //        data = store
+                        //    });
+                        //}
 
                     }
                 }
@@ -586,7 +586,7 @@ namespace CMMS.API.Controllers
                                 if (item.VariantId == null)
                                 {
                                     var storeInventory = _storeInventoryService
-                                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId)
+                                        .Get(x => x.MaterialId == item.MaterialId && x.VariantId == item.VariantId&&x.StoreId==existImp.StoreId)
                                         .FirstOrDefault();
                                     if (storeInventory != null)
                                     {
@@ -635,8 +635,8 @@ namespace CMMS.API.Controllers
                                                 {
                                                     Id = Guid.NewGuid(),
                                                     StoreId = existImp.StoreId,
-                                                    MaterialId = item.MaterialId,
-                                                    VariantId = item.VariantId,
+                                                    MaterialId = variant.MaterialId,
+                                                    VariantId = variant.Id,
                                                     TotalQuantity = item.Quantity,
                                                     MinStock = 10,
                                                     MaxStock = 1000,
@@ -669,9 +669,9 @@ namespace CMMS.API.Controllers
                                                     {
                                                         Id = Guid.NewGuid(),
                                                         StoreId = existImp.StoreId,
-                                                        MaterialId = item.MaterialId,
-                                                        VariantId = item.VariantId,
-                                                        TotalQuantity = item.Quantity,
+                                                        MaterialId = rootVariant.MaterialId,
+                                                        VariantId = rootVariant.Id,
+                                                        TotalQuantity = item.Quantity * variant.ConversionUnit.ConversionRate,
                                                         MinStock = 10,
                                                         MaxStock = 1000,
                                                         InOrderQuantity = 0,
