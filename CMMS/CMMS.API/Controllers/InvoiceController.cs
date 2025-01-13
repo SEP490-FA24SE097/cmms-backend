@@ -660,7 +660,7 @@ namespace CMMS.API.Controllers
                         string invoiceCode = invoice.Id;
                         invoice.StoreId = invoice.StoreId;
                         invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
-                        invoice.InvoiceType = (int)InvoiceType.Normal;
+                        //invoice.InvoiceType = (int)InvoiceType.Normal;
                         invoice.Note = note;
                         invoice.StaffId = storeManager.Id;
                         invoice.TotalAmount = (decimal)totalAmount;
@@ -833,7 +833,7 @@ namespace CMMS.API.Controllers
                         shippingDetailRefund.NeedToPay = shippingDetailOldInvoice.NeedToPay;
                         shippingDetailRefund.ShipperId = shippingDetailOldInvoice.ShipperId;
                         shippingDetailRefund.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
-                        _shippingDetailService.AddAsync(shippingDetailRefund);
+                        await _shippingDetailService.AddAsync(shippingDetailRefund);
                         await _shippingDetailService.SaveChangeAsync();
                     }
                    
