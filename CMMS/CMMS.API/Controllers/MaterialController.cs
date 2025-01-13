@@ -1170,25 +1170,30 @@ namespace CMMS.API.Controllers
                     : materialUM.Description;
                 material.SalePrice = materialUM.SalePrice == 0 ? material.SalePrice : materialUM.SalePrice;
                 material.CostPrice = materialUM.CostPrice == 0 ? material.CostPrice : materialUM.CostPrice;
-                var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
-                if (variant != null)
-                {
-                    variant.Price = materialUM.SalePrice == 0 ? variant.Price : materialUM.SalePrice;
-                    variant.CostPrice = materialUM.CostPrice == 0 ? variant.CostPrice : materialUM.CostPrice;
-                }
+
                 material.BrandId = materialUM.BrandId.IsNullOrEmpty()
                     ? material.BrandId
                     : Guid.Parse(materialUM.BrandId);
                 material.CategoryId = materialUM.CategoryId.IsNullOrEmpty()
                     ? material.CategoryId
                     : Guid.Parse(materialUM.CategoryId);
+                var variant = _variantService.Get(x => x.MaterialId == material.Id && x.ConversionUnitId == null).FirstOrDefault();
+                if (variant != null)
+                {
+                    variant.Price = materialUM.SalePrice == 0 ? variant.Price : materialUM.SalePrice;
+                    variant.CostPrice = materialUM.CostPrice == 0 ? variant.CostPrice : materialUM.CostPrice;
 
+                }
                 material.WeightValue = materialUM.WeightValue == null ? material.WeightValue : materialUM.WeightValue;
 
                 if (!materialUM.MainImage.IsNullOrEmpty())
                 {
                     var mainImage = await UploadImages.UploadToFirebase([materialUM.MainImage]);
                     material.ImageUrl = mainImage.First();
+                    if (variant != null)
+                    {
+                        variant.VariantImageUrl = mainImage.First();
+                    }
                 }
 
                 await _materialService.SaveChangeAsync();
@@ -1207,7 +1212,9 @@ namespace CMMS.API.Controllers
                         SubImageUrl = x
                     }));
                     await _subImageService.SaveChangeAsync();
+
                 }
+
                 return Ok();
             }
             catch (Exception ex)
