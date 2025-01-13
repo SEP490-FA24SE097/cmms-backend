@@ -161,7 +161,7 @@ namespace CMMS.API.Controllers
                     if (request.VariantId == null)
                     {
                         var storeInventory = _storeInventoryService
-                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId).FirstOrDefault();
+                            .Get(x => x.MaterialId == request.MaterialId && x.VariantId == request.VariantId&&x.StoreId==request.StoreId).FirstOrDefault();
                         if (storeInventory != null)
                         {
                             storeInventory.TotalQuantity += request.Quantity;
@@ -302,7 +302,7 @@ namespace CMMS.API.Controllers
                             if (variant.ConversionUnitId == null)
                             {
                                 var storeInventory = _storeInventoryService
-                                    .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id).FirstOrDefault();
+                                    .Get(x => x.MaterialId == variant.MaterialId && x.VariantId == variant.Id&&x.StoreId==request.StoreId).FirstOrDefault();
                                 if (storeInventory != null)
                                 {
                                     storeInventory.TotalQuantity += request.Quantity;
@@ -447,7 +447,7 @@ namespace CMMS.API.Controllers
                                 if (rootVariant != null)
                                 {
                                     var storeInventory = _storeInventoryService
-                                        .Get(x => x.MaterialId == rootVariant.MaterialId && x.VariantId == rootVariant.Id).FirstOrDefault();
+                                        .Get(x => x.MaterialId == rootVariant.MaterialId && x.VariantId == rootVariant.Id&&x.StoreId==request.StoreId).FirstOrDefault();
                                     if (storeInventory != null)
                                     {
                                         storeInventory.TotalQuantity += request.Quantity * variant.ConversionUnit.ConversionRate;
