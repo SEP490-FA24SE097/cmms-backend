@@ -394,6 +394,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                         shippingDetail.EstimatedArrival = TimeConverter.GetVietNamTime().AddDays(3);
                                         shippingDetail.Address = customerAddress;
                                         shippingDetail.ShippingFee = storeInvoice.ShippngFree;
+                                        shippingDetail.NeedToPay = 0;
                                         await _shippingDetailRepositoryScope.AddAsync(shippingDetail);
                                     }
 
@@ -489,6 +490,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         transaction.InvoiceId = invoice.Id;
                         transaction.Amount = (decimal)invoice.SalePrice;
                         transaction.TransactionPaymentType = 1;
+
                         await _transactionRepositoryScope.AddAsync(transaction);
                         var result = await _unitOfWork.SaveChangeAsync();
                     }
