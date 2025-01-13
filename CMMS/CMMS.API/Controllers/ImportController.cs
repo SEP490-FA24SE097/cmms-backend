@@ -342,18 +342,18 @@ namespace CMMS.API.Controllers
                             Quantity = x.Quantity,
                         }));
                         await _goodsNoteDetailService.SaveChangeAsync();
-                        if (await _storeInventoryService.SaveChangeAsync())
-                        {
-                            var store = _storeService.Get(x => x.Id == import.StoreId).Select(x => new
-                            {
-                                x.Id,
-                                x.Name
-                            }).FirstOrDefault();
-                            return Ok(new
-                            {
-                                data = store
-                            });
-                        }
+                        //if (await _storeInventoryService.SaveChangeAsync())
+                        //{
+                        //    var store = _storeService.Get(x => x.Id == import.StoreId).Select(x => new
+                        //    {
+                        //        x.Id,
+                        //        x.Name
+                        //    }).FirstOrDefault();
+                        //    return Ok(new
+                        //    {
+                        //        data = store
+                        //    });
+                        //}
 
                     }
                 }
