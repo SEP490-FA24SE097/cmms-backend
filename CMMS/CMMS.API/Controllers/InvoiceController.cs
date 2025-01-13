@@ -10,6 +10,7 @@ using CMMS.Infrastructure.Data;
 using CMMS.Infrastructure.Enums;
 using CMMS.Infrastructure.Handlers;
 using CMMS.Infrastructure.InvoicePdf;
+using CMMS.Infrastructure.Repositories;
 using CMMS.Infrastructure.Services;
 using CMMS.Infrastructure.Services.Payment;
 using Microsoft.AspNetCore.Authorization;
@@ -612,6 +613,7 @@ namespace CMMS.API.Controllers
                 }
                 else if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.UpdateInvoice)
                 {
+                    
                     if(invoiceInfo.ShippingFee != 0)
                     {
                         var salePrice = salePrices + invoiceInfo.ShippingFee;
@@ -653,6 +655,8 @@ namespace CMMS.API.Controllers
                     } else
                     {
                         var invoice = await _invoiceService.FindAsync(invoiceInfo.InvoiceId);
+
+                      
                         string invoiceCode = invoice.Id;
                         invoice.StoreId = invoice.StoreId;
                         invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
@@ -673,8 +677,7 @@ namespace CMMS.API.Controllers
                             item.StoreId = invoice.StoreId;
                         }
                         var needToPay = totalAmount;
-                        await _invoiceService.SaveChangeAsync();
-
+                    
                         var shippingDetailId = "GH" + invoiceCode;
                         var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
                         shippingDetail.Invoice = invoice;
@@ -684,6 +687,13 @@ namespace CMMS.API.Controllers
                         shippingDetail.NeedToPay = needToPay;
                         shippingDetail.ShipperId = shipperId;
                         shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+
+                        if (invoice.InvoiceType == (int)InvoiceType.Online)
+                        {
+                            invoice.CustomerPaid = totalAmount;
+                            shippingDetail.NeedToPay = 0;
+                        }
+                        await _invoiceService.SaveChangeAsync();
                         _shippingDetailService.Update(shippingDetail);
                     }
 
