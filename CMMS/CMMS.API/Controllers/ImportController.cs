@@ -671,7 +671,7 @@ namespace CMMS.API.Controllers
                                                         StoreId = existImp.StoreId,
                                                         MaterialId = rootVariant.MaterialId,
                                                         VariantId = rootVariant.Id,
-                                                        TotalQuantity = item.Quantity,
+                                                        TotalQuantity = item.Quantity * variant.ConversionUnit.ConversionRate,
                                                         MinStock = 10,
                                                         MaxStock = 1000,
                                                         InOrderQuantity = 0,
