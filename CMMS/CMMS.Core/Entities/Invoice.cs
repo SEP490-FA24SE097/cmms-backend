@@ -26,6 +26,7 @@ namespace CMMS.Core.Entities
         public string? Note { get; set; }
         [ForeignKey("CustomerId")]
         public string CustomerId { get; set; }
+        public bool IsRefunded { get; set; } = false;
         // query nguoi ban. tai store.
         public string? StaffId { get; set; } 
         public string? StoreId { get;set; }    

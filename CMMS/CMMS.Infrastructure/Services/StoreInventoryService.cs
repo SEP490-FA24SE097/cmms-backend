@@ -159,9 +159,9 @@ namespace CMMS.Infrastructure.Services
                         break;
                     case (int)InvoiceStatus.Cancel:
                     case (int)InvoiceStatus.Refund:
-                        storeInventory.TotalQuantity += (decimal)orderQuantity;
+                        storeInventory.TotalQuantity -= (decimal)orderQuantity;
+                        storeInventory.InOrderQuantity -= (decimal)orderQuantity;
                         storeInventory.SoldQuantity -= (decimal)orderQuantity;
-                        //storeInventory.InOrderQuantity += cartItem.Quantity;
                         break;
                 }
                 _inventoryRepository.Update(storeInventory);

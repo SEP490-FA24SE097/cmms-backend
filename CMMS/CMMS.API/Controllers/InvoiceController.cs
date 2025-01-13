@@ -83,10 +83,14 @@ namespace CMMS.API.Controllers
               (string.IsNullOrEmpty(filterModel.CustomerName) || _.Customer.FullName.Contains(filterModel.CustomerName)) &&
               (string.IsNullOrEmpty(filterModel.CustomerId) || _.Customer.Id.Equals(filterModel.CustomerId)) &&
               (string.IsNullOrEmpty(filterModel.StaffId) || _.StaffId.Equals(filterModel.StaffId)) &&
-              (filterModel.InvoiceType == null || _.InvoiceType.Equals(filterModel.InvoiceType)) &&
               (filterModel.InvoiceId == null || _.Id.Equals(filterModel.InvoiceId)) &&
               (filterModel.InvoiceStatus == null || _.InvoiceStatus.Equals(filterModel.InvoiceStatus))
               , _ => _.Customer);
+
+            if(filterModel.InvoiceType == 2)
+            {
+                fitlerList = fitlerList.Where(_ => _.IsRefunded == false);
+            }
             var total = fitlerList.Count();
             var filterListPaged = fitlerList.ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage)
                 .Sort(filterModel.defaultSearch.sortBy, filterModel.defaultSearch.isAscending);
@@ -750,6 +754,8 @@ namespace CMMS.API.Controllers
                     // create refund invoice
                     var staffManager = await _currentUserService.GetCurrentUser();
                     var invoice = await _invoiceService.FindAsync(model.InvoiceId);
+                    invoice.IsRefunded = true;
+                    _invoiceService.Update(invoice);
                     string invoiceCode = _invoiceService.GenerateInvoiceCode();
                     decimal totalRefundAmount = 0;
                     var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoice.Id));
