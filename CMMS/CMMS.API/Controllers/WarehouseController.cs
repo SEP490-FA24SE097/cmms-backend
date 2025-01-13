@@ -65,7 +65,7 @@ namespace CMMS.API.Controllers
                          VariantId = x.VariantId,
                          VariantName = x.Variant == null ? null : x.Variant.SKU,
                          VariantImage = x.Variant == null ? null : x.Variant.VariantImageUrl,
-                         Quantity = x.InRequestQuantity == null ? x.TotalQuantity : x.TotalQuantity - (decimal)x.InRequestQuantity,
+                         Quantity =  x.TotalQuantity ,
                          MinStock = x.Material.MinStock,
                          MaxStock = x.Material.MaxStock,
                          Discount = x.VariantId == null ? x.Material.Discount : x.Variant.Discount,
