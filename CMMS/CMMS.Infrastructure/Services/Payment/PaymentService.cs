@@ -10,10 +10,12 @@ using CMMS.Infrastructure.Services.Payment.Vnpay.Request;
 using CMMS.Infrastructure.Services.Payment.Vnpay.Response;
 using CMMS.Infrastructure.Services.Shipping;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using System.Linq.Expressions;
 
 
 namespace CMMS.Infrastructure.Services.Payment
@@ -25,6 +27,8 @@ namespace CMMS.Infrastructure.Services.Payment
         Task<bool> PaymentInvoiceAsync(InvoiceData invoiceInfo);
         Task<bool> PaymentDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
         Task<bool> PurchaseDebtInvoiceAsync(InvoiceData invoiceInfo, CustomerBalance customerBalance);
+
+
     }
     public class PaymentService : IPaymentService
     {
@@ -338,7 +342,7 @@ namespace CMMS.Infrastructure.Services.Payment
                                         CustomerId = paymentRequestData.CustomerId,
                                         InvoiceDate = TimeConverter.GetVietNamTime(),
                                         InvoiceStatus = (int)InvoiceStatus.Pending,
-                                        InvoiceType = (int)InvoiceType.Normal,
+                                        InvoiceType = (int)InvoiceType.Online,
                                         Note = paymentRequestData.Note,
                                         StoreId = storeId,
                                         SalePrice = (decimal)storeInvoice.FinalPrice,

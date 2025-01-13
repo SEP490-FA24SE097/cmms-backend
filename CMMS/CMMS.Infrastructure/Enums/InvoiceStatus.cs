@@ -21,6 +21,7 @@ namespace CMMS.Infrastructure.Enums
 	{
 		Debt = 0,
 		Normal = 1,
+		Online = 3,
 	}
 }
 
