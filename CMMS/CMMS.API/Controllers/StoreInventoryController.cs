@@ -399,13 +399,13 @@ namespace CMMS.API.Controllers
                     itemPerPage == null ? 12 : (int)itemPerPage);
                 return Ok(new
                 {
-                    //data = secondResult,
-                    //pagination = new
-                    //{
-                    //    total = secondItems.Count,
-                    //    perPage = itemPerPage == null ? 12 : itemPerPage,
-                    //    currentPage = page == null ? 1 : page
-                    //}
+                    data = secondResult,
+                    pagination = new
+                    {
+                        total = secondItems.Count,
+                        perPage = itemPerPage == null ? 12 : itemPerPage,
+                        currentPage = page == null ? 1 : page
+                    }
                 });
             }
             catch (Exception ex)
