@@ -819,6 +819,24 @@ namespace CMMS.API.Controllers
                         SellPlace = (int)Core.Enums.SellPlace.InStore,
                         GroupId = groupInvoiceId,
                     };
+
+
+                    var shippingDetailOldInvoice = _shippingDetailService.Get(_ => _.InvoiceId.Equals(model.InvoiceId)).FirstOrDefault();
+                    if(shippingDetailOldInvoice != null)
+                    {
+                        var shippingDetailId = "RF" + shippingDetailOldInvoice.InvoiceId;
+                        var shippingDetailRefund = new ShippingDetail();
+                        shippingDetailRefund.Invoice = refundInvoice;
+                        shippingDetailRefund.PhoneReceive = shippingDetailOldInvoice.PhoneReceive;
+                        shippingDetailRefund.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
+                        shippingDetailRefund.Address = shippingDetailOldInvoice.Address;
+                        shippingDetailRefund.NeedToPay = shippingDetailOldInvoice.NeedToPay;
+                        shippingDetailRefund.ShipperId = shippingDetailOldInvoice.ShipperId;
+                        shippingDetailRefund.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                        _shippingDetailService.AddAsync(shippingDetailRefund);
+                        await _shippingDetailService.SaveChangeAsync();
+                    }
+                   
                     await _invoiceService.AddAsync(refundInvoice);
 
                     var transaction = new Transaction();
