@@ -213,7 +213,7 @@ namespace CMMS.API.Controllers
                     {
                         if (item.MaterialId == supplier.MaterialId && item.VariantId == supplier.VariantId)
                         {
-                            item.Supplier = supplier.Import.SupplierId == null ? null : supplier.Import.Supplier.Name;
+                            item.Supplier = supplier.Import.Supplier == null ? null : supplier.Import.Supplier.Name;
                         }
                     }
                 }
