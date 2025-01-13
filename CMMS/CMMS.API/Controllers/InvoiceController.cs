@@ -835,7 +835,7 @@ namespace CMMS.API.Controllers
                         shippingDetailRefund.Address = shippingDetailOldInvoice.Address;
                         shippingDetailRefund.NeedToPay = shippingDetailOldInvoice.NeedToPay;
                         shippingDetailRefund.ShipperId = shippingDetailOldInvoice.ShipperId;
-                        shippingDetailRefund.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                        shippingDetailRefund.ShippingDetailStatus = (int)ShippingDetailStatus.Refund;
                         await _shippingDetailService.AddAsync(shippingDetailRefund);
                     }
                    
