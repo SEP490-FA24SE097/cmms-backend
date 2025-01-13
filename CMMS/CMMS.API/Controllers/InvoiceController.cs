@@ -241,7 +241,7 @@ namespace CMMS.API.Controllers
                 result.Add(groupInvoiceVM);
             }
 
-        
+
             return Ok(new
             {
                 data = result.OrderByDescending(_ => _.InvoiceDate).ToPageList(filterModel.defaultSearch.currentPage, filterModel.defaultSearch.perPage),
@@ -330,7 +330,7 @@ namespace CMMS.API.Controllers
             var shipperId = invoiceInfo.ShipperId != null ? invoiceInfo.ShipperId : null;
             var phoneRecevied = invoiceInfo.PhoneReceive != null ? invoiceInfo.PhoneReceive : null;
             var note = invoiceInfo.Note;
-            
+
 
             var storeManager = await _currentUserService.GetCurrentUser();
             var storeId = storeManager.StoreId;
@@ -561,7 +561,6 @@ namespace CMMS.API.Controllers
 
                         _invoiceService.Update(invoice);
 
-                        // dieu chinh don hang cua khach hang.
                         if (invoiceInfo.StoreItems != null)
                         {
 
@@ -610,6 +609,87 @@ namespace CMMS.API.Controllers
                         await _efTransaction.CommitAsync();
                         if (result) return Ok(new { success = true, message = "Tạo đơn bán giao hàng thành công" });
                     }
+                }
+                else if (invoiceInfo.InvoiceType == (int)InvoiceStoreType.UpdateInvoice)
+                {
+                    if(invoiceInfo.ShippingFee != 0)
+                    {
+                        var salePrice = salePrices + invoiceInfo.ShippingFee;
+
+                        var invoice = await _invoiceService.FindAsync(invoiceInfo.InvoiceId);
+                        string invoiceCode = invoice.Id;
+                        invoice.StoreId = invoice.StoreId;
+                        invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
+                        invoice.InvoiceType = (int)InvoiceType.Normal;
+                        invoice.Note = note;
+                        invoice.StaffId = storeManager.Id;
+                        invoice.TotalAmount = (decimal)salePrice;
+                        invoice.SalePrice = salePrices;
+                        invoice.Discount = discount;
+                        invoice.CustomerId = invoice.CustomerId;
+                        invoice.CustomerPaid = customerPaid;
+
+                        _invoiceService.Update(invoice);
+                        var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoiceCode));
+                        foreach (var invoiceDetail in invoiceDetails)
+                        {
+                            var item = _mapper.Map<CartItem>(invoiceDetail);
+                            item.StoreId = invoice.StoreId;
+                        }
+                        var needToPay = salePrice;
+                        await _invoiceService.SaveChangeAsync();
+
+                        var shippingDetailId = "GH" + invoiceCode;
+                        var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
+                        shippingDetail.Invoice = invoice;
+                        shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
+                        shippingDetail.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
+                        shippingDetail.Address = invoiceInfo.Address;
+                        shippingDetail.NeedToPay = needToPay;
+                        shippingDetail.ShippingFee = invoiceInfo.ShippingFee;
+                        shippingDetail.ShipperId = shipperId;
+                        shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                        _shippingDetailService.Update(shippingDetail);
+                    } else
+                    {
+                        var invoice = await _invoiceService.FindAsync(invoiceInfo.InvoiceId);
+                        string invoiceCode = invoice.Id;
+                        invoice.StoreId = invoice.StoreId;
+                        invoice.InvoiceStatus = (int)InvoiceStatus.Shipping;
+                        invoice.InvoiceType = (int)InvoiceType.Normal;
+                        invoice.Note = note;
+                        invoice.StaffId = storeManager.Id;
+                        invoice.TotalAmount = (decimal)totalAmount;
+                        invoice.SalePrice = salePrices;
+                        invoice.Discount = discount;
+                        invoice.CustomerId = invoice.CustomerId;
+                        invoice.CustomerPaid = customerPaid;
+
+                        _invoiceService.Update(invoice);
+                        var invoiceDetails = _invoiceDetailService.Get(_ => _.InvoiceId.Equals(invoiceCode));
+                        foreach (var invoiceDetail in invoiceDetails)
+                        {
+                            var item = _mapper.Map<CartItem>(invoiceDetail);
+                            item.StoreId = invoice.StoreId;
+                        }
+                        var needToPay = totalAmount;
+                        await _invoiceService.SaveChangeAsync();
+
+                        var shippingDetailId = "GH" + invoiceCode;
+                        var shippingDetail = await _shippingDetailService.FindAsync(shippingDetailId);
+                        shippingDetail.Invoice = invoice;
+                        shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
+                        shippingDetail.EstimatedArrival = TimeConverter.TimeConverter.GetVietNamTime().AddDays(3);
+                        shippingDetail.Address = invoiceInfo.Address;
+                        shippingDetail.NeedToPay = needToPay;
+                        shippingDetail.ShipperId = shipperId;
+                        shippingDetail.ShippingDetailStatus = (int)ShippingDetailStatus.Pending;
+                        _shippingDetailService.Update(shippingDetail);
+                    }
+
+                    var result = await _shippingDetailService.SaveChangeAsync();
+                    await _efTransaction.CommitAsync();
+                    if (result) return Ok(new { success = true, message = "Tạo đơn bán giao hàng thành công" });
                 }
             }
             catch (Exception)

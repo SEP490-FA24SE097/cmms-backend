@@ -86,6 +86,7 @@ namespace CMMS.API.Controllers
                         PreCheckOutItemCartModel = invoiceInfo.PreCheckOutItemCartModel,
                         TotalAmount = invoiceInfo.SalePrice,
                     };
+                    paymentRequestData.PhoneReceive = invoiceInfo.PhoneReceive;
                     var paymentUrl = _paymentService.VnpayCreatePayPaymentRequestAsync(paymentRequestData);
                     return Ok(paymentUrl);
 

@@ -134,6 +134,10 @@ namespace CMMS.Infrastructure.Services
         {
             var item = _mapper.Map<AddItemModel>(cartItem);
             var storeInventory = await GetItemInStoreAsync(item);
+            if (storeInventory.SoldQuantity == null)
+            {
+                storeInventory.SoldQuantity = 0;
+            }
             var conversionRate = await GetConversionRate(cartItem.MaterialId, cartItem.VariantId);
             var orderQuantity = conversionRate == null ? cartItem.Quantity : cartItem.Quantity * conversionRate;
             if (storeInventory != null)

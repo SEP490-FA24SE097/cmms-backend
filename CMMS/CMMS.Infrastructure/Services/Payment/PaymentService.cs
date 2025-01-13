@@ -210,6 +210,7 @@ namespace CMMS.Infrastructure.Services.Payment
                         var shippingDetail = new ShippingDetail();
                         shippingDetail.Id = "GH" + invoiceCode;
                         shippingDetail.Invoice = invoice;
+                        shippingDetail.NeedToPay = storeInvoice.FinalPrice;
                         shippingDetail.PhoneReceive = invoiceInfo.PhoneReceive;
                         shippingDetail.EstimatedArrival = TimeConverter.GetVietNamTime().AddDays(3);
                         shippingDetail.Address = customerAddress;

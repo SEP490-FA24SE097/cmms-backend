@@ -10,5 +10,6 @@ namespace CMMS.Core.Enums
     {
         QuickSale = 0,
         DeliverySale = 1,
+        UpdateInvoice = 2,
     }
 }
